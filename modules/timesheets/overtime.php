@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('timesheets.approve_ot');
+requirePermission('timesheets.approve_ot', 'view');
 
 $pageTitle  = 'Overtime Approvals';
 $activeMenu = 'timesheets';
@@ -23,6 +23,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
     $reason   = trim($_POST['reason'] ?? '');
 
     if ($otId && in_array($action,['approve','reject'])) {
+        // The page-level gate above only checks can_view — approving/rejecting
+        // overtime is a distinct, higher-privilege action and must be checked
+        // explicitly here rather than assumed from page access (KOM-010/H-04).
+        requirePermission('timesheets.approve_ot', 'approve');
         $otStmt = db()->prepare("SELECT * FROM overtime_records WHERE id=?");
         $otStmt->execute([$otId]);
         $ot = $otStmt->fetch();

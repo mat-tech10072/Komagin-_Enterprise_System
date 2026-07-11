@@ -5,7 +5,7 @@ require_once dirname(dirname(dirname(__FILE__))) . '/config/database.php';
 require_once dirname(dirname(dirname(__FILE__))) . '/config/functions.php';
 
 requireLogin();
-requirePermission('consultants.delete');
+requirePermission('consultants.delete', 'delete');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !validateCsrfToken($_POST['csrf_token'] ?? '')) {
     setFlash('error', 'Invalid request.');

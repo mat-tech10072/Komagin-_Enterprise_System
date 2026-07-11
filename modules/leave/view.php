@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('leave.view');
+requirePermission('leave.view', 'view');
 
 $id = (int)($_GET['id'] ?? 0);
 if (!$id) { header('Location: ' . APP_URL . '/modules/leave/index.php'); exit; }
@@ -32,7 +32,7 @@ if ($_SESSION['user_role'] === 'employee') {
     }
 }
 
-$isHR = in_array($_SESSION['user_role'], ['super_admin','hr_manager','hr_officer']);
+$isHR = canApprove('leave.approve');
 $pageTitle  = 'Leave Application';
 $activeMenu = 'leave';
 

@@ -260,7 +260,7 @@ require_once dirname(dirname(dirname(__FILE__))) . '/includes/header.php';
                         </div>
                     </div>
 
-                    <?php if (in_array($_SESSION['user_role'] ?? '', ['super_admin','hr_manager'])): ?>
+                    <?php if (canEdit('temp_employees.edit')): ?>
                     <div class="border-top mt-3 pt-3">
                         <label class="form-label form-label-sm fw-semibold d-block mb-2">
                             Attendance Method

@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('documents.view');
+requirePermission('documents.view', 'view');
 
 $pageTitle  = 'Documents';
 $activeMenu = 'documents';
@@ -134,7 +134,7 @@ $expiringSoon = db()->query("SELECT ed.document_name, e.first_name, e.last_name,
                 <td>
                     <div class="table-actions">
                         <a href="<?= APP_URL ?>/<?= e($doc['file_path']) ?>" class="btn btn-ghost btn-sm" target="_blank">View</a>
-                        <?php if (!$doc['is_verified'] && in_array($_SESSION['user_role'],['super_admin','hr_manager','hr_officer'])): ?>
+                        <?php if (!$doc['is_verified'] && canApprove('documents.verify')): ?>
                         <form method="POST" action="<?= APP_URL ?>/modules/documents/verify.php" style="display:inline;">
                             <input type="hidden" name="csrf_token" value="<?= generateCsrfToken() ?>">
                             <input type="hidden" name="doc_id" value="<?= $doc['id'] ?>">

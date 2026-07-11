@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../auth/session.php';
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../config/functions.php';
-requirePermission('payroll.deductions');
+requirePermission('payroll.deductions', 'view');
 
 $pageTitle  = 'Payroll Deductions';
 $activeMenu = 'payroll_deductions';
@@ -18,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = $_POST['action'] ?? '';
 
         if ($action === 'create') {
+            requirePermission('payroll.deductions', 'create');
             $empId      = (int)($_POST['employee_id']??0);
             $type       = $_POST['deduction_type'] ?? '';
             $desc       = trim($_POST['description']??'');
@@ -45,12 +46,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $success = 'Deduction added.';
             }
         } elseif ($action === 'toggle') {
+            requirePermission('payroll.deductions', 'edit');
             $id = (int)($_POST['id']??0);
             db()->prepare("UPDATE payroll_deductions SET is_active = NOT is_active WHERE id=?")->execute([$id]);
+            auditLog('payroll_deductions','toggle',$id);
             $success = 'Deduction status toggled.';
         } elseif ($action === 'delete') {
+            // Deleting a deduction (garnishee, loan, pension) is destructive and must be
+            // gated on can_delete specifically — the matrix intentionally denies this to
+            // payroll_officer/payroll_manager even though they can view/create/edit.
+            requirePermission('payroll.deductions', 'delete');
             $id = (int)($_POST['id']??0);
             db()->prepare("DELETE FROM payroll_deductions WHERE id=?")->execute([$id]);
+            auditLog('payroll_deductions','delete',$id);
             $success = 'Deduction removed.';
         }
     }

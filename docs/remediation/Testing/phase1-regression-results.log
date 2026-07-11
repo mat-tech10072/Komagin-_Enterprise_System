@@ -1,0 +1,44 @@
+Phase 1 Regression Run — Sat Jul 11 20:38:32 WPST 2026
+======================================
+--- Logging in all test accounts ---
+
+--- KOM-023: hr_officer/hrofficer role typo fix ---
+PASS | hr_officer can now access Temp Employees (was blocked pre-fix) | expected=200 got=200
+PASS | hr_officer can now access Consultants (was blocked pre-fix) | expected=200 got=200
+
+--- KOM-019/NH-02: Activity Log centralized permission ---
+PASS | super_admin can access Activity Log | expected=200 got=200
+PASS | hr_manager still blocked from Activity Log (not granted — mechanism changed, access unchanged) | expected=302 got=302
+PASS | hr_officer still blocked from Activity Log | expected=302 got=302
+PASS | payroll_officer blocked from Activity Log | expected=302 got=302
+
+--- KOM-001/C-01: Approvals — org-wide view now permission-gated ---
+PASS | super_admin sees All Workflows section
+PASS | hr_manager sees All Workflows section (approvals.manage_all granted)
+PASS | hr_officer does NOT see All Workflows section (not granted approvals.manage_all)
+
+--- KOM-009/H-03 regression (leave approve display) + hardcoded-role sweep ---
+PASS | hr_manager can access Leave (canApprove-based display, no fatal error) | expected=200 got=200
+PASS | hr_manager can view a leave application | expected=200 got=200
+
+--- KOM-007/H-01 regression: leave.apply now permission-gated ---
+PASS | hr_manager (has leave.apply) can reach Apply for Leave | expected=200 got=200
+PASS | payroll_officer (no leave.apply grant) is now blocked from Apply for Leave — NEW protection, page previously had no permission gate at all | expected=302 got=302
+
+--- KOM-014/H-09: Payroll deduction/savings delete requires can_delete ---
+PASS | payroll_officer can view deductions (can_view=1) | expected=200 got=200
+PASS | payroll_officer delete attempt on deductions correctly denied (can_delete=0)
+
+--- KOM-011/H-05: Executive report payroll masking ---
+PASS | super_admin sees UNmasked payroll totals (bypass)
+PASS | payroll_officer (has payroll.view) sees unmasked totals
+
+--- KOM-018/NH-01: Dashboard Recent Activity gated ---
+PASS | super_admin dashboard renders Recent Activity card
+PASS | payroll_officer sees empty Recent Activity (no audit.view/activity_log.view grant)
+
+--- KOM-015/H-10: Server-side role validation on user creation ---
+PASS | hr_manager could NOT create a super_admin user via crafted POST (isValidAssignableRole blocked it)
+
+======================================
+TOTAL: 20 passed, 0 failed

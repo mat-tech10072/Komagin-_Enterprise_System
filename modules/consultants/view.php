@@ -5,7 +5,7 @@ require_once dirname(dirname(dirname(__FILE__))) . '/config/database.php';
 require_once dirname(dirname(dirname(__FILE__))) . '/config/functions.php';
 
 requireLogin();
-requirePermission('consultants.view');
+requirePermission('consultants.view', 'view');
 $activeMenu = 'consultants';
 
 $id = (int)($_GET['id'] ?? 0);

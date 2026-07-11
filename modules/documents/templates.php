@@ -6,7 +6,7 @@ require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 require_once dirname(dirname(__DIR__)) . '/config/DocumentEngine.php';
 
 requireLogin();
-requirePermission('documents.view');
+requirePermission('documents.view', 'view');
 
 $pageTitle  = 'Document Templates';
 $activeMenu = 'documents';

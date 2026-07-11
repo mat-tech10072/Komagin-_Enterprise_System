@@ -4,13 +4,7 @@ require_once dirname(dirname(__DIR__)) . '/config/config.php';
 require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
-requireLogin();
-
-// Super admin only
-if ($_SESSION['user_role'] !== 'super_admin') {
-    header('Location: ' . APP_URL . '/dashboard.php');
-    exit;
-}
+requirePermission('activity_log.view', 'view');
 
 $pageTitle  = 'Activity Logs';
 $activeMenu = 'activity_log';

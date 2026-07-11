@@ -6,7 +6,7 @@ require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 require_once dirname(dirname(__DIR__)) . '/config/DocumentEngine.php';
 
 requireLogin();
-requirePermission('documents.view');
+requirePermission('documents.view', 'view');
 
 $pageTitle  = 'Generate Document';
 $activeMenu = 'documents';
@@ -67,6 +67,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
                 $tplFull->execute([$tplId]);
                 $tpl = $tplFull->fetch(PDO::FETCH_ASSOC) ?: $tplRow;
             } elseif ($postAction === 'save') {
+                // Previewing a document only requires documents.view (the page-level
+                // gate above); persisting one — a record containing employee PII that
+                // now exists independently of the page — requires create-level rights,
+                // checked here rather than assumed from the page load.
+                requirePermission('documents.upload', 'create');
                 $status = $tplRow['requires_approval'] ? 'pending_approval' : 'draft';
                 db()->prepare("INSERT INTO generated_documents (template_id, employee_id, title, body_html, status, generated_by)
                     VALUES (?,?,?,?,?,?)")

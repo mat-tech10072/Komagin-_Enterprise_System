@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('employees.view');
+requirePermission('employees.view', 'view');
 
 $id = (int)($_GET['id'] ?? 0);
 if (!$id) { header('Location: ' . APP_URL . '/modules/employees/index.php'); exit; }

@@ -3,7 +3,17 @@
  * Komagin HR — Approval Workflow Engine
  * Creates, advances, and resolves approval workflows
  * across leave, payroll, documents, and HR actions.
+ *
+ * act() is the authorization boundary for every approval/rejection in the
+ * system. It does not trust its caller: it independently re-derives whether
+ * the acting user is allowed to act on the current stage before writing
+ * anything, and it audits every attempt — allowed or blocked.
  */
+
+/** Thrown by ApprovalEngine::act() when the caller is not authorized to
+ *  act on a workflow's current stage. Callers must catch this explicitly —
+ *  there is no boolean "did it work?" return left to silently ignore. */
+class ApprovalAuthorizationException extends \RuntimeException {}
 
 class ApprovalEngine
 {
@@ -110,19 +120,61 @@ class ApprovalEngine
     }
 
     // ── Advance a stage (approve or reject) ───────────────────────────────
+    //
+    // Every precondition below is enforced here, inside the engine, not left
+    // to the calling page. A caller that got any of this wrong (wrong role,
+    // stale stage, workflow already closed, approving its own request) is
+    // rejected with a typed exception and the attempt is audited either way.
     public function act(
         int    $workflowId,
         int    $actingUserId,
+        string $actingUserRole,
         string $action,     // 'approve' or 'reject'
         string $comments    = ''
     ): bool {
+        if (!in_array($action, ['approve', 'reject'], true)) {
+            throw new \InvalidArgumentException("Invalid approval action: $action");
+        }
+
         $workflow = $this->getWorkflow($workflowId);
-        if (!$workflow || !in_array($workflow['status'], ['pending','in_review'])) return false;
+        if (!$workflow) {
+            $this->auditAttempt($workflowId, $actingUserId, $action, false, 'workflow_not_found');
+            throw new ApprovalAuthorizationException('Workflow not found.');
+        }
+        if (!in_array($workflow['status'], ['pending', 'in_review'], true)) {
+            $this->auditAttempt($workflowId, $actingUserId, $action, false, "workflow_not_actionable:{$workflow['status']}");
+            throw new ApprovalAuthorizationException('This workflow is no longer awaiting action (current status: ' . $workflow['status'] . ').');
+        }
 
         $stage = $this->getCurrentStage($workflowId, $workflow['current_stage']);
-        if (!$stage) return false;
+        if (!$stage) {
+            $this->auditAttempt($workflowId, $actingUserId, $action, false, 'current_stage_not_found');
+            throw new ApprovalAuthorizationException('Current approval stage could not be located.');
+        }
+        // Duplicate-approval prevention: this exact stage may only be acted on once.
+        if ($stage['status'] !== 'pending') {
+            $this->auditAttempt($workflowId, $actingUserId, $action, false, "stage_already_actioned:{$stage['status']}");
+            throw new ApprovalAuthorizationException('This approval stage has already been actioned.');
+        }
+        // Separation of duties: the initiator of a workflow may never be the one who resolves it,
+        // regardless of what role they hold — this is a control on the person, not a permission.
+        if ((int)$workflow['initiated_by'] === $actingUserId) {
+            $this->auditAttempt($workflowId, $actingUserId, $action, false, 'self_approval_blocked');
+            throw new ApprovalAuthorizationException('You cannot approve or reject a workflow you initiated yourself.');
+        }
+        // Correct approver: either the stage's designated role, or a specific assigned
+        // approver_user_id. super_admin is deliberately NOT exempted from this check —
+        // approval authority is a separation-of-duties control, not a feature permission,
+        // so bypassing it defeats the point of having stages at all.
+        $roleMatches = ($stage['approver_role'] !== null && $stage['approver_role'] === $actingUserRole);
+        $userMatches = ($stage['approver_user_id'] !== null && (int)$stage['approver_user_id'] === $actingUserId);
+        if (!$roleMatches && !$userMatches) {
+            $this->auditAttempt($workflowId, $actingUserId, $action, false,
+                "wrong_approver_role:have={$actingUserRole};need={$stage['approver_role']}");
+            throw new ApprovalAuthorizationException('You are not the assigned approver for this stage.');
+        }
 
-        // Mark stage
+        // All preconditions satisfied — mark the stage.
         $this->db->prepare("UPDATE approval_stages SET status=?, action=?, approver_user_id=?, comments=?, acted_at=NOW() WHERE id=?")
             ->execute([$action === 'approve' ? 'approved' : 'rejected', $action, $actingUserId, $comments, $stage['id']]);
 
@@ -130,6 +182,7 @@ class ApprovalEngine
             $this->db->prepare("UPDATE approval_workflows SET status='rejected', updated_at=NOW() WHERE id=?")
                 ->execute([$workflowId]);
             $this->updateReference($workflow, 'rejected');
+            $this->auditAttempt($workflowId, $actingUserId, $action, true, 'rejected');
             return true;
         }
 
@@ -144,7 +197,25 @@ class ApprovalEngine
                 ->execute([$nextStage, $workflowId]);
         }
 
+        $this->auditAttempt($workflowId, $actingUserId, $action, true, "advanced_to_stage:$nextStage");
         return true;
+    }
+
+    // ── Audit every act() attempt, allowed or blocked ──────────────────────
+    private function auditAttempt(int $workflowId, int $actingUserId, string $action, bool $allowed, string $detail): void
+    {
+        $userName = $_SESSION['user_name'] ?? 'unknown';
+        try {
+            $this->db->prepare("INSERT INTO audit_logs (user_id, user_name, module, action, record_id, reason, ip_address, created_at)
+                VALUES (?,?,?,?,?,?,?,NOW())")
+                ->execute([
+                    $actingUserId, $userName, 'approvals',
+                    $allowed ? "{$action}_workflow" : 'approval_blocked',
+                    $workflowId,
+                    $allowed ? "action={$action};detail={$detail}" : "action={$action};blocked_reason={$detail}",
+                    $_SERVER['REMOTE_ADDR'] ?? null,
+                ]);
+        } catch (\Exception $e) { /* non-fatal — never let audit logging break the approval flow */ }
     }
 
     // ── Cancel a workflow ──────────────────────────────────────────────────

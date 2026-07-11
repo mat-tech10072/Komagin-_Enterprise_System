@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('reports.timesheets');
+requirePermission('reports.timesheets', 'view');
 
 $pageTitle  = 'Timesheet Report';
 $activeMenu = 'reports';

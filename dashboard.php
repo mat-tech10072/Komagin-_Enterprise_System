@@ -92,8 +92,15 @@ try {
                                 WHERE e.status = 'active'
                                 AND NOT EXISTS (SELECT 1 FROM employee_documents d WHERE d.employee_id = e.id AND d.category = 'id_document' AND d.is_deleted = 0)")->fetchColumn();
 
-    // Recent activity (audit logs)
-    $recentActivity = db()->query("SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 8")->fetchAll();
+    // Recent activity (audit logs) — this widget is visible to every logged-in
+    // user regardless of role (the page itself is only gated by requireLogin()),
+    // but audit_logs rows can contain sensitive old/new-value diffs (salary
+    // changes, bank detail edits, role changes) and IP addresses. Only query
+    // it for roles that actually hold audit/activity-log viewing rights;
+    // everyone else simply doesn't get the widget's data at all.
+    $recentActivity = (canView('audit.view') || canView('activity_log.view'))
+        ? db()->query("SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 8")->fetchAll()
+        : [];
 
     // Recent employees
     $recentEmployees = db()->query("SELECT e.*, d.name as dept FROM employees e

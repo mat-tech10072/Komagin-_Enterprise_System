@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../auth/session.php';
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../config/functions.php';
-requirePermission('payroll.reports');
+requirePermission('payroll.reports', 'view');
 
 $pageTitle  = 'Payroll Reports';
 $activeMenu = 'payroll_reports';

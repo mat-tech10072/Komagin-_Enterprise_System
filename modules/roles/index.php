@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('roles.manage');
+requirePermission('roles.manage', 'view');
 
 $pageTitle  = 'Roles & Permissions';
 $activeMenu = 'roles';

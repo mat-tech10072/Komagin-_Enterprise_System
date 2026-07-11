@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('users.manage');
+requirePermission('users.manage', 'view');
 
 $pageTitle  = 'User Management';
 $activeMenu = 'users';
@@ -17,6 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
     $postAction = $_POST['post_action'] ?? '';
 
     if ($postAction === 'add_user') {
+        requirePermission('users.manage', 'create');
+
         $username = trim($_POST['username'] ?? '');
         $email    = trim($_POST['email'] ?? '');
         $role     = $_POST['role'] ?? '';
@@ -25,7 +27,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
 
         if (!$username) $errors[] = 'Username required.';
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Valid email required.';
-        if (!$role) $errors[] = 'Role required.';
+        // Server-side role validation: the role must be a real, known role, AND
+        // one the current admin is actually authorized to grant. A client-side
+        // <select> only controls what's convenient to pick — it does not stop
+        // a crafted POST body from naming an arbitrary role string, including
+        // 'super_admin', so this check must happen here regardless of what
+        // the form offered.
+        if (!$role || !isValidAssignableRole($role)) $errors[] = 'A valid role you are authorized to grant is required.';
         if (strlen($pass) < 6) $errors[] = 'Password must be at least 6 characters.';
 
         if (empty($errors)) {
@@ -43,22 +51,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
     }
 
     if ($postAction === 'toggle_user') {
+        requirePermission('users.manage', 'edit');
         $uid = (int)($_POST['user_id'] ?? 0);
-        if ($uid && $uid !== (int)$_SESSION['user_id']) {
+        // An admin may never act on a target whose role they wouldn't be
+        // allowed to grant in the first place — this stops an hr_manager
+        // (who holds users.manage) from disabling a super_admin account.
+        $targetRole = $uid ? db()->prepare("SELECT role FROM users WHERE id=?") : null;
+        if ($targetRole) { $targetRole->execute([$uid]); $targetRole = $targetRole->fetchColumn(); }
+        if ($uid && $uid !== (int)$_SESSION['user_id'] && $targetRole && isValidAssignableRole($targetRole)) {
             $curr = db()->prepare("SELECT is_active FROM users WHERE id=?");
             $curr->execute([$uid]);
             $u = $curr->fetch();
             db()->prepare("UPDATE users SET is_active=? WHERE id=?")->execute([$u['is_active'] ? 0 : 1, $uid]);
             auditLog('users','toggle_user',$uid);
             setFlash('success','User status updated.');
+        } else {
+            setFlash('error','You are not authorized to change this user.');
         }
         header('Location: ' . APP_URL . '/modules/users/index.php'); exit;
     }
 
     if ($postAction === 'reset_password') {
+        requirePermission('users.manage', 'edit');
         $uid = (int)($_POST['user_id'] ?? 0);
         $newpass = trim($_POST['new_password'] ?? '');
-        if ($uid && strlen($newpass) >= 6) {
+        $targetRole = $uid ? db()->prepare("SELECT role FROM users WHERE id=?") : null;
+        if ($targetRole) { $targetRole->execute([$uid]); $targetRole = $targetRole->fetchColumn(); }
+        if ($uid && strlen($newpass) >= 6 && $targetRole && isValidAssignableRole($targetRole)) {
             $hash = password_hash($newpass, PASSWORD_BCRYPT, ['cost'=>12]);
             db()->prepare("UPDATE users SET password_hash=?, must_change_password=1 WHERE id=?")->execute([$hash,$uid]);
             auditLog('users','reset_password',$uid,null,null,'Admin reset password');
@@ -71,14 +90,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
 $users = db()->query("SELECT u.*, e.first_name, e.last_name, e.employee_number FROM users u LEFT JOIN employees e ON u.employee_id=e.id ORDER BY u.created_at DESC")->fetchAll();
 $employees = db()->query("SELECT id, CONCAT(first_name,' ',last_name,' (',employee_number,')') as name FROM employees WHERE status='active' ORDER BY first_name")->fetchAll();
 
+// Every role in VALID_USER_ROLES (config/functions.php) needs a label here —
+// this is a display map, not an authorization control. What the CURRENT
+// admin may actually grant is computed separately below via assignableRoles(),
+// so an incomplete list here previously meant some roles (payroll_manager,
+// payroll_officer, recruitment_officer, training_officer, kiosk_terminal)
+// could never be selected when creating a user at all.
 $roleLabels = [
-    'super_admin'   => ['Super Admin',  'badge-danger'],
-    'hr_manager'    => ['HR Manager',   'badge-primary'],
-    'hr_officer'    => ['HR Officer',   'badge-info'],
-    'supervisor'    => ['Supervisor',   'badge-warning'],
-    'employee'      => ['Employee',     'badge-secondary'],
-    'finance_viewer'=> ['Finance View', 'badge-secondary'],
+    'super_admin'         => ['Super Admin',        'badge-danger'],
+    'hr_manager'          => ['HR Manager',         'badge-primary'],
+    'hr_officer'          => ['HR Officer',         'badge-info'],
+    'supervisor'          => ['Supervisor',         'badge-warning'],
+    'employee'            => ['Employee',           'badge-secondary'],
+    'finance_viewer'      => ['Finance Viewer',     'badge-secondary'],
+    'payroll_manager'     => ['Payroll Manager',    'badge-primary'],
+    'payroll_officer'     => ['Payroll Officer',    'badge-info'],
+    'recruitment_officer' => ['Recruitment Officer','badge-info'],
+    'training_officer'    => ['Training Officer',   'badge-info'],
+    'kiosk_terminal'      => ['Kiosk Terminal',     'badge-secondary'],
 ];
+
+// Roles the CURRENTLY LOGGED-IN admin is authorized to grant — server-side
+// truth for both the dropdown options and the add_user validation above.
+$grantableRoles = assignableRoles();
 
 $csrf = generateCsrfToken();
 ?>
@@ -202,8 +236,8 @@ $csrf = generateCsrfToken();
                         <label class="form-label">Role <span class="required">*</span></label>
                         <select class="form-select" name="role" required>
                             <option value="">Select role</option>
-                            <?php foreach ($roleLabels as $rv => [$rl, $_]): ?>
-                                <option value="<?= $rv ?>"><?= $rl ?></option>
+                            <?php foreach ($grantableRoles as $rv): ?>
+                                <option value="<?= e($rv) ?>"><?= e($roleLabels[$rv][0] ?? $rv) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>

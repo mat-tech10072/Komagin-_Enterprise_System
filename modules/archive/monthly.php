@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('archive.view');
+requirePermission('archive.view', 'view');
 
 $pageTitle  = 'Monthly Archive';
 $activeMenu = 'archive_monthly';
@@ -152,7 +152,7 @@ include $headerInclude;
                         <?php if ($ar['file_path']): ?>
                             <a href="<?= APP_URL ?>/<?= e($ar['file_path']) ?>" class="btn btn-ghost btn-sm">Download</a>
                         <?php endif; ?>
-                        <?php if (!$ar['is_locked'] && in_array($_SESSION['user_role'],['super_admin','hr_manager'])): ?>
+                        <?php if (!$ar['is_locked'] && canEdit('archive.generate')): ?>
                         <form method="POST" style="display:inline;">
                             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
                             <input type="hidden" name="lock_id" value="<?= $ar['id'] ?>">

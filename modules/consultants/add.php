@@ -5,7 +5,7 @@ require_once dirname(dirname(dirname(__FILE__))) . '/config/database.php';
 require_once dirname(dirname(dirname(__FILE__))) . '/config/functions.php';
 
 requireLogin();
-requirePermission('consultants.create');
+requirePermission('consultants.create', 'create');
 
 $activeMenu = 'consultants';
 $errors = [];

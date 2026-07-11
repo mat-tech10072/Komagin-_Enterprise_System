@@ -19,7 +19,7 @@ $like = '%' . $q . '%';
 $results = [];
 
 // Employees
-if (hasPermission('employees.view')) {
+if (hasPermission('employees.view', 'view')) {
     $stmt = db()->prepare("SELECT id, employee_number, first_name, last_name, status
         FROM employees WHERE (first_name LIKE ? OR last_name LIKE ? OR employee_number LIKE ?) AND status != 'archived'
         ORDER BY first_name LIMIT 5");
@@ -36,7 +36,7 @@ if (hasPermission('employees.view')) {
 }
 
 // Documents (generated)
-if (hasPermission('documents.view')) {
+if (hasPermission('documents.view', 'view')) {
     $stmt = db()->prepare("SELECT gd.id, gd.title, e.first_name, e.last_name, gd.status
         FROM generated_documents gd JOIN employees e ON gd.employee_id=e.id
         WHERE gd.title LIKE ? LIMIT 4");
@@ -53,7 +53,7 @@ if (hasPermission('documents.view')) {
 }
 
 // Document templates
-if (hasPermission('documents.view')) {
+if (hasPermission('documents.view', 'view')) {
     $stmt = db()->prepare("SELECT id, title, description FROM doc_templates WHERE title LIKE ? AND is_active=1 LIMIT 3");
     $stmt->execute([$like]);
     foreach ($stmt->fetchAll() as $r) {
@@ -68,7 +68,7 @@ if (hasPermission('documents.view')) {
 }
 
 // Audit logs
-if (hasPermission('audit.view')) {
+if (hasPermission('audit.view', 'view')) {
     $stmt = db()->prepare("SELECT id, module, action, reason FROM audit_logs WHERE reason LIKE ? OR action LIKE ? ORDER BY created_at DESC LIMIT 3");
     $stmt->execute([$like, $like]);
     foreach ($stmt->fetchAll() as $r) {

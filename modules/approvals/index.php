@@ -5,6 +5,15 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 require_once dirname(dirname(__DIR__)) . '/config/ApprovalEngine.php';
 
+// Approvals is a per-stage workflow inbox, not a single-permission feature —
+// a supervisor, hr_manager, hr_officer, payroll_officer, and payroll_manager
+// can each be the assigned approver for different workflow types, so the page
+// itself is reachable by any authenticated user (to see work assigned to
+// them). Authorization for the actual approve/reject action is enforced by
+// ApprovalEngine::act() itself (role/assignee match, workflow state, stage
+// state, separation of duties) — the engine, not this page, is the
+// authorization boundary, consistent with record-level checks belonging
+// next to the record rather than the page that happens to display it.
 requireLogin();
 
 $pageTitle  = 'Approvals';
@@ -20,13 +29,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
     $action  = $_POST['action'] ?? '';
     $comments= trim($_POST['comments'] ?? '');
 
-    if ($wfId && in_array($action, ['approve','reject'])) {
-        $success = $engine->act($wfId, $userId, $action, $comments);
-        if ($success) {
-            auditLog('approvals', $action.'_workflow', $wfId, null, $action, $comments);
+    if ($wfId && in_array($action, ['approve','reject'], true)) {
+        try {
+            $engine->act($wfId, $userId, $role, $action, $comments);
             setFlash('success', 'Workflow '.ucfirst($action).'d successfully.');
-        } else {
-            setFlash('error', 'Action failed — you may not have permission for this stage.');
+        } catch (ApprovalAuthorizationException $e) {
+            setFlash('error', $e->getMessage());
         }
     }
     header('Location: ' . APP_URL . '/modules/approvals/index.php'); exit;
@@ -39,7 +47,7 @@ $myPending = $engine->getPendingForUser($userId, $role);
 $filterType   = $_GET['type']   ?? '';
 $filterStatus = $_GET['status'] ?? 'pending';
 $allWorkflows = [];
-if (in_array($role, ['super_admin','hr_manager'])) {
+if (canView('approvals.manage_all')) {
     $allWorkflows = $engine->getAll(['type'=>$filterType ?: null, 'status'=>$filterStatus ?: null]);
 }
 
@@ -105,7 +113,7 @@ $csrf = generateCsrfToken();
 <?php endif; ?>
 
 <!-- All Workflows (HR Manager / Super Admin) -->
-<?php if (in_array($role, ['super_admin','hr_manager'])): ?>
+<?php if (canView('approvals.manage_all')): ?>
 <div class="card">
     <div class="card-header">
         <span class="card-title">All Workflows</span>

@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('timesheets.approve');
+requirePermission('timesheets.approve', 'view');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !verifyCsrfToken($_POST['csrf_token'] ?? '')) {
     header('Location: ' . APP_URL . '/modules/timesheets/index.php');
@@ -25,6 +25,11 @@ $stmt->execute([$id]); $att = $stmt->fetch();
 if (!$att) { setFlash('error','Record not found.'); header('Location: ' . APP_URL . '/modules/timesheets/index.php'); exit; }
 
 if ($action === 'approve') {
+    // The page-level gate above only checks can_view — approving a timesheet
+    // is a distinct, higher-privilege action and must be checked explicitly
+    // here rather than assumed from page access (KOM-010/H-04). lock/unlock
+    // below already did this correctly; approve was the one branch that didn't.
+    requirePermission('timesheets.approve', 'approve');
     if ($att['is_locked']) { setFlash('error','Cannot approve locked record.'); header('Location: ' . APP_URL . '/modules/timesheets/index.php'); exit; }
     db()->prepare("UPDATE attendance SET is_approved=1, approved_by=?, approved_at=NOW() WHERE id=?")
         ->execute([$_SESSION['user_id'], $id]);

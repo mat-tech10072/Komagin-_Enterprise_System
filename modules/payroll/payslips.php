@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../auth/session.php';
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../config/functions.php';
-requirePermission('payroll.payslips');
+requirePermission('payroll.payslips', 'view');
 
 $pageTitle  = 'Payslip Management';
 $activeMenu = 'payroll_payslips';

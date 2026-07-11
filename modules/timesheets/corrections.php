@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('timesheets.view');
+requirePermission('timesheets.view', 'view');
 
 $pageTitle  = 'Correction Requests';
 $activeMenu = 'timesheets';
@@ -14,7 +14,7 @@ $status = $_GET['status'] ?? 'pending';
 $page   = max(1,(int)($_GET['page'] ?? 1));
 $perPage= 25;
 
-$isHR = in_array($_SESSION['user_role'],['super_admin','hr_manager','hr_officer']);
+$isHR = canApprove('timesheets.approve');
 
 // Handle approve/reject
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isHR && verifyCsrfToken($_POST['csrf_token'] ?? '')) {

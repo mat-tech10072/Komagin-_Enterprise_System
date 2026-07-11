@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('employees.view');
+requirePermission('employees.view', 'view');
 
 $id = (int)($_GET['id'] ?? 0);
 if (!$id) { header('Location: ' . APP_URL . '/modules/employees/index.php'); exit; }
@@ -766,7 +766,7 @@ $activeTab = $_GET['tab'] ?? 'overview';
 <?php endif; ?>
 
 <!-- Generate Self-Service Update Link Modal -->
-<?php if (in_array($_SESSION['user_role'],['super_admin','hr_manager','hr_officer'])): ?>
+<?php if (canShare('employees.update_links')): ?>
 <div class="modal-overlay" id="generateLinkModal">
     <div class="modal">
         <div class="modal-header">

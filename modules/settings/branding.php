@@ -5,7 +5,15 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('branding.letterheads');
+// Page-level gate: reachable if the user can view ANY of the four asset
+// types — each POST action below then re-checks the specific slug/action
+// for what it actually does (see the 12 requirePermission() calls in the
+// action handlers), so a role granted only e.g. branding.signatures can
+// open the page but cannot touch letterheads/stamps/watermarks.
+if (!canView('branding.letterheads') && !canView('branding.signatures')
+    && !canView('branding.stamps') && !canView('branding.watermarks')) {
+    requirePermission('branding.letterheads', 'view'); // deliberately fails — produces the standard denial/audit path
+}
 
 $pageTitle  = 'Branding & Assets';
 $activeMenu = 'settings';
@@ -21,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
 
     // ── LETTERHEADS ────────────────────────────────────────────────────────
     if ($act === 'save_letterhead') {
+        requirePermission('branding.letterheads', 'edit');
         $id       = (int)($_POST['id'] ?? 0);
         $name     = trim($_POST['name'] ?? '');
         $type     = $_POST['type'] ?? 'official';
@@ -61,12 +70,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
         header('Location: ?tab=letterheads'); exit;
 
     } elseif ($act === 'toggle_letterhead') {
+        requirePermission('branding.letterheads', 'edit');
         $id = (int)($_POST['id'] ?? 0);
         db()->prepare("UPDATE company_letterheads SET is_active = NOT is_active WHERE id=?")->execute([$id]);
         auditLog('branding','toggle_letterhead',$id);
         header('Location: ?tab=letterheads'); exit;
 
     } elseif ($act === 'delete_letterhead') {
+        requirePermission('branding.letterheads', 'delete');
         $id = (int)($_POST['id'] ?? 0);
         db()->prepare("DELETE FROM company_letterheads WHERE id=?")->execute([$id]);
         auditLog('branding','delete_letterhead',$id);
@@ -75,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
 
     // ── SIGNATURES ─────────────────────────────────────────────────────────
     } elseif ($act === 'save_signature') {
+        requirePermission('branding.signatures', 'edit');
         $id    = (int)($_POST['id'] ?? 0);
         $name  = trim($_POST['signatory_name'] ?? '');
         $desig = trim($_POST['designation'] ?? '');
@@ -109,11 +121,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
         header('Location: ?tab=signatures'); exit;
 
     } elseif ($act === 'toggle_signature') {
+        requirePermission('branding.signatures', 'edit');
         $id = (int)($_POST['id'] ?? 0);
         db()->prepare("UPDATE company_signatures SET is_active = NOT is_active WHERE id=?")->execute([$id]);
         header('Location: ?tab=signatures'); exit;
 
     } elseif ($act === 'delete_signature') {
+        requirePermission('branding.signatures', 'delete');
         $id = (int)($_POST['id'] ?? 0);
         db()->prepare("DELETE FROM company_signatures WHERE id=?")->execute([$id]);
         auditLog('branding','delete_signature',$id);
@@ -122,6 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
 
     // ── STAMPS ─────────────────────────────────────────────────────────────
     } elseif ($act === 'save_stamp') {
+        requirePermission('branding.stamps', 'edit');
         $id   = (int)($_POST['id'] ?? 0);
         $name = trim($_POST['name'] ?? '');
 
@@ -150,16 +165,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
         header('Location: ?tab=stamps'); exit;
 
     } elseif ($act === 'toggle_stamp') {
+        requirePermission('branding.stamps', 'edit');
         db()->prepare("UPDATE company_stamps SET is_active = NOT is_active WHERE id=?")->execute([(int)($_POST['id']??0)]);
         header('Location: ?tab=stamps'); exit;
 
     } elseif ($act === 'delete_stamp') {
+        requirePermission('branding.stamps', 'delete');
         $id = (int)($_POST['id'] ?? 0);
         db()->prepare("DELETE FROM company_stamps WHERE id=?")->execute([$id]);
         setFlash('success','Stamp deleted.'); header('Location: ?tab=stamps'); exit;
 
     // ── WATERMARKS ─────────────────────────────────────────────────────────
     } elseif ($act === 'save_watermark') {
+        requirePermission('branding.watermarks', 'edit');
         $id       = (int)($_POST['id'] ?? 0);
         $name     = trim($_POST['name'] ?? '');
         $type     = $_POST['wm_type'] ?? 'text';
@@ -190,10 +208,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
         header('Location: ?tab=watermarks'); exit;
 
     } elseif ($act === 'toggle_watermark') {
+        requirePermission('branding.watermarks', 'edit');
         db()->prepare("UPDATE company_watermarks SET is_active = NOT is_active WHERE id=?")->execute([(int)($_POST['id']??0)]);
         header('Location: ?tab=watermarks'); exit;
 
     } elseif ($act === 'delete_watermark') {
+        requirePermission('branding.watermarks', 'delete');
         db()->prepare("DELETE FROM company_watermarks WHERE id=?")->execute([(int)($_POST['id']??0)]);
         setFlash('success','Watermark deleted.'); header('Location: ?tab=watermarks'); exit;
     }

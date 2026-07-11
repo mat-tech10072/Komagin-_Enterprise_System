@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('employees.view');
+requirePermission('employees.view', 'view');
 
 $pageTitle  = 'Employees';
 $activeMenu = 'employees';

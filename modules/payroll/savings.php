@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../auth/session.php';
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../config/functions.php';
-requirePermission('payroll.savings');
+requirePermission('payroll.savings', 'view');
 
 $pageTitle  = 'Savings Management';
 $activeMenu = 'payroll_savings';
@@ -39,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $editId = (int)($_POST['edit_id']??0);
                 if ($editId) {
+                    requirePermission('payroll.savings', 'edit');
                     db()->prepare("UPDATE employee_savings SET savings_type=?,fund_name=?,target_amount=?,current_balance=?,
                         employee_rate_pct=?,employer_rate_pct=?,monthly_employee_contrib=?,monthly_employer_contrib=?,
                         total_employee_contrib=?,total_employer_contrib=?,start_date=?,projected_end_date=?,notes=?
@@ -46,8 +47,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $type,$fund,$target,$balance,$empRate,$erRate,$empRateR,$erRateR,
                         $totEmp,$totEr,$start,$projEnd,$notes,$editId,$empId
                     ]);
+                    auditLog('payroll_savings','update',$editId);
                     $success = 'Savings record updated.';
                 } else {
+                    requirePermission('payroll.savings', 'create');
                     db()->prepare("INSERT INTO employee_savings
                         (employee_id,savings_type,fund_name,target_amount,current_balance,employee_rate_pct,
                          employer_rate_pct,monthly_employee_contrib,monthly_employer_contrib,
@@ -55,20 +58,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
                         ->execute([$empId,$type,$fund,$target,$balance,$empRate,$erRate,$empRateR,$erRateR,
                                    $totEmp,$totEr,$start,$projEnd,$notes,$_SESSION['user_id']]);
+                    auditLog('payroll_savings','create',(int)db()->lastInsertId());
                     $success = 'Savings record added.';
                 }
             }
         } elseif ($action === 'update_balance') {
+            requirePermission('payroll.savings', 'edit');
             $id  = (int)($_POST['id']??0);
             $bal = (float)($_POST['current_balance']??0);
             $emp = (float)($_POST['total_employee_contrib']??0);
             $er  = (float)($_POST['total_employer_contrib']??0);
             db()->prepare("UPDATE employee_savings SET current_balance=?,total_employee_contrib=?,
                 total_employer_contrib=? WHERE id=?")->execute([$bal,$emp,$er,$id]);
+            auditLog('payroll_savings','update_balance',$id);
             $success = 'Balance updated.';
         } elseif ($action === 'delete') {
+            // Deleting a savings/pension record is destructive and must be gated on
+            // can_delete specifically — the matrix intentionally denies this to
+            // payroll_officer/payroll_manager even though they can view/create/edit.
+            requirePermission('payroll.savings', 'delete');
             $id = (int)($_POST['id']??0);
             db()->prepare("DELETE FROM employee_savings WHERE id=?")->execute([$id]);
+            auditLog('payroll_savings','delete',$id);
             $success = 'Record deleted.';
         }
     }

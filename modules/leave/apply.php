@@ -5,7 +5,12 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 require_once dirname(dirname(__DIR__)) . '/config/ApprovalEngine.php';
 
-requireLogin();
+// Previously this page only called requireLogin() — any authenticated user,
+// including roles with zero leave-related grants at all (payroll, finance,
+// recruitment, training, kiosk), could reach it. leave.apply is a seeded
+// permission (granted to employee/supervisor/hr_officer/hr_manager) that was
+// never actually checked anywhere in code until now.
+requirePermission('leave.apply', 'create');
 
 $pageTitle  = 'Apply for Leave';
 $activeMenu = 'leave';
@@ -13,7 +18,11 @@ $errors     = [];
 
 $empId = (int)($_GET['emp'] ?? 0);
 
-// If not HR, employee can only apply for themselves
+// Whether the current user may pick an arbitrary employee to apply on behalf
+// of, versus only their own linked record, is a deliberate business rule
+// (HR staff manage leave org-wide; supervisors/employees only their own) —
+// not a gap in the permission matrix, so it stays a role check rather than
+// a permission slug. See Permission Consistency Report for this reasoning.
 $isHR = in_array($_SESSION['user_role'], ['super_admin','hr_manager','hr_officer']);
 if (!$isHR) {
     $empId = (int)($_SESSION['employee_id'] ?? 0);

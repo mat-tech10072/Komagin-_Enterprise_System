@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('documents.view');
+requirePermission('documents.view', 'view');
 
 $id = (int)($_GET['id'] ?? 0);
 if (!$id) { header('Location: ' . APP_URL . '/modules/documents/generate.php'); exit; }
@@ -26,6 +26,23 @@ $st->execute([$id]);
 $doc = $st->fetch(PDO::FETCH_ASSOC);
 
 if (!$doc) { setFlash('error', 'Document not found.'); header('Location: ' . APP_URL . '/modules/documents/generate.php'); exit; }
+
+// Record-level check: documents.view is a module-level permission ("can this
+// role use the Documents feature at all"), it is not a statement about any
+// one specific record. A draft or pending-approval document is still work in
+// progress and is only visible to the person who generated it, or to a
+// verifier/approver — once approved or issued it becomes the module's
+// finished output and any documents.view holder may see it (see
+// canAccessGeneratedDocument() in config/functions.php for the exact rule).
+if (!canAccessGeneratedDocument($doc)) {
+    auditLog('documents', 'view_blocked', $id, null, null, "status={$doc['status']}");
+    setFlash('error', 'You do not have permission to view this document.');
+    header('Location: ' . APP_URL . '/modules/documents/generate.php'); exit;
+}
+// Every successful view of a specific generated document is audited — the
+// module-level permission check alone doesn't create a "who looked at this"
+// trail, and these documents can contain salary/PII.
+auditLog('documents', 'view_document', $id);
 
 // Handle approval/issue actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'] ?? '')) {

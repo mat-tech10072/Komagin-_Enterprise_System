@@ -39,14 +39,6 @@ function requireLogin(): void {
     }
 }
 
-function requireRole(array $roles): void {
-    requireLogin();
-    if (!in_array($_SESSION['user_role'], $roles)) {
-        header('Location: ' . APP_URL . '/dashboard.php?error=access_denied');
-        exit;
-    }
-}
-
 function currentUser(): array {
     if (!isLoggedIn()) return [];
     // Cache in static variable — one DB hit per request max
@@ -87,7 +79,33 @@ function _loadRolePermissions(): array {
     return $matrix;
 }
 
-function hasPermission(string $permission, string $action = 'view'): bool {
+// ============================================================
+// CANONICAL AUTHORIZATION LAYER
+//
+// hasPermission()/requirePermission() are the ONE authorization
+// primitive for this application. Every module-level access check
+// and every state-changing action must call through here — do not
+// write a new hardcoded role check (in_array($_SESSION['user_role'], ...))
+// anywhere outside this file. If a hardcoded check seems necessary,
+// it means a permission slug/action is missing from the matrix; add
+// the slug via a migration and grant it to the appropriate roles
+// instead of branching on role name in module code.
+//
+// $action is intentionally required, not defaulted. A missing action
+// argument used to silently fall back to checking can_view — meaning
+// a delete/create/approve/publish/export/share action could be
+// authorized by a role that only had VIEW rights on that permission
+// slug. Every call site must say out loud which of the 8 action
+// columns (view, create, edit, delete, approve, export, publish,
+// share) it is actually authorizing.
+// ============================================================
+
+const PERMISSION_ACTIONS = ['view','create','edit','delete','approve','export','publish','share'];
+
+function hasPermission(string $permission, string $action): bool {
+    if (!in_array($action, PERMISSION_ACTIONS, true)) {
+        throw new \InvalidArgumentException("Unknown permission action '$action' for '$permission' — must be one of: " . implode(', ', PERMISSION_ACTIONS));
+    }
     if (!isLoggedIn()) return false;
     if ($_SESSION['user_role'] === 'super_admin') return true;
     $matrix = _loadRolePermissions();
@@ -105,7 +123,7 @@ function canExport(string $permission): bool  { return hasPermission($permission
 function canPublish(string $permission): bool { return hasPermission($permission, 'publish'); }
 function canShare(string $permission): bool   { return hasPermission($permission, 'share'); }
 
-function requirePermission(string $permission, string $action = 'view'): void {
+function requirePermission(string $permission, string $action): void {
     requireLogin();
     if (!hasPermission($permission, $action)) {
         // Audit the denied access attempt
@@ -142,27 +160,79 @@ function currentUserPermissions(): array {
 }
 
 // ============================================================
+// SERVER-SIDE ROLE VALIDATION
+//
+// Any code path that assigns/changes a users.role value must
+// validate against this list, never trust a client-submitted role
+// string directly. assignableRoles() additionally encodes "who is
+// allowed to grant which roles" — only super_admin may grant
+// super_admin, so a lower-privileged admin with users.manage rights
+// cannot escalate themselves or anyone else to super_admin by
+// crafting a POST body.
+// ============================================================
+
+const VALID_USER_ROLES = [
+    'super_admin', 'hr_manager', 'hr_officer', 'supervisor', 'employee',
+    'finance_viewer', 'payroll_manager', 'payroll_officer',
+    'recruitment_officer', 'training_officer', 'kiosk_terminal',
+];
+
+function assignableRoles(): array {
+    if (($_SESSION['user_role'] ?? '') === 'super_admin') {
+        return VALID_USER_ROLES;
+    }
+    // Non-super_admin users (even those holding users.manage) may never grant super_admin.
+    return array_values(array_diff(VALID_USER_ROLES, ['super_admin']));
+}
+
+function isValidAssignableRole(string $role): bool {
+    return in_array($role, assignableRoles(), true);
+}
+
+// ============================================================
+// RECORD-LEVEL AUTHORIZATION
+//
+// Module-level permissions (documents.view etc.) answer "can this
+// role use this feature at all." They do not answer "should this
+// specific user see this specific record." Use these helpers for
+// resources where the two questions can have different answers.
+// ============================================================
+
+function canAccessGeneratedDocument(array $doc): bool {
+    // Approved/issued documents are the module's finished output — anyone
+    // holding documents.view (an HR-tier permission by design) may view them.
+    if (in_array($doc['status'] ?? '', ['approved', 'issued'], true)) {
+        return hasPermission('documents.view', 'view');
+    }
+    // Drafts and pending-approval documents are work in progress: visible
+    // only to the person who generated them, or to someone who can verify/
+    // approve documents — not to every documents.view holder by default.
+    $isOwner = isLoggedIn() && (int)($doc['generated_by'] ?? 0) === (int)($_SESSION['user_id'] ?? 0);
+    return $isOwner || hasPermission('documents.verify', 'approve');
+}
+
+// ============================================================
 // HR / PAYROLL SEPARATION CONTROLS
 // ============================================================
 
 function canViewSalaryData(): bool {
     // Only roles with explicit payroll.view permission can see salary fields
-    return hasPermission('payroll.view');
+    return hasPermission('payroll.view', 'view');
 }
 
 function canViewBankData(): bool {
     // Bank details are payroll-sensitive; require payroll.view
-    return hasPermission('payroll.view');
+    return hasPermission('payroll.view', 'view');
 }
 
 function canViewPayrollBreakdown(): bool {
     // Full payslip breakdown (tax, UIF, deductions) requires payroll.payslips
-    return hasPermission('payroll.payslips');
+    return hasPermission('payroll.payslips', 'view');
 }
 
 function canViewPersonalHRData(): bool {
     // Disciplinary records, performance, personal notes — HR domain
-    return hasPermission('employees.view') && !isPurePayrollRole();
+    return hasPermission('employees.view', 'view') && !isPurePayrollRole();
 }
 
 function isPurePayrollRole(): bool {

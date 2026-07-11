@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('archive.view');
+requirePermission('archive.view', 'view');
 
 $pageTitle  = 'Yearly Archive';
 $activeMenu = 'archive';

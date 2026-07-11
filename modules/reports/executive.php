@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('reports.view');
+requirePermission('reports.view', 'view');
 
 $pageTitle  = 'Executive Analytics';
 $activeMenu = 'reports';
@@ -158,7 +158,7 @@ $csrf = generateCsrfToken();
         ['Attendance Rate',  $attKpi['total_records']?round(($attKpi['total_present']/$attKpi['total_records'])*100).'%':'—'],
         ['Avg Hours/Day',    $attKpi['avg_hours'] ? number_format($attKpi['avg_hours'],1).'h' : '—'],
         ['Total OT (Month)', $attKpi['total_ot'] ? number_format($attKpi['total_ot'],1).'h' : '0h'],
-        ['YTD Payroll',      $payrollSum['total_gross'] ? CURRENCY_SYMBOL . " " . number_format($payrollSum['total_gross'],0) : '—'],
+        ['YTD Payroll',      canViewSalaryData() ? ($payrollSum['total_gross'] ? CURRENCY_SYMBOL . " " . number_format($payrollSum['total_gross'],0) : '—') : maskSalary(0)],
         ['Open Vacancies',   $recPipeline['open'] ?? 0],
         ['Docs Generated',   array_sum($docStats)],
     ]; ?>
@@ -269,10 +269,15 @@ $csrf = generateCsrfToken();
     <div class="card">
         <div class="card-header"><span class="card-title">Payroll Summary <?= $year ?></span></div>
         <div class="card-body">
-            <?php $payMeta = [
-                ['Total Gross',       CURRENCY_SYMBOL . " " . nf($payrollSum['total_gross']??0,2)],
-                ['Total Net',         CURRENCY_SYMBOL . " " . nf($payrollSum['total_net']??0,2)],
-                ['Total Deductions',  CURRENCY_SYMBOL . " " . nf($payrollSum['total_ded']??0,2)],
+            <?php
+            // Aggregate payroll cost is still payroll-sensitive data even though no
+            // single employee's salary is named — gate it the same way individual
+            // salary fields are gated everywhere else in the app (payroll.view).
+            $canPay = canViewSalaryData();
+            $payMeta = [
+                ['Total Gross',       $canPay ? CURRENCY_SYMBOL . " " . nf($payrollSum['total_gross']??0,2) : maskSalary(0)],
+                ['Total Net',         $canPay ? CURRENCY_SYMBOL . " " . nf($payrollSum['total_net']??0,2)   : maskSalary(0)],
+                ['Total Deductions',  $canPay ? CURRENCY_SYMBOL . " " . nf($payrollSum['total_ded']??0,2)   : maskSalary(0)],
                 ['Employees on Payroll', nf($payrollSum['emp_count']??0)],
             ]; ?>
             <?php foreach ($payMeta as [$l,$v]): ?>

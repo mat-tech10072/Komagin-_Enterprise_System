@@ -6,7 +6,9 @@ require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
 
-if ($_SESSION['user_role'] !== 'super_admin') {
+if (!hasPermission('activity_log.view', 'export')) {
+    auditLog('security', 'access_denied', null, null, null,
+        "Role '" . ($_SESSION['user_role'] ?? 'unknown') . "' denied: activity_log.view.export at " . ($_SERVER['REQUEST_URI'] ?? ''));
     http_response_code(403);
     exit('Access denied.');
 }

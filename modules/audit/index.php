@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('audit.view');
+requirePermission('audit.view', 'view');
 
 $pageTitle  = 'Audit Logs';
 $activeMenu = 'audit';

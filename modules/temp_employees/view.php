@@ -5,7 +5,7 @@ require_once dirname(dirname(dirname(__FILE__))) . '/config/database.php';
 require_once dirname(dirname(dirname(__FILE__))) . '/config/functions.php';
 
 requireLogin();
-requirePermission('temp_employees.view');
+requirePermission('temp_employees.view', 'view');
 
 $activeMenu = 'temp_employees';
 
@@ -275,7 +275,7 @@ require_once dirname(dirname(dirname(__FILE__))) . '/includes/header.php';
                         </span>
                     </div>
                     <div class="text-muted small"><?= $methodDesc ?></div>
-                    <?php if (in_array($_SESSION['user_role'] ?? '', ['super_admin','hr_manager']) && canEdit('temp_employees.edit')): ?>
+                    <?php if (canEdit('temp_employees.edit')): ?>
                     <div class="mt-2">
                         <a href="<?= APP_URL ?>/modules/temp_employees/edit.php?id=<?= $id ?>" class="btn btn-outline-secondary btn-sm" style="font-size:0.72rem;">Change Method</a>
                     </div>

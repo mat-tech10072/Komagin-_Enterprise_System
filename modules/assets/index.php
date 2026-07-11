@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('assets.view');
+requirePermission('assets.view', 'view');
 
 $pageTitle  = 'Asset Management';
 $activeMenu = 'assets';
@@ -82,7 +82,7 @@ $totalAssigned = (int)db()->query("SELECT COUNT(*) FROM company_assets WHERE is_
 
 $availableAssets = db()->query("SELECT id, description, asset_type, serial_number FROM company_assets WHERE is_available=1 ORDER BY description")->fetchAll();
 $employees = db()->query("SELECT id, CONCAT(first_name,' ',last_name,' (',employee_number,')') as name FROM employees WHERE status IN ('active','probation') ORDER BY first_name")->fetchAll();
-$isHR = in_array($_SESSION['user_role'],['super_admin','hr_manager','hr_officer']);
+$isHR = canCreate('assets.manage');
 $csrf = generateCsrfToken();
 ?>
 <?php include dirname(dirname(__DIR__)) . '/includes/header.php'; ?>

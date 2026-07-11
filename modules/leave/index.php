@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('leave.view');
+requirePermission('leave.view', 'view');
 
 $pageTitle  = 'Leave Management';
 $activeMenu = 'leave';
@@ -144,7 +144,7 @@ $counts = db()->query("SELECT status, COUNT(*) as cnt FROM leave_applications GR
                         <a href="<?= APP_URL ?>/modules/leave/view.php?id=<?= $la['id'] ?>" class="btn btn-ghost btn-sm btn-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                         </a>
-                        <?php if ($la['status'] === 'pending' && in_array($_SESSION['user_role'],['super_admin','hr_manager','hr_officer'])): ?>
+                        <?php if ($la['status'] === 'pending' && canApprove('leave.approve')): ?>
                         <a href="<?= APP_URL ?>/modules/leave/approve.php?id=<?= $la['id'] ?>&action=approve" class="btn btn-ghost btn-sm btn-icon" title="Approve">
                             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                         </a>

@@ -5,7 +5,7 @@ require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
-requirePermission('kiosk.manage');
+requirePermission('kiosk.manage', 'view');
 
 $pageTitle  = 'Kiosk Management';
 $activeMenu = 'attendance';
