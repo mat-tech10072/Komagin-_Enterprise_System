@@ -7,7 +7,7 @@ require_once dirname(dirname(dirname(__FILE__))) . '/config/functions.php';
 requireLogin();
 requirePermission('consultants.edit', 'edit');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !validateCsrfToken($_POST['csrf_token'] ?? '')) {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !verifyCsrfToken($_POST['csrf_token'] ?? '')) {
     setFlash('error', 'Invalid request.');
     header('Location: ' . APP_URL . '/modules/consultants/index.php');
     exit;

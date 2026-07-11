@@ -1,32 +1,13 @@
 <?php
-// Employee Portal Session Guard
-// Must be included at the top of every portal page
+// Employee Portal Session Guard — must be included at the top of every
+// portal page (including temp_portal.php, which shares this same session
+// store/cookie and the 'ep_' key prefix with the permanent-employee portal).
+require_once dirname(__DIR__) . '/auth/session_common.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_set_cookie_params([
-        'lifetime' => 28800,
-        'path'     => '/',
-        'httponly' => true,
-        'samesite' => 'Strict',
-    ]);
-    session_start();
-}
-
-// Regenerate ID every 30 min
-if (!isset($_SESSION['ep_last_regen'])) {
-    $_SESSION['ep_last_regen'] = time();
-} elseif (time() - $_SESSION['ep_last_regen'] > 1800) {
-    session_regenerate_id(true);
-    $_SESSION['ep_last_regen'] = time();
-}
-
-// Session timeout (8 hours)
-if (isset($_SESSION['ep_last_activity']) && (time() - $_SESSION['ep_last_activity']) > 28800) {
-    session_destroy();
+if (!bootstrapSession('ep_', 28800)) {
     header('Location: ' . EP_URL . '/login.php?reason=timeout');
     exit;
 }
-$_SESSION['ep_last_activity'] = time();
 
 function epIsLoggedIn(): bool {
     return !empty($_SESSION['ep_employee_id']) && !empty($_SESSION['ep_policy_agreed']);
@@ -39,6 +20,20 @@ function epRequireLogin(): void {
     }
     if (empty($_SESSION['ep_policy_agreed'])) {
         header('Location: ' . EP_URL . '/policy.php');
+        exit;
+    }
+}
+
+// Temp-employee counterpart to epIsLoggedIn()/epRequireLogin() — temp
+// employees have no policy-agreement gate, and are identified by
+// ep_is_temp/ep_temp_employee_id rather than ep_employee_id.
+function epIsTempLoggedIn(): bool {
+    return !empty($_SESSION['ep_is_temp']) && !empty($_SESSION['ep_temp_employee_id']);
+}
+
+function epRequireTempLogin(): void {
+    if (!epIsTempLoggedIn()) {
+        header('Location: ' . EP_URL . '/login.php');
         exit;
     }
 }

@@ -1,9 +1,9 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1 (Security Foundation & Authorization Framework).
-**Date compiled:** 2026-07-11 (template) — **first entries added 2026-07-11/12 (Phase 1)**
-**Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 work on branch `phase-1-authorization-framework`
+**Status:** Living log. 13 entries recorded for Phase 1; **11 more (CC-014–CC-024) recorded for Phase 2.**
+**Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — **more added 2026-07-11/12 (Phase 2)**
+**Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → **Phase 2 on branch `phase-2-authentication-session-security`**
 
 ---
 
@@ -198,6 +198,138 @@ Copy this block for every change and append it to the log below.
 
 ---
 
+### CC-014 — Consultants module CSRF helper corrected + full CRUD regression
+
+- **Date:** 2026-07-11/12
+- **Phase:** 2
+- **Finding ID(s) addressed:** KOM-002 (C-02)
+- **Files changed:** `modules/consultants/{add,edit,delete,scope_save}.php`
+- **Reason:** All four called `validateCsrfToken()`, never defined anywhere; every write threw a PHP Fatal Error.
+- **Tests added/updated:** `phase2-regression-run.sh`
+- **Regression tests executed:** Full live CRUD lifecycle — created a consultant, edited it (confirmed the field-level change persisted), added a scope item, deleted the consultant (confirmed cascading delete removed the scope item too). All four operations completed with zero fatal errors.
+- **Verification result:** Verified live against real database records, created and cleaned up during testing
+- **Master Register updated:** Yes
+
+### CC-015 — Enterprise session framework created
+
+- **Date:** 2026-07-11/12
+- **Phase:** 2
+- **Finding ID(s) addressed:** Objectives 2, 3, 4 (Authentication Framework Report) — foundational change enabling KOM-012, KOM-017, KOM-029, KOM-042, KOM-066, KOM-067
+- **Files changed:** `auth/session_common.php` (new)
+- **Reason:** Four authentication surfaces each independently implemented cookie configuration, ID rotation, and idle timeout, with small, accumulating differences (see Authentication Framework Report for the full before/after comparison table).
+- **Tests added/updated:** `phase2-regression-run.sh`
+- **Regression tests executed:** N/A directly (this file has no entry point of its own) — validated indirectly through every surface that adopted it (CC-016 through CC-019)
+- **Verification result:** Code review + syntax check; functional correctness proven by the surfaces that consume it
+- **Master Register updated:** N/A (infrastructure change, not itself a finding)
+
+### CC-016 — Admin surface migrated to shared session framework
+
+- **Date:** 2026-07-11/12
+- **Phase:** 2
+- **Finding ID(s) addressed:** KOM-066
+- **Files changed:** `auth/session.php`, `auth/login.php`, `auth/logout.php`
+- **Reason:** `login.php`'s manual `session_regenerate_id(true)` and `session.php`'s own rotation logic redundantly regenerated the session ID twice on the first post-login page load.
+- **Tests added/updated:** `phase2-regression-run.sh`
+- **Regression tests executed:** Login regenerates session ID (confirmed changed pre/post-login); dashboard reachable post-login; logout expires the cookie client-side (`Set-Cookie: PHPSESSID=deleted`); old session rejected after logout (302). All passed.
+- **Verification result:** Verified live
+- **Master Register updated:** Yes (KOM-066)
+
+### CC-017 — Employee Portal migrated to shared session framework + brute-force lockout + hub CSRF
+
+- **Date:** 2026-07-11/12
+- **Phase:** 2
+- **Finding ID(s) addressed:** KOM-017 (H-12), KOM-027 (M-04), KOM-052 (L-07)
+- **Files changed:** `employee-portal/_session.php`, `employee-portal/login.php`, `employee-portal/logout.php`, `employee-portal/hub.php`, `config/functions.php` (new `portalLoginBlocked()`/`recordPortalLoginFailure()`)
+- **Reason:** No session-ID regeneration on login (fixation risk); no CSRF on the login form or the hub request-submission form; no brute-force protection (employees/temp_employees have no `login_attempts`/`locked_until` columns, and Phase 2 forbids a database redesign, so brute-force tracking reuses the existing `audit_logs` table instead).
+- **Tests added/updated:** `phase2-regression-run.sh`
+- **Regression tests executed:** Login without CSRF rejected; login with valid CSRF succeeds and regenerates the session ID; 5 failed attempts then a 6th blocked with a clear message; hub submission without CSRF rejected (zero rows inserted, verified with a uniquely-timestamped marker to rule out collision with pre-existing data); hub submission with valid CSRF succeeds; logout expires the cookie. All passed.
+- **Verification result:** Verified live; test employee's policy-agreement flag and brute-force audit_logs entries reverted/deleted after testing
+- **Master Register updated:** Yes (KOM-017, KOM-027, KOM-052)
+
+### CC-018 — Consultant Portal migrated to shared session framework + login CSRF + kiosk/scope CSRF + brute-force + logout fix
+
+- **Date:** 2026-07-11/12
+- **Phase:** 2
+- **Finding ID(s) addressed:** KOM-012 (H-07), KOM-013 (H-08), KOM-043, KOM-050 (L-05), KOM-052 (L-07, extended to this surface)
+- **Files changed:** `consultant-portal/_session.php`, `consultant-portal/login.php`, `consultant-portal/logout.php`, `consultant-portal/index.php`, `consultant-portal/kiosk.php` (5 forms), `consultant-portal/scope.php`
+- **Reason:** No session-ID regeneration on login; no CSRF anywhere on this portal (login form, all 5 kiosk clock actions, scope note-save); logout never actually destroyed the session (only unset 7 named keys, leaving the session ID/cookie valid); no brute-force protection.
+- **Tests added/updated:** `phase2-regression-run.sh` (includes temporary test-credential setup/teardown on a real consultant record, since none has portal access configured in this environment's seed data)
+- **Regression tests executed:** Login without CSRF rejected; login with valid CSRF succeeds and regenerates session ID; kiosk clock-in without CSRF rejected (zero rows written, verified against the database); kiosk clock-in with valid CSRF succeeds (row confirmed written); logout now expires the cookie and old session is rejected on reuse (previously would have remained valid indefinitely). All passed.
+- **Verification result:** Verified live; test consultant's `portal_active`/`portal_password` and the test attendance row reverted/deleted after testing
+- **Master Register updated:** Yes (KOM-012, KOM-013, KOM-043, KOM-050)
+
+### CC-019 — Temporary Employee Portal migrated onto the shared session framework
+
+- **Date:** 2026-07-11/12
+- **Phase:** 2
+- **Finding ID(s) addressed:** KOM-029 (M-06)
+- **Files changed:** `employee-portal/temp_portal.php`
+- **Reason:** Ran its own inline `session_start()` with no ID rotation and no idle timeout — a temp employee's session stayed valid for the full 8-hour absolute cookie lifetime regardless of inactivity. Now includes the same `_session.php` used by permanent employees (same `'ep_'` prefix, same session store — both already log in through the same `employee-portal/login.php`).
+- **Tests added/updated:** `phase2-regression-run.sh` (temporary test-credential setup/teardown on a real temp employee record)
+- **Regression tests executed:** Login regenerates session ID; portal page reachable via the shared framework; logout expires the cookie and old session is rejected on reuse. All passed.
+- **Verification result:** Verified live; test temp employee's `portal_active`/`portal_password` reverted after testing
+- **Master Register updated:** Yes (KOM-029)
+
+### CC-020 — Notifications API CSRF standardization
+
+- **Date:** 2026-07-11/12
+- **Phase:** 2
+- **Finding ID(s) addressed:** KOM-026 (M-03)
+- **Files changed:** `api/notifications.php`, `includes/footer.php`
+- **Reason:** `mark_read`/`mark_all_read` mutated data on plain GET requests with no CSRF token — forgeable via a cross-site `<img>`/`<script>` request.
+- **Tests added/updated:** `phase2-regression-run.sh`
+- **Regression tests executed:** GET request rejected; POST without CSRF rejected; POST with a CSRF token extracted from a real page load succeeds. All passed.
+- **Verification result:** Verified live, including confirming the new `window.CSRF_TOKEN` JS global matches what the server expects
+- **Master Register updated:** Yes (KOM-026)
+
+### CC-021 — Self-service CSRF comparison hardened + cookie Secure flag
+
+- **Date:** 2026-07-11/12
+- **Phase:** 2
+- **Finding ID(s) addressed:** KOM-062, KOM-042 (self-service portion)
+- **Files changed:** `self-service/update.php`
+- **Reason:** Per-link CSRF token was compared with a plain `!==` instead of the constant-time `hash_equals()` used by every other CSRF check in the app; the session cookie never set the Secure flag under any condition.
+- **Tests added/updated:** None beyond syntax check — this flow requires a real magic-link token tied to a specific employee record, which is a larger setup than the scope of this fix justified re-creating; the change is a narrow, mechanical swap of comparison function and one added cookie parameter, both following exactly the pattern already proven correct on every other surface in this phase
+- **Regression tests executed:** Syntax check only
+- **Verification result:** Code-reviewed
+- **Master Register updated:** Yes (KOM-062, KOM-042 partial — see KOM-042's row for the full multi-surface picture)
+
+### CC-022 — Cookie Secure flag standardized across Admin/Employee/Consultant/Temp
+
+- **Date:** 2026-07-11/12
+- **Phase:** 2
+- **Finding ID(s) addressed:** KOM-042
+- **Files changed:** `auth/session_common.php` (the shared `bootstrapSession()` — see CC-015)
+- **Reason:** Only the admin surface conditionally set the Secure cookie flag based on HTTPS/`APP_ENV`; the three portals never considered HTTPS at all. Centralizing cookie configuration in one function means this is now automatically consistent across every surface that calls it, rather than a rule to remember to copy correctly four times.
+- **Tests added/updated:** None beyond what CC-016 through CC-019 already cover
+- **Regression tests executed:** Same evidence as CC-016–CC-019 (all four surfaces load and authenticate correctly with the shared cookie configuration)
+- **Verification result:** Code review — the conditional logic is identical to the admin surface's pre-existing, already-correct implementation
+- **Master Register updated:** Yes (KOM-042)
+
+### CC-023 — Logout standardized across all four surfaces
+
+- **Date:** 2026-07-11/12
+- **Phase:** 2
+- **Finding ID(s) addressed:** KOM-043, KOM-067, Objective 7
+- **Files changed:** `auth/session_common.php` (new `destroySessionCompletely()`), `auth/logout.php`, `employee-portal/logout.php`, `employee-portal/temp_portal.php` (inline logout handler), `consultant-portal/logout.php`
+- **Reason:** Three different logout implementations existed with three different levels of completeness (admin: full teardown; employee: `session_destroy()` only; consultant: neither, just unset 7 keys) — none of them explicitly expired the session cookie client-side.
+- **Tests added/updated:** `phase2-regression-run.sh`
+- **Regression tests executed:** All four logout endpoints (admin, employee, consultant, temp) confirmed to send `Set-Cookie: PHPSESSID=deleted` and to reject the old session on a subsequent request. All passed.
+- **Verification result:** Verified live for all four surfaces
+- **Master Register updated:** Yes (KOM-043, KOM-067)
+
+### CC-024 — Master Remediation Register updated for Phase 2
+
+- **Date:** 2026-07-11/12
+- **Phase:** 2
+- **Finding ID(s) addressed:** All 14 findings closed this phase (documentation-only change)
+- **Files changed:** `docs/remediation/Findings/08-master-remediation-register.md`
+- **Reason:** Record Phase 2 outcomes per the program's change-control requirement.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (this entry documents that update itself)
+
 ---
 
 ## Change Log for This Document
@@ -206,3 +338,4 @@ Copy this block for every change and append it to the log below.
 |---|---|---|
 | 2026-07-11 | Template and rules established for Phase 0 | Remediation Program — Phase 0 |
 | 2026-07-11/12 | 13 entries (CC-001–CC-013) recorded for Phase 1 | Remediation Program — Phase 1 |
+| 2026-07-11/12 | 11 entries (CC-014–CC-024) recorded for Phase 2 | Remediation Program — Phase 2 |

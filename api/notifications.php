@@ -13,6 +13,19 @@ if (!isLoggedIn()) {
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
+// mark_read/mark_all_read change data and must be POST + CSRF-verified —
+// the same standard every other state-changing endpoint in the app
+// follows. Previously these ran on plain GET with no token at all, making
+// them forgeable via a cross-site <img>/<script> request. list/count are
+// pure reads and stay GET-accessible.
+if (in_array($action, ['mark_read', 'mark_all_read'], true)) {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'error' => 'Invalid request.']);
+        exit;
+    }
+}
+
 switch ($action) {
     case 'mark_all_read':
         db()->prepare("UPDATE notifications SET is_read=1, read_at=NOW() WHERE user_id=?")
@@ -22,7 +35,7 @@ switch ($action) {
         break;
 
     case 'mark_read':
-        $nid = (int)($_GET['id'] ?? 0);
+        $nid = (int)($_POST['id'] ?? 0);
         if ($nid) {
             db()->prepare("UPDATE notifications SET is_read=1, read_at=NOW() WHERE id=? AND user_id=?")
                 ->execute([$nid, $_SESSION['user_id']]);

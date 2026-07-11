@@ -1,10 +1,8 @@
 <?php
 require_once __DIR__ . '/_config.php';
+require_once dirname(__DIR__) . '/auth/session_common.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_set_cookie_params(['lifetime' => 28800, 'path' => '/', 'httponly' => true, 'samesite' => 'Strict']);
-    session_start();
-}
+bootstrapSession('cp_', 28800);
 
 // Already logged in
 if (!empty($_SESSION['cp_consultant_id'])) {
@@ -14,8 +12,14 @@ if (!empty($_SESSION['cp_consultant_id'])) {
 
 $error  = '';
 $reason = $_GET['reason'] ?? '';
+$csrf   = generateCsrfToken();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Invalid request. Please try again.';
+    } elseif (portalLoginBlocked('consultant_portal')) {
+        $error = 'Too many failed attempts from this location. Please try again in 15 minutes.';
+    } else {
     $conNumber = strtoupper(trim($_POST['consultant_number'] ?? ''));
     $password  = $_POST['password'] ?? '';
 
@@ -29,26 +33,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$con) {
             $error = 'Consultant number not found or account inactive.';
+            recordPortalLoginFailure('consultant_portal', $conNumber);
         } elseif (!$con['portal_active']) {
             $error = 'Portal access is not enabled for this account. Please contact HR.';
+            recordPortalLoginFailure('consultant_portal', $conNumber);
         } elseif (!$con['portal_password']) {
             $error = 'No portal password set. Please contact HR to activate your portal account.';
+            recordPortalLoginFailure('consultant_portal', $conNumber);
         } elseif (!password_verify($password, $con['portal_password'])) {
             $error = 'Incorrect password.';
+            recordPortalLoginFailure('consultant_portal', $conNumber);
         } else {
+            // Regenerate the session ID before writing any session data
+            // (fixation defense), shared with every other auth surface.
+            regenerateSessionOnLogin('cp_');
             $_SESSION['cp_consultant_id'] = $con['id'];
             $_SESSION['cp_type']          = $con['type'];
             $_SESSION['cp_name']          = trim($con['first_name'] . ' ' . $con['last_name']);
             $_SESSION['cp_number']        = $con['consultant_number'];
             $_SESSION['cp_login_time']    = time();
             $_SESSION['cp_last_activity'] = time();
-            $_SESSION['cp_last_regen']    = time();
 
             db()->prepare("UPDATE consultants SET portal_last_login = NOW() WHERE id = ?")->execute([$con['id']]);
 
             header('Location: ' . CP_URL . '/dashboard.php');
             exit;
         }
+    }
     }
 }
 ?>
@@ -90,6 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
             <div class="form-group">
                 <label class="form-label">Consultant Number</label>
                 <input type="text" name="consultant_number" class="form-control"

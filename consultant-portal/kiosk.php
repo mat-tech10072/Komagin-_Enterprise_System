@@ -9,8 +9,15 @@ cpRequireType('time_based');
 $con = cpCurrentConsultant();
 $cid = $con['id'];
 
+$csrf = generateCsrfToken();
+
 // Handle POST actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $_SESSION['flash'] = ['type' => 'error', 'message' => 'Invalid request. Please try again.'];
+        header('Location: ' . CP_URL . '/kiosk.php');
+        exit;
+    }
     $action = $_POST['action'] ?? '';
     $now    = date('Y-m-d H:i:s');
     $today  = date('Y-m-d');
@@ -93,6 +100,7 @@ cpLayoutStart($pageTitle, 'kiosk');
                 <div class="cp-kiosk-sub">You have not clocked in today.</div>
                 <div class="cp-kiosk-actions">
                     <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
                         <input type="hidden" name="action" value="clock_in">
                         <button type="submit" class="cp-kiosk-btn clock-in">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
@@ -109,6 +117,7 @@ cpLayoutStart($pageTitle, 'kiosk');
                 <div class="cp-kiosk-sub">Clocked in at <?= date('H:i', strtotime($todayRow['clock_in'])) ?></div>
                 <div class="cp-kiosk-actions">
                     <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
                         <input type="hidden" name="action" value="break_out">
                         <button type="submit" class="cp-kiosk-btn break-out">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
@@ -116,6 +125,7 @@ cpLayoutStart($pageTitle, 'kiosk');
                         </button>
                     </form>
                     <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
                         <input type="hidden" name="action" value="clock_out">
                         <button type="submit" class="cp-kiosk-btn clock-out" onclick="return confirm('Clock out now?')">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -132,6 +142,7 @@ cpLayoutStart($pageTitle, 'kiosk');
                 <div class="cp-kiosk-sub">Break started at <?= date('H:i', strtotime($todayRow['break_start'])) ?></div>
                 <div class="cp-kiosk-actions">
                     <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
                         <input type="hidden" name="action" value="break_in">
                         <button type="submit" class="cp-kiosk-btn break-in">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -148,6 +159,7 @@ cpLayoutStart($pageTitle, 'kiosk');
                 <div class="cp-kiosk-sub">Back at <?= date('H:i', strtotime($todayRow['break_end'])) ?></div>
                 <div class="cp-kiosk-actions">
                     <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
                         <input type="hidden" name="action" value="clock_out">
                         <button type="submit" class="cp-kiosk-btn clock-out" onclick="return confirm('Clock out now?')">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>

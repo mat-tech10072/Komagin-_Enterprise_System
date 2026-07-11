@@ -8,8 +8,13 @@
 <?php if (!empty($needsCharts)): ?>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 <?php endif; ?>
-<!-- Expose APP_URL for JS modules -->
-<script>window.APP_URL = '<?= APP_URL ?>';</script>
+<!-- Expose APP_URL and a CSRF token for JS modules — the notification
+     mark-read/mark-all-read calls are state-changing and must carry this,
+     same as every other POST in the app. -->
+<script>
+window.APP_URL = '<?= APP_URL ?>';
+window.CSRF_TOKEN = '<?= generateCsrfToken() ?>';
+</script>
 <!-- Main JS -->
 <script src="<?= APP_URL ?>/assets/js/main.js" defer></script>
 
@@ -63,8 +68,11 @@ document.addEventListener('DOMContentLoaded', function() {
             el.addEventListener('click', function() {
                 const id   = this.dataset.id;
                 const link = this.dataset.link;
-                fetch(window.APP_URL + '/api/notifications.php?action=mark_read&id=' + id)
-                    .catch(() => {});
+                fetch(window.APP_URL + '/api/notifications.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'action=mark_read&id=' + encodeURIComponent(id) + '&csrf_token=' + encodeURIComponent(window.CSRF_TOKEN)
+                }).catch(() => {});
                 // Remove from list immediately and update badge
                 this.remove();
                 const remaining = notifList.querySelectorAll('.notif-item[data-id]').length;
@@ -94,8 +102,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (markAllBtn) {
         markAllBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            fetch(window.APP_URL + '/api/notifications.php?action=mark_all_read')
-                .then(r => r.json()).then(() => { notifLoaded = false; loadNotifs(); }).catch(() => {});
+            fetch(window.APP_URL + '/api/notifications.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=mark_all_read&csrf_token=' + encodeURIComponent(window.CSRF_TOKEN)
+            }).then(r => r.json()).then(() => { notifLoaded = false; loadNotifs(); }).catch(() => {});
         });
     }
 

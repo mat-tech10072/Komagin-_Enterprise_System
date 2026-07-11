@@ -25,8 +25,13 @@ $priorityLabels = ['low'=>'Low','normal'=>'Normal','high'=>'High','urgent'=>'Urg
 $success = '';
 $error   = '';
 
+$csrf = generateCsrfToken();
+
 // Handle new submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_request'])) {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Invalid request. Please try again.';
+    } else {
     $type     = $_POST['request_type'] ?? '';
     $subject  = trim($_POST['subject'] ?? '');
     $desc     = trim($_POST['description'] ?? '');
@@ -51,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_request'])) {
         notifyRole('super_admin', 'hub_request', $notifTitle, $notifMsg, $notifLink);
 
         $success = 'Your request has been submitted. HR will respond shortly.';
+    }
     }
 }
 
@@ -185,6 +191,7 @@ epLayoutStart('Request Hub', 'hub');
         </div>
         <div class="card-body">
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
                 <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
                     <div class="form-group">
                         <label class="form-label">Request Type <span class="required">*</span></label>

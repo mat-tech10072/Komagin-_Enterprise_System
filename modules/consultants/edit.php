@@ -20,7 +20,7 @@ $errors = [];
 $old    = $con;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
         $errors[] = 'Invalid request.';
     } else {
         $old = $_POST;

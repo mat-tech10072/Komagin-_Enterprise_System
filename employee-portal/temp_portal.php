@@ -1,17 +1,18 @@
 <?php
-// Simplified employee portal for temporary/contract employees
-require_once dirname(__FILE__) . '/../config/config.php';
-require_once dirname(__FILE__) . '/../config/database.php';
-require_once dirname(__FILE__) . '/../config/functions.php';
+// Simplified employee portal for temporary/contract employees.
+//
+// This page previously ran its own inline session_start() with no ID
+// rotation and no idle timeout — a temp employee's session, once created,
+// stayed valid for the full 8-hour absolute cookie lifetime regardless of
+// inactivity. It now shares the exact same session guard, cookie
+// configuration, rotation schedule, and idle-timeout logic as the rest of
+// the employee portal via _session.php (same 'ep_' key prefix, same
+// session store — permanent and temp employees already log in through the
+// same employee-portal/login.php and end up in the same session).
+require_once dirname(__FILE__) . '/_config.php';
+require_once dirname(__FILE__) . '/_session.php';
 
-session_set_cookie_params(['lifetime'=>28800,'path'=>'/','httponly'=>true,'samesite'=>'Strict']);
-session_start();
-
-// Require temp employee session
-if (empty($_SESSION['ep_is_temp']) || empty($_SESSION['ep_temp_employee_id'])) {
-    header('Location: ' . APP_URL . '/employee-portal/login.php');
-    exit;
-}
+epRequireTempLogin();
 
 $tempId = (int)$_SESSION['ep_temp_employee_id'];
 
@@ -30,14 +31,14 @@ $stmt->execute([$tempId]);
 $emp = $stmt->fetch();
 
 if (!$emp) {
-    session_destroy();
+    destroySessionCompletely();
     header('Location: ' . APP_URL . '/employee-portal/login.php?reason=invalid');
     exit;
 }
 
 // Handle logout
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
-    session_destroy();
+    destroySessionCompletely();
     header('Location: ' . APP_URL . '/employee-portal/login.php?reason=logout');
     exit;
 }

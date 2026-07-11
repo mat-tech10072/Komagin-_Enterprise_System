@@ -1,34 +1,12 @@
 <?php
 require_once dirname(__DIR__) . '/config/config.php';
+require_once __DIR__ . '/session_common.php';
 
-// Session security settings
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_strict_mode', 1);
-ini_set('session.cookie_samesite', 'Strict');
-ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
-// Enable secure cookies when running over HTTPS or in production
-if ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || defined('APP_ENV') && APP_ENV === 'production') {
-    ini_set('session.cookie_secure', 1);
-}
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Regenerate session ID periodically
-if (!isset($_SESSION['last_regenerated'])) {
-    session_regenerate_id(true);
-    $_SESSION['last_regenerated'] = time();
-} elseif (time() - $_SESSION['last_regenerated'] > 1800) {
-    session_regenerate_id(true);
-    $_SESSION['last_regenerated'] = time();
-}
-
-// Session timeout check
-if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > SESSION_LIFETIME)) {
-    session_unset();
-    session_destroy();
+// Admin surface uses the unprefixed key namespace ('') — this preserves the
+// existing $_SESSION['user_id'] etc. key names used throughout the admin
+// codebase; only the internal bookkeeping keys (last_regen/last_activity)
+// are now shared logic, not shared names with the portals.
+if (!bootstrapSession('', SESSION_LIFETIME)) {
     header('Location: ' . APP_URL . '/auth/login.php?reason=timeout');
     exit;
 }
-$_SESSION['last_activity'] = time();

@@ -9,8 +9,15 @@ cpRequireType('output_based');
 $con = cpCurrentConsultant();
 $cid = $con['id'];
 
+$csrf = generateCsrfToken();
+
 // Handle POST — consultant can only update their own notes per scope item
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $_SESSION['flash'] = ['type' => 'error', 'message' => 'Invalid request. Please try again.'];
+        header('Location: ' . CP_URL . '/scope.php');
+        exit;
+    }
     $scopeId      = (int)($_POST['scope_id'] ?? 0);
     $consultantNote = trim($_POST['consultant_notes'] ?? '');
 
@@ -165,6 +172,7 @@ cpLayoutStart($pageTitle, 'scope');
         <?php endif; ?>
 
         <form method="POST" id="note-form-<?= $item['id'] ?>" style="display:none;margin-top:8px;">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
             <input type="hidden" name="scope_id" value="<?= $item['id'] ?>">
             <textarea name="consultant_notes" class="form-control" rows="3" style="margin-bottom:8px;"><?= htmlspecialchars($item['consultant_notes'] ?? '') ?></textarea>
             <div style="display:flex;gap:6px;">

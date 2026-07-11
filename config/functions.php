@@ -324,6 +324,34 @@ function auditLog(string $module, string $action, ?int $recordId = null,
 }
 
 // ============================================================
+// PORTAL BRUTE-FORCE PROTECTION
+//
+// employees/temp_employees/consultants have no login_attempts/locked_until
+// columns (unlike the admin-surface users table), and Phase 2's charter
+// forbids a database redesign to add them. This reuses the existing
+// audit_logs table instead — the same "count recent failed attempts in a
+// rolling window" pattern already proven correct by the attendance kiosk's
+// rate limiting — so both portal logins get real brute-force protection
+// with zero schema change.
+// ============================================================
+
+function portalLoginBlocked(string $module, int $maxAttempts = 5, int $windowMinutes = 15): bool {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    if ($ip === '') return false;
+    $stmt = db()->prepare(
+        "SELECT COUNT(*) FROM audit_logs
+         WHERE module = ? AND action = 'failed_login' AND ip_address = ?
+           AND created_at > (NOW() - INTERVAL ? MINUTE)"
+    );
+    $stmt->execute([$module, $ip, $windowMinutes]);
+    return (int)$stmt->fetchColumn() >= $maxAttempts;
+}
+
+function recordPortalLoginFailure(string $module, string $identifier): void {
+    auditLog($module, 'failed_login', null, null, null, "identifier=$identifier");
+}
+
+// ============================================================
 // NOTIFICATIONS
 // ============================================================
 

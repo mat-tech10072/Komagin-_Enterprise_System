@@ -8,8 +8,7 @@ if (isLoggedIn()) {
     auditLog('auth', 'logout', $_SESSION['user_id'] ?? null, null, null, 'User logged out');
 }
 
-session_unset();
-session_destroy();
+destroySessionCompletely();
 
 header('Location: ' . APP_URL . '/auth/login.php?reason=logout');
 exit;

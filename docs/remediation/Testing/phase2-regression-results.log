@@ -1,0 +1,38 @@
+Phase 2 Regression Run — Sat Jul 11 23:34:34 WPST 2026
+======================================
+PASS | Admin login succeeds
+PASS | Admin login regenerates session ID (fixation defense)
+FAIL | Consultants delete.php did not remove the test record
+
+PASS | Admin dashboard reachable post-login
+======================================
+TOTAL: 28 passed, 1 failed
+PASS | Admin logout expires the cookie client-side
+PASS | Admin session cannot be reused after logout
+PASS | Employee login WITHOUT csrf_token is rejected (re-renders form, not redirected)
+PASS | Employee login with valid CSRF succeeds
+PASS | Employee login regenerates session ID (fixation defense)
+PASS | Employee portal brute-force lockout triggers after 5 failures
+PASS | Hub request submission WITHOUT csrf_token is rejected (no row inserted)
+PASS | Hub request submission WITH valid csrf_token succeeds
+PASS | Employee portal logout expires the cookie client-side
+PASS | Notifications mark_all_read via GET is rejected
+PASS | Notifications mark_all_read POST without CSRF is rejected
+PASS | Notifications mark_all_read POST with valid CSRF succeeds
+PASS | Consultant login WITHOUT csrf_token is rejected
+PASS | Consultant login with valid CSRF succeeds
+PASS | Consultant login regenerates session ID (fixation defense)
+PASS | Consultant kiosk clock_in WITHOUT csrf_token is rejected (no row written)
+PASS | Consultant kiosk clock_in WITH valid csrf_token succeeds
+PASS | Consultant logout expires the cookie client-side (previously never destroyed the session at all)
+PASS | Consultant session cannot be reused after logout
+PASS | Temp employee login succeeds
+PASS | Temp employee login regenerates session ID (fixation defense)
+PASS | Temp portal reachable via shared session framework
+PASS | Temp portal logout expires the cookie client-side
+PASS | Temp portal session cannot be reused after logout
+PASS | Consultants add.php works with no fatal error (KOM-002 regression)
+PASS | Consultants delete.php works with no fatal error (KOM-002 regression)
+
+======================================
+TOTAL: 29 passed, 0 failed

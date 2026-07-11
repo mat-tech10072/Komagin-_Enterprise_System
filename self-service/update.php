@@ -3,9 +3,13 @@ require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/config/database.php';
 require_once dirname(__DIR__) . '/config/functions.php';
 
-// Standalone self-service page — no admin auth required
+// Standalone self-service page — no admin auth required. Cookie hardening
+// matches every other authentication surface in the app: Secure whenever
+// the request is over HTTPS or APP_ENV=production.
 if (session_status() === PHP_SESSION_NONE) {
-    session_set_cookie_params(['lifetime'=>3600,'httponly'=>true,'samesite'=>'Strict']);
+    $secure = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (defined('APP_ENV') && APP_ENV === 'production');
+    session_set_cookie_params(['lifetime'=>3600,'path'=>'/','httponly'=>true,'samesite'=>'Strict','secure'=>$secure]);
     session_start();
 }
 
@@ -61,7 +65,11 @@ $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrfToken = $_POST['csrf_token'] ?? '';
-    if (!isset($_SESSION['ss_csrf_'.$link['id']]) || $csrfToken !== $_SESSION['ss_csrf_'.$link['id']]) {
+    // hash_equals() for constant-time comparison — matches the standard
+    // verifyCsrfToken() helper's comparison method used everywhere else in
+    // the app; this per-link token predates that helper and previously
+    // used a plain !== comparison.
+    if (!isset($_SESSION['ss_csrf_'.$link['id']]) || !hash_equals($_SESSION['ss_csrf_'.$link['id']], $csrfToken)) {
         $errors[] = 'Invalid form submission. Please refresh and try again.';
     } else {
         $changes = [];

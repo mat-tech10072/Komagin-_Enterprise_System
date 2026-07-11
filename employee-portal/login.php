@@ -1,10 +1,15 @@
 ﻿<?php
 require_once __DIR__ . '/_config.php';
+require_once dirname(__DIR__) . '/auth/session_common.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_set_cookie_params(['lifetime'=>28800,'path'=>'/','httponly'=>true,'samesite'=>'Strict']);
-    session_start();
-}
+// bootstrapSession() applies the same cookie hardening (Secure when
+// HTTPS/production, HttpOnly, SameSite=Strict) and rotation schedule used by
+// every other authentication surface. Its return value is ignored here —
+// on a login page, a timed-out session was already cleanly destroyed
+// internally, and the visitor should simply see a fresh login form, not be
+// bounced through an extra timeout redirect back to the page they're
+// already on.
+bootstrapSession('ep_', 28800);
 
 if (!empty($_SESSION['ep_employee_id']) && !empty($_SESSION['ep_policy_agreed'])) {
     header('Location: ' . EP_URL . '/dashboard.php');
@@ -18,8 +23,14 @@ if (!empty($_SESSION['ep_is_temp']) && !empty($_SESSION['ep_temp_employee_id']))
 
 $error  = '';
 $reason = $_GET['reason'] ?? '';
+$csrf   = generateCsrfToken();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Invalid request. Please try again.';
+    } elseif (portalLoginBlocked('employee_portal')) {
+        $error = 'Too many failed attempts from this location. Please try again in 15 minutes.';
+    } else {
     $emp_number = trim($_POST['employee_number'] ?? '');
     $password   = $_POST['password'] ?? '';
 
@@ -40,14 +51,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!$tempEmp) {
                 $error = 'Employee number not found or account inactive.';
+                recordPortalLoginFailure('employee_portal', $emp_number);
             } elseif (!$tempEmp['portal_active']) {
                 $error = 'Portal access has been disabled for this account. Contact HR.';
+                recordPortalLoginFailure('employee_portal', $emp_number);
             } elseif (!$tempEmp['portal_password']) {
                 $error = 'No portal password set. Please contact HR to activate your portal account.';
+                recordPortalLoginFailure('employee_portal', $emp_number);
             } elseif (!password_verify($password, $tempEmp['portal_password'])) {
                 $error = 'Incorrect password.';
+                recordPortalLoginFailure('employee_portal', $emp_number);
             } else {
-                // Temp employee login success
+                // Temp employee login success — regenerate the session ID
+                // before writing any session data (fixation defense),
+                // shared with every other authentication surface.
+                regenerateSessionOnLogin('ep_');
                 $_SESSION['ep_is_temp']          = true;
                 $_SESSION['ep_temp_employee_id'] = $tempEmp['id'];
                 $_SESSION['ep_employee_name']    = $tempEmp['first_name'] . ' ' . $tempEmp['last_name'];
@@ -60,25 +78,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } elseif (!$emp['portal_active']) {
             $error = 'Portal access has been disabled for this account. Contact HR.';
+            recordPortalLoginFailure('employee_portal', $emp_number);
         } elseif (!$emp['portal_password']) {
             $error = 'No portal password set. Please contact HR to activate your portal account.';
+            recordPortalLoginFailure('employee_portal', $emp_number);
         } elseif (!password_verify($password, $emp['portal_password'])) {
             $error = 'Incorrect password.';
+            recordPortalLoginFailure('employee_portal', $emp_number);
         } else {
-            // Permanent employee login — store session, but NOT policy_agreed yet
+            // Permanent employee login success — regenerate the session ID
+            // before writing any session data (fixation defense).
+            regenerateSessionOnLogin('ep_');
             $_SESSION['ep_employee_id']   = $emp['id'];
             $_SESSION['ep_employee_name'] = $emp['first_name'] . ' ' . $emp['last_name'];
             $_SESSION['ep_employee_num']  = $emp['employee_number'];
             $_SESSION['ep_policy_agreed'] = false;
             $_SESSION['ep_login_time']    = time();
             $_SESSION['ep_last_activity'] = time();
-            $_SESSION['ep_last_regen']    = time();
 
             db()->prepare("UPDATE employees SET portal_last_login=NOW() WHERE id=?")->execute([$emp['id']]);
 
             header('Location: ' . EP_URL . '/policy.php');
             exit;
         }
+    }
     }
 }
 ?>
@@ -123,6 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
                 <div class="form-group">
                     <label class="form-label">Employee Number</label>
                     <input type="text" name="employee_number" class="form-control"

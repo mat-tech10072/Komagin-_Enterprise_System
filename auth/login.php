@@ -38,8 +38,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $lockMins = ceil((strtotime($user['locked_until']) - time()) / 60);
                         $error = "Account temporarily locked. Try again in $lockMins minute(s).";
                     } elseif (password_verify($password, $user['password_hash'])) {
-                        // Success — set session
-                        session_regenerate_id(true);
+                        // Success — regenerate the session ID before writing any
+                        // session data, closing the pre-auth session (fixation
+                        // defense); also stamps the rotation timestamp so
+                        // bootstrapSession() on the very next page load doesn't
+                        // redundantly rotate a second time.
+                        regenerateSessionOnLogin('');
                         $_SESSION['user_id']    = $user['id'];
                         $_SESSION['user_role']  = $user['role'];
                         $_SESSION['user_name']  = $user['username'];
