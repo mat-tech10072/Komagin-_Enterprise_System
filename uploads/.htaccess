@@ -1,0 +1,12 @@
+# Prevent execution of uploaded files
+<FilesMatch "\.(php|php3|php4|php5|phtml|pl|py|cgi|sh|rb|asp|aspx|jsp)$">
+    Deny from all
+</FilesMatch>
+
+# Prevent directory listing
+Options -Indexes
+
+# Force download for non-image files
+<FilesMatch "\.(pdf|doc|docx|xls|xlsx|csv)$">
+    Header set Content-Disposition "attachment"
+</FilesMatch>

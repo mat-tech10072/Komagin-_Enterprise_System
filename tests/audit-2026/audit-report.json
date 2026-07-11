@@ -1,0 +1,695 @@
+{
+  "meta": {
+    "date": "2026-06-27T11:56:41.537Z",
+    "script": "full-audit-2026.js v2",
+    "base": "http://localhost/HR_Komagin"
+  },
+  "phase1_admin_modules": {
+    "total": 43,
+    "pass": 43,
+    "warn": 0,
+    "error": 0,
+    "results": [
+      {
+        "label": "Dashboard",
+        "path": "/dashboard.php",
+        "section": "Core",
+        "status": "OK",
+        "h1": "HR Dashboard",
+        "finalUrl": "http://localhost/HR_Komagin/dashboard.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Approvals",
+        "path": "/modules/approvals/index.php",
+        "section": "Core",
+        "status": "OK",
+        "h1": "Approval Workflows",
+        "finalUrl": "http://localhost/HR_Komagin/modules/approvals/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Employees List",
+        "path": "/modules/employees/index.php",
+        "section": "HR Management",
+        "status": "OK",
+        "h1": "Employees",
+        "finalUrl": "http://localhost/HR_Komagin/modules/employees/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Add Employee",
+        "path": "/modules/employees/add.php",
+        "section": "HR Management",
+        "status": "OK",
+        "h1": "Add New Employee",
+        "finalUrl": "http://localhost/HR_Komagin/modules/employees/add.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Attendance",
+        "path": "/modules/attendance/index.php",
+        "section": "HR Management",
+        "status": "OK",
+        "h1": "Attendance",
+        "finalUrl": "http://localhost/HR_Komagin/modules/attendance/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Kiosk Control",
+        "path": "/modules/attendance/kiosk_manage.php",
+        "section": "HR Management",
+        "status": "OK",
+        "h1": "Kiosk Management",
+        "finalUrl": "http://localhost/HR_Komagin/modules/attendance/kiosk_manage.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Kiosk Screen",
+        "path": "/modules/attendance/kiosk.php",
+        "section": "HR Management",
+        "status": "OK",
+        "h1": "Komagin Limited",
+        "finalUrl": "http://localhost/HR_Komagin/modules/attendance/kiosk.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Timesheets",
+        "path": "/modules/timesheets/index.php",
+        "section": "HR Management",
+        "status": "OK",
+        "h1": "Timesheets",
+        "finalUrl": "http://localhost/HR_Komagin/modules/timesheets/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Overtime",
+        "path": "/modules/timesheets/overtime.php",
+        "section": "HR Management",
+        "status": "OK",
+        "h1": "Overtime Approvals",
+        "finalUrl": "http://localhost/HR_Komagin/modules/timesheets/overtime.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Leave Management",
+        "path": "/modules/leave/index.php",
+        "section": "HR Management",
+        "status": "OK",
+        "h1": "Leave Management",
+        "finalUrl": "http://localhost/HR_Komagin/modules/leave/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Apply Leave",
+        "path": "/modules/leave/apply.php",
+        "section": "HR Management",
+        "status": "OK",
+        "h1": "Leave Application",
+        "finalUrl": "http://localhost/HR_Komagin/modules/leave/apply.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Leave Types",
+        "path": "/modules/leave/types.php",
+        "section": "HR Management",
+        "status": "OK",
+        "h1": "Leave Types",
+        "finalUrl": "http://localhost/HR_Komagin/modules/leave/types.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Recruitment",
+        "path": "/modules/recruitment/index.php",
+        "section": "HR Management",
+        "status": "OK",
+        "h1": "Recruitment",
+        "finalUrl": "http://localhost/HR_Komagin/modules/recruitment/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Onboarding",
+        "path": "/modules/onboarding/index.php",
+        "section": "HR Management",
+        "status": "OK",
+        "h1": "Onboarding",
+        "finalUrl": "http://localhost/HR_Komagin/modules/onboarding/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Training",
+        "path": "/modules/training/index.php",
+        "section": "HR Management",
+        "status": "OK",
+        "h1": "Training Programs",
+        "finalUrl": "http://localhost/HR_Komagin/modules/training/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Performance",
+        "path": "/modules/performance/index.php",
+        "section": "Operations",
+        "status": "OK",
+        "h1": "Performance Reviews",
+        "finalUrl": "http://localhost/HR_Komagin/modules/performance/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Disciplinary",
+        "path": "/modules/disciplinary/index.php",
+        "section": "Operations",
+        "status": "OK",
+        "h1": "Disciplinary & Grievances",
+        "finalUrl": "http://localhost/HR_Komagin/modules/disciplinary/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Assets",
+        "path": "/modules/assets/index.php",
+        "section": "Operations",
+        "status": "OK",
+        "h1": "Asset Management",
+        "finalUrl": "http://localhost/HR_Komagin/modules/assets/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Documents",
+        "path": "/modules/documents/index.php",
+        "section": "Operations",
+        "status": "OK",
+        "h1": "Document Management",
+        "finalUrl": "http://localhost/HR_Komagin/modules/documents/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Doc Templates",
+        "path": "/modules/documents/templates.php",
+        "section": "Operations",
+        "status": "OK",
+        "h1": "Document Templates",
+        "finalUrl": "http://localhost/HR_Komagin/modules/documents/templates.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Generate Document",
+        "path": "/modules/documents/generate.php",
+        "section": "Operations",
+        "status": "OK",
+        "h1": "Generate Document",
+        "finalUrl": "http://localhost/HR_Komagin/modules/documents/generate.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Missing Documents",
+        "path": "/modules/documents/missing.php",
+        "section": "Operations",
+        "status": "OK",
+        "h1": "Missing Documents",
+        "finalUrl": "http://localhost/HR_Komagin/modules/documents/missing.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Reports Hub",
+        "path": "/modules/reports/index.php",
+        "section": "Operations",
+        "status": "OK",
+        "h1": "Reports & Analytics",
+        "finalUrl": "http://localhost/HR_Komagin/modules/reports/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Employee Report",
+        "path": "/modules/reports/employees.php",
+        "section": "Operations",
+        "status": "OK",
+        "h1": "Employee Master Report",
+        "finalUrl": "http://localhost/HR_Komagin/modules/reports/employees.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Timesheet Report",
+        "path": "/modules/reports/timesheets.php",
+        "section": "Operations",
+        "status": "OK",
+        "h1": "Timesheet Report",
+        "finalUrl": "http://localhost/HR_Komagin/modules/reports/timesheets.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Executive Analytics",
+        "path": "/modules/reports/executive.php",
+        "section": "Operations",
+        "status": "OK",
+        "h1": "Executive Analytics Dashboard",
+        "finalUrl": "http://localhost/HR_Komagin/modules/reports/executive.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Requests Hub",
+        "path": "/modules/hub/index.php",
+        "section": "Operations",
+        "status": "OK",
+        "h1": "Employee Request Hub",
+        "finalUrl": "http://localhost/HR_Komagin/modules/hub/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Payroll Dashboard",
+        "path": "/modules/payroll/index.php",
+        "section": "Payroll",
+        "status": "OK",
+        "h1": "Payroll Dashboard",
+        "finalUrl": "http://localhost/HR_Komagin/modules/payroll/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Payslips",
+        "path": "/modules/payroll/payslips.php",
+        "section": "Payroll",
+        "status": "OK",
+        "h1": "Payslip Management",
+        "finalUrl": "http://localhost/HR_Komagin/modules/payroll/payslips.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Deductions",
+        "path": "/modules/payroll/deductions.php",
+        "section": "Payroll",
+        "status": "OK",
+        "h1": "Payroll Deductions",
+        "finalUrl": "http://localhost/HR_Komagin/modules/payroll/deductions.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Savings",
+        "path": "/modules/payroll/savings.php",
+        "section": "Payroll",
+        "status": "OK",
+        "h1": "Savings & Benefits Management",
+        "finalUrl": "http://localhost/HR_Komagin/modules/payroll/savings.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Payroll Reports",
+        "path": "/modules/payroll/reports.php",
+        "section": "Payroll",
+        "status": "OK",
+        "h1": "Payroll Reports",
+        "finalUrl": "http://localhost/HR_Komagin/modules/payroll/reports.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Monthly Archive",
+        "path": "/modules/archive/monthly.php",
+        "section": "Archives",
+        "status": "OK",
+        "h1": "Monthly Archive",
+        "finalUrl": "http://localhost/HR_Komagin/modules/archive/monthly.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Quarterly Archive",
+        "path": "/modules/archive/quarterly.php",
+        "section": "Archives",
+        "status": "OK",
+        "h1": "Quarterly Archive",
+        "finalUrl": "http://localhost/HR_Komagin/modules/archive/quarterly.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Yearly Archive",
+        "path": "/modules/archive/yearly.php",
+        "section": "Archives",
+        "status": "OK",
+        "h1": "Yearly Archive",
+        "finalUrl": "http://localhost/HR_Komagin/modules/archive/yearly.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Users",
+        "path": "/modules/users/index.php",
+        "section": "Administration",
+        "status": "OK",
+        "h1": "User Management",
+        "finalUrl": "http://localhost/HR_Komagin/modules/users/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "My Profile",
+        "path": "/modules/users/profile.php",
+        "section": "Administration",
+        "status": "OK",
+        "h1": "My Profile",
+        "finalUrl": "http://localhost/HR_Komagin/modules/users/profile.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Roles & Permissions",
+        "path": "/modules/roles/index.php",
+        "section": "Administration",
+        "status": "OK",
+        "h1": "Roles & Permissions",
+        "finalUrl": "http://localhost/HR_Komagin/modules/roles/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Settings",
+        "path": "/modules/settings/index.php",
+        "section": "Administration",
+        "status": "OK",
+        "h1": "Settings",
+        "finalUrl": "http://localhost/HR_Komagin/modules/settings/index.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Branding Assets",
+        "path": "/modules/settings/branding.php",
+        "section": "Administration",
+        "status": "OK",
+        "h1": "Branding & Document Assets",
+        "finalUrl": "http://localhost/HR_Komagin/modules/settings/branding.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Appearance / Theme",
+        "path": "/modules/settings/theme.php",
+        "section": "Administration",
+        "status": "OK",
+        "h1": "System Appearance",
+        "finalUrl": "http://localhost/HR_Komagin/modules/settings/theme.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Email & Notifications",
+        "path": "/modules/settings/email.php",
+        "section": "Administration",
+        "status": "OK",
+        "h1": "Email Settings",
+        "finalUrl": "http://localhost/HR_Komagin/modules/settings/email.php",
+        "httpStatus": 200
+      },
+      {
+        "label": "Audit Logs",
+        "path": "/modules/audit/index.php",
+        "section": "Administration",
+        "status": "OK",
+        "h1": "Audit Logs",
+        "finalUrl": "http://localhost/HR_Komagin/modules/audit/index.php",
+        "httpStatus": 200
+      }
+    ]
+  },
+  "phase2_rbac": {
+    "total": 21,
+    "pass": 21,
+    "fail": 0,
+    "results": [
+      {
+        "role": "superadmin",
+        "path": "/modules/roles/index.php",
+        "expectation": "allow",
+        "actual": "allow",
+        "pass": true
+      },
+      {
+        "role": "superadmin",
+        "path": "/modules/performance/index.php",
+        "expectation": "allow",
+        "actual": "allow",
+        "pass": true
+      },
+      {
+        "role": "superadmin",
+        "path": "/modules/payroll/index.php",
+        "expectation": "allow",
+        "actual": "allow",
+        "pass": true
+      },
+      {
+        "role": "hrmanager",
+        "path": "/modules/employees/index.php",
+        "expectation": "allow",
+        "actual": "allow",
+        "pass": true
+      },
+      {
+        "role": "hrmanager",
+        "path": "/modules/payroll/index.php",
+        "expectation": "allow",
+        "actual": "allow",
+        "pass": true
+      },
+      {
+        "role": "hrmanager",
+        "path": "/modules/roles/index.php",
+        "expectation": "allow",
+        "actual": "allow",
+        "pass": true
+      },
+      {
+        "role": "hrmanager",
+        "path": "/modules/audit/index.php",
+        "expectation": "allow",
+        "actual": "allow",
+        "pass": true
+      },
+      {
+        "role": "hrofficer",
+        "path": "/modules/employees/index.php",
+        "expectation": "allow",
+        "actual": "allow",
+        "pass": true
+      },
+      {
+        "role": "hrofficer",
+        "path": "/modules/payroll/index.php",
+        "expectation": "allow",
+        "actual": "allow",
+        "pass": true
+      },
+      {
+        "role": "hrofficer",
+        "path": "/modules/audit/index.php",
+        "expectation": "allow",
+        "actual": "allow",
+        "pass": true
+      },
+      {
+        "role": "hrofficer",
+        "path": "/modules/roles/index.php",
+        "expectation": "deny",
+        "actual": "deny",
+        "pass": true
+      },
+      {
+        "role": "hrofficer",
+        "path": "/modules/settings/index.php",
+        "expectation": "deny",
+        "actual": "deny",
+        "pass": true
+      },
+      {
+        "role": "hrofficer",
+        "path": "/modules/users/index.php",
+        "expectation": "deny",
+        "actual": "deny",
+        "pass": true
+      },
+      {
+        "role": "payroll",
+        "path": "/modules/payroll/index.php",
+        "expectation": "allow",
+        "actual": "allow",
+        "pass": true
+      },
+      {
+        "role": "payroll",
+        "path": "/modules/employees/index.php",
+        "expectation": "allow",
+        "actual": "allow",
+        "pass": true
+      },
+      {
+        "role": "payroll",
+        "path": "/modules/attendance/index.php",
+        "expectation": "allow",
+        "actual": "allow",
+        "pass": true
+      },
+      {
+        "role": "payroll",
+        "path": "/modules/performance/index.php",
+        "expectation": "deny",
+        "actual": "deny",
+        "pass": true
+      },
+      {
+        "role": "payroll",
+        "path": "/modules/recruitment/index.php",
+        "expectation": "deny",
+        "actual": "deny",
+        "pass": true
+      },
+      {
+        "role": "payroll",
+        "path": "/modules/documents/index.php",
+        "expectation": "deny",
+        "actual": "deny",
+        "pass": true
+      },
+      {
+        "role": "payroll",
+        "path": "/modules/roles/index.php",
+        "expectation": "deny",
+        "actual": "deny",
+        "pass": true
+      },
+      {
+        "role": "payroll",
+        "path": "/modules/archive/monthly.php",
+        "expectation": "deny",
+        "actual": "deny",
+        "pass": true
+      }
+    ]
+  },
+  "phase3_portal": {
+    "total": 9,
+    "pass": 9,
+    "fail": 0,
+    "employeeUsed": "KOM-EMP-2026-0003",
+    "results": [
+      {
+        "step": "Login",
+        "url": "http://localhost/HR_Komagin/employee-portal/policy.php",
+        "pass": true,
+        "note": ""
+      },
+      {
+        "step": "Policy gate",
+        "url": "http://localhost/HR_Komagin/employee-portal/dashboard.php",
+        "pass": true,
+        "note": ""
+      },
+      {
+        "step": "Portal Dashboard",
+        "url": "http://localhost/HR_Komagin/employee-portal/dashboard.php",
+        "pass": true,
+        "note": "",
+        "httpCode": 200
+      },
+      {
+        "step": "Portal Employment",
+        "url": "http://localhost/HR_Komagin/employee-portal/employment.php",
+        "pass": true,
+        "note": "",
+        "httpCode": 200
+      },
+      {
+        "step": "Portal Attendance",
+        "url": "http://localhost/HR_Komagin/employee-portal/attendance.php",
+        "pass": true,
+        "note": "",
+        "httpCode": 200
+      },
+      {
+        "step": "Portal Leave",
+        "url": "http://localhost/HR_Komagin/employee-portal/leave.php",
+        "pass": true,
+        "note": "",
+        "httpCode": 200
+      },
+      {
+        "step": "Portal Payslips",
+        "url": "http://localhost/HR_Komagin/employee-portal/payslips.php",
+        "pass": true,
+        "note": "",
+        "httpCode": 200
+      },
+      {
+        "step": "Portal Savings",
+        "url": "http://localhost/HR_Komagin/employee-portal/savings.php",
+        "pass": true,
+        "note": "",
+        "httpCode": 200
+      },
+      {
+        "step": "Portal Hub",
+        "url": "http://localhost/HR_Komagin/employee-portal/hub.php",
+        "pass": true,
+        "note": "",
+        "httpCode": 200
+      }
+    ]
+  },
+  "phase4_content": {
+    "total": 10,
+    "pass": 10,
+    "fail": 0,
+    "results": [
+      {
+        "name": "Logo served from uploads/",
+        "pass": true,
+        "note": "src: 6a3e1e9bb37653.58934782_1782455963.png"
+      },
+      {
+        "name": "Theme CSS variables injected",
+        "pass": true,
+        "note": "--primary: #1D4ED8"
+      },
+      {
+        "name": "Branding page loads (4 tabs)",
+        "pass": true,
+        "note": "4 tabs found"
+      },
+      {
+        "name": "Letterheads table (content state)",
+        "pass": true,
+        "note": "1 letterhead(s) present",
+        "contentState": "configured"
+      },
+      {
+        "name": "Signatures table (content state)",
+        "pass": true,
+        "note": "1 signature(s) present",
+        "contentState": "configured"
+      },
+      {
+        "name": "Stamps table (content state)",
+        "pass": true,
+        "note": "1 stamp(s) present",
+        "contentState": "configured"
+      },
+      {
+        "name": "Watermarks seeded (expect ≥4)",
+        "pass": true,
+        "note": "4 watermark(s) in table"
+      },
+      {
+        "name": "Email log table renders",
+        "pass": true,
+        "note": "table renders — no emails sent yet (neutral — no send test performed)"
+      },
+      {
+        "name": "Doc template config panel",
+        "pass": true,
+        "note": "config panel present"
+      },
+      {
+        "name": "Employee count in DB",
+        "pass": true,
+        "note": "13 employee(s) in system"
+      }
+    ]
+  },
+  "summary": {
+    "overall_operational": true,
+    "caveats": [
+      "Role checks are spot-checks, not exhaustive",
+      "Portal verified with one employee account only",
+      "Empty branding tables = not yet configured, not broken",
+      "Email delivery not live-tested",
+      "Localhost only"
+    ]
+  }
+}

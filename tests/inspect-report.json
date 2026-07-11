@@ -1,0 +1,1002 @@
+{
+  "generated": "2026-06-27T08:55:45.978Z",
+  "base": "http://localhost/HR_Komagin",
+  "login": {
+    "ok": true,
+    "screenshotFile": "00_login.png"
+  },
+  "modules": [
+    {
+      "index": 1,
+      "group": "Core",
+      "label": "Dashboard",
+      "path": "/dashboard.php",
+      "status": "OK",
+      "loadMs": 2640,
+      "pageTitle": "Dashboard – Komagin Limited",
+      "h1": "HR Dashboard",
+      "wordCount": 818,
+      "navItems": 36,
+      "tables": 2,
+      "forms": 0,
+      "buttons": 18,
+      "alerts": 1,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "01_dashboard.png"
+    },
+    {
+      "index": 2,
+      "group": "Employees",
+      "label": "Employees List",
+      "path": "/modules/employees/index.php",
+      "status": "OK",
+      "loadMs": 2640,
+      "pageTitle": "Employees – Komagin Limited",
+      "h1": "Employees",
+      "wordCount": 561,
+      "navItems": 36,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 52,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [
+        {
+          "action": "search \"John\"",
+          "result": "13 row(s) returned",
+          "ok": true
+        },
+        {
+          "action": "Table headers",
+          "result": "Employee | Emp. Number | Department | Position | Type | Start Date | Status | Actions",
+          "ok": true
+        }
+      ],
+      "screenshotFile": "02_employees_list.png"
+    },
+    {
+      "index": 3,
+      "group": "Employees",
+      "label": "Add Employee",
+      "path": "/modules/employees/add.php",
+      "status": "OK",
+      "loadMs": 2878,
+      "pageTitle": "Add Employee – Komagin Limited",
+      "h1": "Add New Employee",
+      "wordCount": 626,
+      "navItems": 37,
+      "tables": 0,
+      "forms": 1,
+      "buttons": 6,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "03_add_employee.png"
+    },
+    {
+      "index": 4,
+      "group": "Attendance",
+      "label": "Attendance",
+      "path": "/modules/attendance/index.php",
+      "status": "OK",
+      "loadMs": 2679,
+      "pageTitle": "Attendance – Komagin Limited",
+      "h1": "Attendance",
+      "wordCount": 385,
+      "navItems": 36,
+      "tables": 0,
+      "forms": 2,
+      "buttons": 9,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [
+        {
+          "action": "Attendance rows",
+          "result": "0 row(s)",
+          "ok": true
+        }
+      ],
+      "screenshotFile": "04_attendance.png"
+    },
+    {
+      "index": 5,
+      "group": "Attendance",
+      "label": "Attendance Kiosk",
+      "path": "/modules/attendance/kiosk.php",
+      "status": "OK",
+      "loadMs": 2905,
+      "pageTitle": "Attendance Kiosk – Komagin Limited",
+      "h1": null,
+      "wordCount": 386,
+      "navItems": 0,
+      "tables": 0,
+      "forms": 0,
+      "buttons": 0,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [],
+      "interactions": [],
+      "screenshotFile": "05_attendance_kiosk.png"
+    },
+    {
+      "index": 6,
+      "group": "Timesheets",
+      "label": "Timesheets",
+      "path": "/modules/timesheets/index.php",
+      "status": "OK",
+      "loadMs": 2653,
+      "pageTitle": "Timesheets – Komagin Limited",
+      "h1": "Timesheets",
+      "wordCount": 411,
+      "navItems": 36,
+      "tables": 1,
+      "forms": 2,
+      "buttons": 9,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [
+        {
+          "action": "Timesheet rows",
+          "result": "1 row(s)",
+          "ok": true
+        }
+      ],
+      "screenshotFile": "06_timesheets.png"
+    },
+    {
+      "index": 7,
+      "group": "Timesheets",
+      "label": "Overtime",
+      "path": "/modules/timesheets/overtime.php",
+      "status": "OK",
+      "loadMs": 2642,
+      "pageTitle": "Overtime Approvals – Komagin Limited",
+      "h1": "Overtime Approvals",
+      "wordCount": 405,
+      "navItems": 36,
+      "tables": 0,
+      "forms": 2,
+      "buttons": 7,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "07_overtime.png"
+    },
+    {
+      "index": 8,
+      "group": "Leave",
+      "label": "Leave Requests",
+      "path": "/modules/leave/index.php",
+      "status": "OK",
+      "loadMs": 2635,
+      "pageTitle": "Leave Management – Komagin Limited",
+      "h1": "Leave Management",
+      "wordCount": 398,
+      "navItems": 36,
+      "tables": 0,
+      "forms": 1,
+      "buttons": 11,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [
+        {
+          "action": "Leave request rows",
+          "result": "0 row(s)",
+          "ok": true
+        }
+      ],
+      "screenshotFile": "08_leave_requests.png"
+    },
+    {
+      "index": 9,
+      "group": "Leave",
+      "label": "Apply Leave",
+      "path": "/modules/leave/apply.php",
+      "status": "OK",
+      "loadMs": 2637,
+      "pageTitle": "Apply for Leave – Komagin Limited",
+      "h1": "Leave Application",
+      "wordCount": 588,
+      "navItems": 37,
+      "tables": 0,
+      "forms": 1,
+      "buttons": 5,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "09_apply_leave.png"
+    },
+    {
+      "index": 10,
+      "group": "Leave",
+      "label": "Leave Types",
+      "path": "/modules/leave/types.php",
+      "status": "OK",
+      "loadMs": 2633,
+      "pageTitle": "Leave Types – Komagin Limited",
+      "h1": "Leave Types",
+      "wordCount": 405,
+      "navItems": 37,
+      "tables": 1,
+      "forms": 9,
+      "buttons": 15,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "10_leave_types.png"
+    },
+    {
+      "index": 11,
+      "group": "Recruitment",
+      "label": "Recruitment",
+      "path": "/modules/recruitment/index.php",
+      "status": "OK",
+      "loadMs": 2799,
+      "pageTitle": "Recruitment – Komagin Limited",
+      "h1": "Recruitment",
+      "wordCount": 450,
+      "navItems": 36,
+      "tables": 0,
+      "forms": 2,
+      "buttons": 10,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [
+        {
+          "action": "Vacancies visible",
+          "result": "0 item(s)",
+          "ok": true
+        }
+      ],
+      "screenshotFile": "11_recruitment.png"
+    },
+    {
+      "index": 12,
+      "group": "Onboarding",
+      "label": "Onboarding",
+      "path": "/modules/onboarding/index.php",
+      "status": "OK",
+      "loadMs": 2612,
+      "pageTitle": "Onboarding – Komagin Limited",
+      "h1": "Onboarding",
+      "wordCount": 420,
+      "navItems": 36,
+      "tables": 0,
+      "forms": 2,
+      "buttons": 7,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "12_onboarding.png"
+    },
+    {
+      "index": 13,
+      "group": "Training",
+      "label": "Training",
+      "path": "/modules/training/index.php",
+      "status": "OK",
+      "loadMs": 2645,
+      "pageTitle": "Training – Komagin Limited",
+      "h1": "Training Programs",
+      "wordCount": 505,
+      "navItems": 36,
+      "tables": 1,
+      "forms": 2,
+      "buttons": 15,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [
+        {
+          "action": "Training items",
+          "result": "5 item(s)",
+          "ok": true
+        }
+      ],
+      "screenshotFile": "13_training.png"
+    },
+    {
+      "index": 14,
+      "group": "Performance",
+      "label": "Performance",
+      "path": "/modules/performance/index.php",
+      "status": "OK",
+      "loadMs": 2647,
+      "pageTitle": "Performance Reviews – Komagin Limited",
+      "h1": "Performance Reviews",
+      "wordCount": 459,
+      "navItems": 36,
+      "tables": 0,
+      "forms": 2,
+      "buttons": 8,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [
+        {
+          "action": "Performance records",
+          "result": "0 item(s)",
+          "ok": true
+        }
+      ],
+      "screenshotFile": "14_performance.png"
+    },
+    {
+      "index": 15,
+      "group": "Disciplinary",
+      "label": "Disciplinary",
+      "path": "/modules/disciplinary/index.php",
+      "status": "OK",
+      "loadMs": 2636,
+      "pageTitle": "Disciplinary Records – Komagin Limited",
+      "h1": "Disciplinary & Grievances",
+      "wordCount": 486,
+      "navItems": 36,
+      "tables": 0,
+      "forms": 3,
+      "buttons": 11,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "15_disciplinary.png"
+    },
+    {
+      "index": 16,
+      "group": "Assets",
+      "label": "Assets",
+      "path": "/modules/assets/index.php",
+      "status": "OK",
+      "loadMs": 2614,
+      "pageTitle": "Asset Management – Komagin Limited",
+      "h1": "Asset Management",
+      "wordCount": 652,
+      "navItems": 36,
+      "tables": 1,
+      "forms": 3,
+      "buttons": 21,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "16_assets.png"
+    },
+    {
+      "index": 17,
+      "group": "Documents",
+      "label": "Documents",
+      "path": "/modules/documents/index.php",
+      "status": "OK",
+      "loadMs": 2660,
+      "pageTitle": "Documents – Komagin Limited",
+      "h1": "Document Management",
+      "wordCount": 385,
+      "navItems": 36,
+      "tables": 1,
+      "forms": 2,
+      "buttons": 7,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "17_documents.png"
+    },
+    {
+      "index": 18,
+      "group": "Documents",
+      "label": "Missing Documents",
+      "path": "/modules/documents/missing.php",
+      "status": "OK",
+      "loadMs": 2635,
+      "pageTitle": "Missing Documents – Komagin Limited",
+      "h1": "Missing Documents",
+      "wordCount": 510,
+      "navItems": 37,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 16,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "18_missing_documents.png"
+    },
+    {
+      "index": 19,
+      "group": "Reports",
+      "label": "Reports Hub",
+      "path": "/modules/reports/index.php",
+      "status": "OK",
+      "loadMs": 2627,
+      "pageTitle": "Reports & Analytics – Komagin Limited",
+      "h1": "Reports & Analytics",
+      "wordCount": 388,
+      "navItems": 36,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 5,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "19_reports_hub.png"
+    },
+    {
+      "index": 20,
+      "group": "Reports",
+      "label": "Employee Report",
+      "path": "/modules/reports/employees.php",
+      "status": "OK",
+      "loadMs": 2656,
+      "pageTitle": "Employee Report – Komagin Limited",
+      "h1": "Employee Master Report",
+      "wordCount": 540,
+      "navItems": 37,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 6,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [
+        {
+          "action": "Report rows",
+          "result": "13 row(s)",
+          "ok": true
+        },
+        {
+          "action": "Export button present",
+          "result": "yes",
+          "ok": true
+        }
+      ],
+      "screenshotFile": "20_employee_report.png"
+    },
+    {
+      "index": 21,
+      "group": "Reports",
+      "label": "Timesheet Report",
+      "path": "/modules/reports/timesheets.php",
+      "status": "OK",
+      "loadMs": 2647,
+      "pageTitle": "Timesheet Report – Komagin Limited",
+      "h1": "Timesheet Report",
+      "wordCount": 422,
+      "navItems": 37,
+      "tables": 2,
+      "forms": 1,
+      "buttons": 5,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "21_timesheet_report.png"
+    },
+    {
+      "index": 22,
+      "group": "Archive",
+      "label": "Archive Monthly",
+      "path": "/modules/archive/monthly.php",
+      "status": "OK",
+      "loadMs": 2625,
+      "pageTitle": "Monthly Archive – Komagin Limited",
+      "h1": "Monthly Archive",
+      "wordCount": 441,
+      "navItems": 36,
+      "tables": 0,
+      "forms": 2,
+      "buttons": 9,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "22_archive_monthly.png"
+    },
+    {
+      "index": 23,
+      "group": "Archive",
+      "label": "Archive Quarterly",
+      "path": "/modules/archive/quarterly.php",
+      "status": "OK",
+      "loadMs": 2635,
+      "pageTitle": "Quarterly Archive – Komagin Limited",
+      "h1": "Quarterly Archive",
+      "wordCount": 445,
+      "navItems": 36,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 13,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "23_archive_quarterly.png"
+    },
+    {
+      "index": 24,
+      "group": "Archive",
+      "label": "Archive Yearly",
+      "path": "/modules/archive/yearly.php",
+      "status": "OK",
+      "loadMs": 2640,
+      "pageTitle": "Yearly Archive – Komagin Limited",
+      "h1": "Yearly Archive",
+      "wordCount": 455,
+      "navItems": 36,
+      "tables": 2,
+      "forms": 1,
+      "buttons": 9,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "24_archive_yearly.png"
+    },
+    {
+      "index": 25,
+      "group": "Payroll",
+      "label": "Payroll Dashboard",
+      "path": "/modules/payroll/index.php",
+      "status": "OK",
+      "loadMs": 2688,
+      "pageTitle": "Payroll Dashboard – Komagin Limited",
+      "h1": "Payroll Dashboard",
+      "wordCount": 440,
+      "navItems": 36,
+      "tables": 1,
+      "forms": 2,
+      "buttons": 7,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [
+        {
+          "action": "Month filter March",
+          "result": "page reloaded",
+          "ok": true
+        },
+        {
+          "action": "Summary cards visible",
+          "result": "0 card(s)",
+          "ok": false
+        }
+      ],
+      "screenshotFile": "25_payroll_dashboard.png"
+    },
+    {
+      "index": 26,
+      "group": "Payroll",
+      "label": "Payroll Payslips",
+      "path": "/modules/payroll/payslips.php",
+      "status": "OK",
+      "loadMs": 2639,
+      "pageTitle": "Payslip Management – Komagin Limited",
+      "h1": "Payslip Management",
+      "wordCount": 499,
+      "navItems": 36,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 8,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "26_payroll_payslips.png"
+    },
+    {
+      "index": 27,
+      "group": "Payroll",
+      "label": "Payroll Deductions",
+      "path": "/modules/payroll/deductions.php",
+      "status": "OK",
+      "loadMs": 2645,
+      "pageTitle": "Payroll Deductions – Komagin Limited",
+      "h1": "Payroll Deductions",
+      "wordCount": 545,
+      "navItems": 36,
+      "tables": 1,
+      "forms": 6,
+      "buttons": 12,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "27_payroll_deductions.png"
+    },
+    {
+      "index": 28,
+      "group": "Payroll",
+      "label": "Payroll Savings",
+      "path": "/modules/payroll/savings.php",
+      "status": "OK",
+      "loadMs": 2657,
+      "pageTitle": "Savings Management – Komagin Limited",
+      "h1": "Savings & Benefits Management",
+      "wordCount": 544,
+      "navItems": 36,
+      "tables": 0,
+      "forms": 2,
+      "buttons": 8,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "28_payroll_savings.png"
+    },
+    {
+      "index": 29,
+      "group": "Payroll",
+      "label": "Payroll Reports",
+      "path": "/modules/payroll/reports.php",
+      "status": "OK",
+      "loadMs": 2642,
+      "pageTitle": "Payroll Reports – Komagin Limited",
+      "h1": "Payroll Reports",
+      "wordCount": 450,
+      "navItems": 36,
+      "tables": 2,
+      "forms": 1,
+      "buttons": 4,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "29_payroll_reports.png"
+    },
+    {
+      "index": 30,
+      "group": "Hub",
+      "label": "Hub / Announcements",
+      "path": "/modules/hub/index.php",
+      "status": "OK",
+      "loadMs": 2620,
+      "pageTitle": "Employee Hub – Komagin Limited",
+      "h1": "Employee Request Hub",
+      "wordCount": 414,
+      "navItems": 36,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 6,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [
+        {
+          "action": "Hub items visible",
+          "result": "0 item(s)",
+          "ok": true
+        }
+      ],
+      "screenshotFile": "30_hub_announcements.png"
+    },
+    {
+      "index": 31,
+      "group": "Admin",
+      "label": "Users Management",
+      "path": "/modules/users/index.php",
+      "status": "OK",
+      "loadMs": 2610,
+      "pageTitle": "User Management – Komagin Limited",
+      "h1": "User Management",
+      "wordCount": 657,
+      "navItems": 36,
+      "tables": 1,
+      "forms": 18,
+      "buttons": 42,
+      "alerts": 1,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [
+        {
+          "action": "User rows",
+          "result": "17 row(s)",
+          "ok": true
+        }
+      ],
+      "screenshotFile": "31_users_management.png"
+    },
+    {
+      "index": 32,
+      "group": "Admin",
+      "label": "My Profile",
+      "path": "/modules/users/profile.php",
+      "status": "OK",
+      "loadMs": 2775,
+      "pageTitle": "My Profile – Komagin Limited",
+      "h1": "My Profile",
+      "wordCount": 427,
+      "navItems": 36,
+      "tables": 0,
+      "forms": 2,
+      "buttons": 5,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [],
+      "screenshotFile": "32_my_profile.png"
+    },
+    {
+      "index": 33,
+      "group": "Admin",
+      "label": "Roles & Permissions",
+      "path": "/modules/roles/index.php",
+      "status": "OK",
+      "loadMs": 2792,
+      "pageTitle": "Roles & Permissions – Komagin Limited",
+      "h1": "Roles & Permissions",
+      "wordCount": 1400,
+      "navItems": 36,
+      "tables": 1,
+      "forms": 688,
+      "buttons": 691,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [
+        {
+          "action": "Role tabs visible",
+          "result": "0 tab(s)",
+          "ok": true
+        }
+      ],
+      "screenshotFile": "33_roles_permissions.png"
+    },
+    {
+      "index": 34,
+      "group": "Admin",
+      "label": "System Settings",
+      "path": "/modules/settings/index.php",
+      "status": "OK",
+      "loadMs": 2621,
+      "pageTitle": "Settings – Komagin Limited",
+      "h1": "Settings",
+      "wordCount": 354,
+      "navItems": 36,
+      "tables": 0,
+      "forms": 1,
+      "buttons": 4,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [
+        {
+          "action": "Settings form fields",
+          "result": "4 field(s)",
+          "ok": true
+        }
+      ],
+      "screenshotFile": "34_system_settings.png"
+    },
+    {
+      "index": 35,
+      "group": "Admin",
+      "label": "Audit Logs",
+      "path": "/modules/audit/index.php",
+      "status": "OK",
+      "loadMs": 2645,
+      "pageTitle": "Audit Logs – Komagin Limited",
+      "h1": "Audit Logs",
+      "wordCount": 1028,
+      "navItems": 36,
+      "tables": 0,
+      "forms": 1,
+      "buttons": 4,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [
+        "#"
+      ],
+      "interactions": [
+        {
+          "action": "Audit log rows",
+          "result": "0 row(s)",
+          "ok": true
+        }
+      ],
+      "screenshotFile": "35_audit_logs.png"
+    },
+    {
+      "index": 36,
+      "group": "Employee-Portal",
+      "label": "Portal Login Page",
+      "path": "/employee-portal/login.php",
+      "status": "AUTH_REDIRECT",
+      "loadMs": 2855,
+      "pageTitle": "Employee Portal — Komagin",
+      "h1": null,
+      "wordCount": 15,
+      "navItems": 0,
+      "tables": 0,
+      "forms": 1,
+      "buttons": 1,
+      "alerts": 0,
+      "phpError": null,
+      "jsErrors": [],
+      "networkFail": [],
+      "badLinks": [],
+      "interactions": [],
+      "screenshotFile": "36_portal_login_page.png"
+    }
+  ],
+  "summary": {
+    "total": 36,
+    "ok": 35,
+    "fatal": 0,
+    "authRedir": 1,
+    "phpWarn": 0,
+    "jsError": 0,
+    "navFail": 0,
+    "totalMs": 166667,
+    "avgMs": 4630,
+    "slowest": [
+      {
+        "label": "Attendance Kiosk",
+        "ms": 2905
+      },
+      {
+        "label": "Add Employee",
+        "ms": 2878
+      },
+      {
+        "label": "Portal Login Page",
+        "ms": 2855
+      },
+      {
+        "label": "Recruitment",
+        "ms": 2799
+      },
+      {
+        "label": "Roles & Permissions",
+        "ms": 2792
+      }
+    ]
+  }
+}
