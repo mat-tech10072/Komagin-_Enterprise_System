@@ -38,6 +38,20 @@ document.addEventListener('DOMContentLoaded', function() {
         return window.APP_URL + link;
     }
 
+    // KOM-093: notification title/message are free text — e.g. the
+    // employee-portal Hub lets any logged-in employee set both fields
+    // (modules/employee-portal/hub.php's subject/description), and this
+    // dropdown is rendered via innerHTML for every user including
+    // hr_manager/super_admin. Without this, a low-privilege employee could
+    // submit a hub request containing a script payload that executes in an
+    // HR Manager's or Super Admin's session the next time they open the
+    // notification bell — a stored XSS with a real privilege-escalation path.
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str == null ? '' : String(str);
+        return div.innerHTML;
+    }
+
     function updateBadge(count) {
         if (!notifBadgeEl) return;
         notifBadgeEl.textContent = count > 9 ? '9+' : count;
@@ -56,10 +70,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         notifList.innerHTML = notifs.map(n => {
             const url = resolveLink(n.link);
-            return `<div class="notif-item unread" data-id="${n.id}" data-link="${url || ''}" style="cursor:pointer;">
-                <div class="notif-item-title">${n.title}</div>
-                <div class="notif-item-msg">${n.message}</div>
-                <div class="notif-item-time">${n.time}</div>
+            return `<div class="notif-item unread" data-id="${n.id}" data-link="${escapeHtml(url || '')}" style="cursor:pointer;">
+                <div class="notif-item-title">${escapeHtml(n.title)}</div>
+                <div class="notif-item-msg">${escapeHtml(n.message)}</div>
+                <div class="notif-item-time">${escapeHtml(n.time)}</div>
             </div>`;
         }).join('');
 

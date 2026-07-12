@@ -182,6 +182,7 @@ class ApprovalEngine
             $this->db->prepare("UPDATE approval_workflows SET status='rejected', updated_at=NOW() WHERE id=?")
                 ->execute([$workflowId]);
             $this->updateReference($workflow, 'rejected');
+            $this->notifyInitiator($workflow, 'rejected', $comments);
             $this->auditAttempt($workflowId, $actingUserId, $action, true, 'rejected');
             return true;
         }
@@ -192,6 +193,7 @@ class ApprovalEngine
             $this->db->prepare("UPDATE approval_workflows SET status='approved', updated_at=NOW() WHERE id=?")
                 ->execute([$workflowId]);
             $this->updateReference($workflow, 'approved', $actingUserId);
+            $this->notifyInitiator($workflow, 'approved', $comments);
         } else {
             $this->db->prepare("UPDATE approval_workflows SET status='in_review', current_stage=?, updated_at=NOW() WHERE id=?")
                 ->execute([$nextStage, $workflowId]);
@@ -199,6 +201,30 @@ class ApprovalEngine
 
         $this->auditAttempt($workflowId, $actingUserId, $action, true, "advanced_to_stage:$nextStage");
         return true;
+    }
+
+    // KOM-095: act() previously resolved the workflow (and, via
+    // updateReference(), applied the real employee change) with no
+    // notification to anyone at all — the HR staff member who submitted a
+    // termination/transfer/promotion request had no way to learn the
+    // outcome except by manually revisiting the Approvals page. leave's
+    // own approve.php already notifies its applicant on decision; this
+    // generalizes the same idea to every workflow type that flows through
+    // this engine, notifying whoever initiated the request (not the
+    // employee the workflow is about — for a sensitive action like
+    // termination, that notification is a human conversation, not an
+    // automated in-app popup).
+    private function notifyInitiator(array $workflow, string $finalStatus, string $comments): void
+    {
+        if (empty($workflow['initiated_by'])) return;
+        createNotification(
+            (int)$workflow['initiated_by'],
+            $finalStatus === 'approved' ? 'success' : 'danger',
+            $workflow['title'] . ' — ' . ucfirst($finalStatus),
+            'Your ' . str_replace('_', ' ', $workflow['workflow_type']) . ' request has been ' . $finalStatus . '.'
+                . ($comments !== '' ? " Comments: {$comments}" : ''),
+            APP_URL . '/modules/approvals/index.php'
+        );
     }
 
     // ── Audit every act() attempt, allowed or blocked ──────────────────────

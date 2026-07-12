@@ -52,8 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_request'])) {
         $notifTitle = 'New Hub Request: ' . $typeLabel;
         $notifMsg   = $empName . ' submitted a ' . strtolower($typeLabel) . ': ' . $subject;
         $notifLink  = APP_URL . '/modules/hub/index.php';
-        notifyRole('hr_manager',  'hub_request', $notifTitle, $notifMsg, $notifLink);
-        notifyRole('super_admin', 'hub_request', $notifTitle, $notifMsg, $notifLink);
+        notifyRole('hr_manager',  'warning', $notifTitle, $notifMsg, $notifLink);
+        notifyRole('super_admin', 'warning', $notifTitle, $notifMsg, $notifLink);
 
         $success = 'Your request has been submitted. HR will respond shortly.';
     }

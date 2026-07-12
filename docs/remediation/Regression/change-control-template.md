@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; **6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10 — more to follow as each subsequent workflow group completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; **5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11 — more to follow as each subsequent workflow group completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -1086,6 +1086,66 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** N/A
 - **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
 
+### CC-088 — Fixed stored XSS in the shared notification renderer (KOM-093)
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-093
+- **Files changed:** `includes/footer.php`
+- **Reason:** The notification dropdown (used by every logged-in user, all roles) rendered `title`/`message` via a JS template literal assigned directly to `.innerHTML` with no escaping anywhere in the chain. `employee-portal/hub.php`'s self-service request form feeds a plain employee's raw free-text `subject` into a notification sent to every `hr_manager`/`super_admin` — a stored-XSS privilege-escalation chain reachable by the lowest-privilege authenticated role against the highest. Discovered while auditing notification triggers for this workflow group.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Submitted a hub request as a plain employee with `subject=<script>alert(1)</script>`; confirmed the notifications API still returns the raw payload (expected — the fix is client-side by design); confirmed by code review that the new `escapeHtml()` helper is applied to every interpolated field (`title`, `message`, `link`) before DOM insertion. Full browser click-through not performed (no browser automation available in this environment) — recommended before Phase 5 sign-off.
+- **Verification result:** VERIFIED by code review + confirmed unescaped payload reaches the client; live browser click-through outstanding
+- **Master Register updated:** Yes (KOM-093, new, added to CRITICAL section, Fixed)
+
+### CC-089 — Fixed missing decision notification in ApprovalEngine (KOM-095)
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-095
+- **Files changed:** `config/ApprovalEngine.php`
+- **Reason:** `act()` resolved every workflow (and, via `updateReference()`, applied the real employee change for termination/transfer/promotion) with zero notification to anyone — the requester had no in-app way to learn a decision had been made, unlike leave's own `approve.php` which already notifies its applicant.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Created a disposable test employee, submitted a termination request as one admin, approved it as a different `hr_manager` user (separation-of-duties check honored), confirmed the initiating admin received a correctly-typed `success` notification with the reviewer's comments; workflow and employee status both correctly updated. Test data fully cleaned up.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-095, new, added to HIGH section, Fixed)
+
+### CC-090 — Fixed invalid notifications.type ENUM value in employee Hub requests (KOM-094)
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-094
+- **Files changed:** `employee-portal/hub.php`
+- **Reason:** `notifyRole(..., 'hub_request', ...)` used a type value not in the 4-member `notifications.type` ENUM — the same mistake self-caught and corrected in Workflow Group 1's own new code, found still live here. Non-strict SQL mode silently coerced it to an empty string on every hub-request notification ever created.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Submitted a real hub request post-fix; confirmed the resulting `notifications` row has `type='warning'`.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-094, new, added to MEDIUM section, Fixed)
+
+### CC-091 — Master Remediation Register updated for Phase 4 Workflow Group 11
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-093, KOM-094, KOM-095
+- **Files changed:** `docs/remediation/Findings/08-master-remediation-register.md`
+- **Reason:** Record this workflow group's outcomes per the program's change-control requirement.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (this entry documents that update itself)
+
+### CC-092 — Change Control Log updated for Phase 4 Workflow Group 11
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** N/A (documentation-only)
+- **Files changed:** `docs/remediation/Regression/change-control-template.md`
+- **Reason:** Record this log's own Phase 4 Workflow Group 11 entries (CC-088–CC-092).
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
+
 ---
 
 ## Change Log for This Document
@@ -1107,3 +1167,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-12 | 4 entries (CC-075–CC-078) recorded for Phase 4, Workflow Group 8 (Training) | Remediation Program — Phase 4 |
 | 2026-07-12 | 3 entries (CC-079–CC-081) recorded for Phase 4, Workflow Group 9 (Consultant Module) | Remediation Program — Phase 4 |
 | 2026-07-13 | 6 entries (CC-082–CC-087) recorded for Phase 4, Workflow Group 10 (Temporary Employee Module) | Remediation Program — Phase 4 |
+| 2026-07-13 | 5 entries (CC-088–CC-092) recorded for Phase 4, Workflow Group 11 (Notifications) | Remediation Program — Phase 4 |
