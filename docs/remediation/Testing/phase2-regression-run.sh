@@ -192,9 +192,14 @@ curl -s -b "$JAR/admin.txt" -D - -o /dev/null \
 grep -qi "^location.*view.php" "$JAR/cadd_hdrs.txt" && pass "Consultants add.php works with no fatal error (KOM-002 regression)" || fail "Consultants add.php did not succeed as expected"
 NEWID=$($MYSQL -N -e "SELECT id FROM consultants WHERE last_name='Test' AND first_name='P2Regress' ORDER BY id DESC LIMIT 1;" 2>/dev/null)
 if [ -n "$NEWID" ]; then
-  curl -s -b "$JAR/admin.txt" "$BASE/modules/consultants/index.php" -o "$JAR/cidx.html"
-  DCSRF=$(get_csrf "$JAR/cidx.html")
-  curl -s -b "$JAR/admin.txt" -o /dev/null -d "csrf_token=$DCSRF&id=$NEWID" "$BASE/modules/consultants/delete.php"
+  # delete.php now requires a GET confirmation page + typing the exact
+  # consultant_number to confirm (Phase 4, KOM-0xx) instead of an instant
+  # single-POST delete -- fetch the number and the page's own CSRF token
+  # first, matching the new two-step flow.
+  NEWCONNUM=$($MYSQL -N -e "SELECT consultant_number FROM consultants WHERE id=$NEWID;" 2>/dev/null)
+  curl -s -b "$JAR/admin.txt" "$BASE/modules/consultants/delete.php?id=$NEWID" -o "$JAR/cdel.html"
+  DCSRF=$(get_csrf "$JAR/cdel.html")
+  curl -s -b "$JAR/admin.txt" -o /dev/null -d "csrf_token=$DCSRF&confirm_number=$NEWCONNUM" "$BASE/modules/consultants/delete.php?id=$NEWID"
   REMAIN=$($MYSQL -N -e "SELECT COUNT(*) FROM consultants WHERE id=$NEWID;" 2>/dev/null)
   [ "${REMAIN:-1}" = "0" ] && pass "Consultants delete.php works with no fatal error (KOM-002 regression)" || fail "Consultants delete.php did not remove the test record"
 fi

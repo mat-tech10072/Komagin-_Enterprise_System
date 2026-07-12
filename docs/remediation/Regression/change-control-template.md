@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; **4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8 — more to follow as each subsequent workflow group completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; **3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9 — more to follow as each subsequent workflow group completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -978,6 +978,42 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** N/A
 - **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
 
+### CC-079 — Added type-to-confirm safety pattern to consultant deletion (KOM-089)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-089
+- **Files changed:** `modules/consultants/delete.php`, `modules/consultants/index.php`, `docs/remediation/Testing/phase2-regression-run.sh`
+- **Reason:** `delete.php` was a single-click, JS `confirm()`-only instant hard delete with no server-side impact preview and no type-to-confirm safeguard, despite cascading to a consultant's entire `consultant_attendance` and `consultant_scopes` history. Inconsistent with the already-established, already-proven pattern for the same class of action (`modules/employees/delete.php`). Rewrote `delete.php` to a GET confirmation page showing an impact-count summary, requiring the exact `consultant_number` to be typed before the `POST` proceeds; updated the Consultants list's Delete button from an instant form-submit to a link to this confirmation page. The Phase 2 regression suite's consultant-delete test was written against the old instant-delete behavior and had to be updated to fetch the confirmation page and submit the real `consultant_number` first — this is a test-script correction, not a product regression.
+- **Tests added/updated:** Updated the consultant-delete case in `phase2-regression-run.sh` to match the new confirmation flow
+- **Regression tests executed:** Phase 1 (20/20), Phase 2 (29/29, after the test-script update — failed 28/29 immediately after the code change with the stale test, confirming the fix changed real behavior as intended). Live functional: created a disposable test consultant; confirmation page loaded with correct impact summary; wrong confirmation text correctly rejected (record still present); correct consultant number correctly deleted it.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-089, new, added to MEDIUM section, Fixed)
+
+### CC-080 — Master Remediation Register updated for Phase 4 Workflow Group 9
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-089
+- **Files changed:** `docs/remediation/Findings/08-master-remediation-register.md`
+- **Reason:** Record this workflow group's outcomes per the program's change-control requirement.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (this entry documents that update itself)
+
+### CC-081 — Change Control Log updated for Phase 4 Workflow Group 9
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** N/A (documentation-only)
+- **Files changed:** `docs/remediation/Regression/change-control-template.md`
+- **Reason:** Record this log's own Phase 4 Workflow Group 9 entries (CC-079–CC-081).
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
+
 ---
 
 ## Change Log for This Document
@@ -997,3 +1033,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-12 | 3 entries (CC-068–CC-070) recorded for Phase 4, Workflow Group 6 (Performance Management) | Remediation Program — Phase 4 |
 | 2026-07-12 | 4 entries (CC-071–CC-074) recorded for Phase 4, Workflow Group 7 (Recruitment) | Remediation Program — Phase 4 |
 | 2026-07-12 | 4 entries (CC-075–CC-078) recorded for Phase 4, Workflow Group 8 (Training) | Remediation Program — Phase 4 |
+| 2026-07-12 | 3 entries (CC-079–CC-081) recorded for Phase 4, Workflow Group 9 (Consultant Module) | Remediation Program — Phase 4 |

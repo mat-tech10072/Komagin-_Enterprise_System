@@ -231,11 +231,7 @@ require_once dirname(dirname(dirname(__FILE__))) . '/includes/header.php';
                         <a href="<?= APP_URL ?>/modules/consultants/edit.php?id=<?= $c['id'] ?>" class="btn btn-primary btn-sm">Edit</a>
                         <?php endif; ?>
                         <?php if (canDelete('consultants.delete')): ?>
-                        <form method="POST" action="<?= APP_URL ?>/modules/consultants/delete.php" style="display:inline;" onsubmit="return confirm('Delete this consultant? This cannot be undone.');">
-                            <input type="hidden" name="csrf_token" value="<?= generateCsrfToken() ?>">
-                            <input type="hidden" name="id" value="<?= $c['id'] ?>">
-                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                        </form>
+                        <a href="<?= APP_URL ?>/modules/consultants/delete.php?id=<?= $c['id'] ?>" class="btn btn-danger btn-sm">Delete</a>
                         <?php endif; ?>
                     </div>
                 </td>
