@@ -43,25 +43,6 @@ class ApprovalEngine
                     ['name'=>'HR Approval', 'role'=>'hr_manager'],
                 ],
             ],
-            'overtime' => [
-                'label'  => 'Overtime Approval',
-                'stages' => [
-                    ['name'=>'HR Review', 'role'=>'hr_officer'],
-                ],
-            ],
-            'correction' => [
-                'label'  => 'Timesheet Correction',
-                'stages' => [
-                    ['name'=>'HR Approval', 'role'=>'hr_officer'],
-                ],
-            ],
-            'payroll_run' => [
-                'label'  => 'Payroll Run Authorization',
-                'stages' => [
-                    ['name'=>'Payroll Officer Review', 'role'=>'payroll_officer'],
-                    ['name'=>'Payroll Manager Approval','role'=>'payroll_manager'],
-                ],
-            ],
             'promotion' => [
                 'label'  => 'Promotion Request',
                 'stages' => [
@@ -80,13 +61,21 @@ class ApprovalEngine
                     ['name'=>'HR Manager Review',  'role'=>'hr_manager'],
                 ],
             ],
-            'document' => [
-                'label'  => 'Document Approval',
-                'stages' => [
-                    ['name'=>'HR Review', 'role'=>'hr_officer'],
-                ],
-            ],
         ];
+        // Phase 5, Stage 5.2: 'overtime', 'correction', 'payroll_run', and
+        // 'document' were configured here but nothing anywhere ever called
+        // ->create() for any of them — overtime and timesheet-correction
+        // approval already have their own working, independently-built
+        // mechanisms (modules/timesheets/{overtime,corrections}.php),
+        // payroll run authorization is its own atomic status-transition
+        // pipeline (modules/payroll/run_*.php), and document approval uses
+        // its own status field (generated_documents.status). Removed as
+        // dead configuration per user decision rather than migrated onto
+        // this engine, which would have meant rewriting 3 already-working
+        // approval flows with real risk of behavior change. The
+        // approval_workflows.workflow_type schema ENUM still technically
+        // allows these values (a lower-risk, separate schema concern, not
+        // touched here) but nothing in the application can create one.
     }
 
     // ── Create a new workflow ──────────────────────────────────────────────
@@ -253,9 +242,17 @@ class ApprovalEngine
     }
 
     // ── Cancel a workflow ──────────────────────────────────────────────────
+    // KOM-047: used '+' inside the SQL string, which MySQL treats as
+    // numeric addition, not concatenation — the reason text (and the
+    // literal ' | Cancelled: ' label) were both silently coerced to 0
+    // instead of appended. Fixed to a proper CONCAT() argument list. Still
+    // dead code (no call site anywhere), kept rather than removed since
+    // it remains a generically useful method for any of the 3 real
+    // workflow types (promotion/transfer/termination), independent of
+    // Stage 5.2's removal of the 4 never-instantiated types.
     public function cancel(int $workflowId, string $reason = ''): void
     {
-        $this->db->prepare("UPDATE approval_workflows SET status='cancelled', notes=CONCAT(IFNULL(notes,''),' | Cancelled: '+ ?) WHERE id=?")
+        $this->db->prepare("UPDATE approval_workflows SET status='cancelled', notes=CONCAT(IFNULL(notes,''),' | Cancelled: ', ?) WHERE id=?")
             ->execute([$reason, $workflowId]);
     }
 

@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; 4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13; 1 more (CC-103) recording the KOM-045 close-out decision — all 13 Phase 4 workflow groups complete, see the Phase 4 Completion Report; **2 more (CC-104–CC-105) recorded for Phase 5, Stage 5.1 — more to follow as each subsequent stage completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; 4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13; 1 more (CC-103) recording the KOM-045 close-out decision — all 13 Phase 4 workflow groups complete, see the Phase 4 Completion Report; 2 more (CC-104–CC-105) recorded for Phase 5, Stage 5.1; **1 more (CC-106) recorded for Phase 5, Stage 5.2 — more to follow as each subsequent stage completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -1302,6 +1302,18 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** VERIFIED live
 - **Master Register updated:** Yes (KOM-083 status changed from Open/deferred to Fixed)
 
+### CC-106 — Removed 4 dormant ApprovalEngine workflow types, fixed cancel() bug (KOM-047, Stage 5.2)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-047
+- **Files changed:** `config/ApprovalEngine.php`
+- **Reason:** `overtime`, `correction`, `payroll_run`, and `document` were configured as `ApprovalEngine` workflow types but nothing anywhere ever called `->create()` for any of them — each already has its own independently-built, working approval mechanism (overtime/corrections have their own status handling, payroll runs use their own atomic status-transition pipeline, document approval uses its own status field). Presented to the user as a decision point (wire up, remove, or mark reserved); user chose to remove as dead configuration. Also fixed `cancel()`'s `+`-vs-string-concatenation bug (KOM-047) while in this file — a trivial, safe fix independent of the dormant-type removal, kept since `cancel()` remains generically useful for the 3 real workflow types even though it currently has no call site.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Confirmed the Approvals UI type-filter dropdown now lists exactly 4 workflow types (was 8). Full round-trip test on a real, still-configured type: created a disposable test employee, submitted and approved a termination request via the generic Approvals inbox — workflow correctly created and resolved, employee status correctly changed, initiator correctly notified. Confirmed zero existing `approval_workflows` rows of any of the 4 removed types existed (no orphaned data). Phase 1 regression 20/20, Phase 2 regression 29/29. Test data fully cleaned up.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-047 status changed from Open to Fixed)
+
 ---
 
 ## Change Log for This Document
@@ -1328,3 +1340,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-13 | 4 entries (CC-099–CC-102) recorded for Phase 4, Workflow Group 13 (Reports & Dashboards Consistency) | Remediation Program — Phase 4 |
 | 2026-07-13 | 1 entry (CC-103) recorded for the KOM-045 close-out decision — all 13 Phase 4 workflow groups now complete | Remediation Program — Phase 4 |
 | 2026-07-13 | 2 entries (CC-104–CC-105) recorded for Phase 5, Stage 5.1 (Leave Approval Model Completion) | Remediation Program — Phase 5 |
+| 2026-07-13 | 1 entry (CC-106) recorded for Phase 5, Stage 5.2 (ApprovalEngine Dormant Workflow Types) | Remediation Program — Phase 5 |
