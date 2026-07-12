@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; **10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1 — more to follow as each subsequent workflow group completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; **5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2 — more to follow as each subsequent workflow group completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -582,6 +582,66 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** VERIFIED live
 - **Master Register updated:** Yes (KOM-073)
 
+### CC-046 — New Positions management UI, plus seed data for departments and positions (KOM-078)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-078
+- **Files changed:** `modules/settings/index.php` (new Positions tab), new `database/seeds/003_departments_positions.sql`, `database/install.php`, `database/verify_clean_install.php`
+- **Reason:** No code anywhere in the application could create, edit, or deactivate a `positions` row — the table could only ever be populated by a direct, untracked database edit. `departments` had the identical seed-data gap. A fresh install had zero positions, zero departments, and (for positions) no way to create one at all.
+- **Tests added/updated:** `verify_clean_install.php` — 2 new structural checks (departments seeded=11, positions seeded=23)
+- **Regression tests executed:** Clean-install test 29/29 (was 26/26). Live: added a position via the new UI, confirmed duplicate-name rejection, confirmed disable-with-employee-count works.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-078)
+
+### CC-047 — Fixed duplicate department name crash (KOM-079)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-079
+- **Files changed:** `modules/settings/index.php`
+- **Reason:** `departments.name`'s DB-level UNIQUE constraint had no matching application-level check — submitting an existing name threw an uncaught `PDOException` and crashed the Settings page. Live-verified before the fix.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Duplicate submission now shows a clean error, no crash, no duplicate row; a genuinely new department name still succeeds.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-079)
+
+### CC-048 — Deletion-protection visibility for department/position disable (KOM-080)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-080
+- **Files changed:** `modules/settings/index.php`
+- **Reason:** Disabling a department or position had no visibility into how many employees/positions currently reference it, unlike Employee Delete's full cascade-impact preview.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Disabling a department with an assigned active employee correctly surfaces the count in the confirmation message.
+- **Verification result:** VERIFIED live. Note: this test was inadvertently run against the live "Human Resources" department (id=1) instead of a disposable record; it was re-enabled within roughly a minute of being disabled once noticed, and department count/active flag/employee and position rows were confirmed fully restored with no other side effects (the disable action only ever touches `departments.is_active`). Disclosed in full in `Workflows/02-department-position-workflow-report.md` §5.
+- **Master Register updated:** Yes (KOM-080)
+
+### CC-049 — Master Remediation Register updated for Phase 4 Workflow Group 2
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-078, KOM-079, KOM-080 (new)
+- **Files changed:** `docs/remediation/Findings/08-master-remediation-register.md`
+- **Reason:** Record this workflow group's outcomes per the program's change-control requirement.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (this entry documents that update itself)
+
+### CC-050 — Change Control Log updated for Phase 4 Workflow Group 2
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** N/A (documentation-only)
+- **Files changed:** `docs/remediation/Regression/change-control-template.md`
+- **Reason:** Record this log's own Phase 4 Workflow Group 2 entries (CC-046–CC-050).
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
+
 ---
 
 ## Change Log for This Document
@@ -593,3 +653,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-11/12 | 11 entries (CC-014–CC-024) recorded for Phase 2 | Remediation Program — Phase 2 |
 | 2026-07-12 | 11 entries (CC-025–CC-035) recorded for Phase 3 | Remediation Program — Phase 3 |
 | 2026-07-12 | 10 entries (CC-036–CC-045) recorded for Phase 4, Workflow Group 1 (Employee Management) | Remediation Program — Phase 4 |
+| 2026-07-12 | 5 entries (CC-046–CC-050) recorded for Phase 4, Workflow Group 2 (Department & Position Management) | Remediation Program — Phase 4 |

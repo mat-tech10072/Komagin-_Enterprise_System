@@ -46,6 +46,7 @@ $sequence = [
     ['file' => 'schema.sql',                          'label' => 'Core database structure'],
     ['file' => 'seeds/001_baseline_admin.sql',         'label' => 'Default super_admin account'],
     ['file' => 'seeds/002_doc_categories.sql',         'label' => 'Document template categories'],
+    ['file' => 'seeds/003_departments_positions.sql',  'label' => 'Departments & positions'],
     ['file' => 'phase1_permissions.sql',               'label' => 'Core permission matrix'],
     ['file' => 'phase5_branding_theme.sql',            'label' => 'Branding & email permissions'],
     ['file' => 'phase6_templates.sql',                 'label' => 'Document template library'],
@@ -109,6 +110,12 @@ record($results, $templateCount === 47, "Document template library seeded (got $
 
 $catCount = (int)$root->query("SELECT COUNT(*) FROM doc_categories")->fetchColumn();
 record($results, $catCount === 10, "Document categories seeded (got $catCount, expect 10)");
+
+$deptCount = (int)$root->query("SELECT COUNT(*) FROM departments")->fetchColumn();
+record($results, $deptCount === 11, "Departments seeded (got $deptCount, expect 11)");
+
+$posCount = (int)$root->query("SELECT COUNT(*) FROM positions")->fetchColumn();
+record($results, $posCount === 23, "Positions seeded (got $posCount, expect 23)");
 
 $adminCount = (int)$root->query("SELECT COUNT(*) FROM users WHERE role='super_admin'")->fetchColumn();
 record($results, $adminCount === 1, "Default super_admin account created (got $adminCount)");

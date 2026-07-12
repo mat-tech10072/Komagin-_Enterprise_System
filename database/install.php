@@ -35,6 +35,7 @@ const INSTALL_SEQUENCE = [
     ['file' => 'schema.sql',                          'label' => 'Core database structure (60 tables)'],
     ['file' => 'seeds/001_baseline_admin.sql',         'label' => 'Default super_admin account'],
     ['file' => 'seeds/002_doc_categories.sql',         'label' => 'Document template categories'],
+    ['file' => 'seeds/003_departments_positions.sql',  'label' => 'Departments & positions'],
     ['file' => 'phase1_permissions.sql',               'label' => 'Core permission matrix (79 permissions)'],
     ['file' => 'phase5_branding_theme.sql',            'label' => 'Branding & email permissions'],
     ['file' => 'phase6_templates.sql',                 'label' => 'Document template library (47 templates)'],

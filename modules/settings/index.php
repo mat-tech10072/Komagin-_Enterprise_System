@@ -105,7 +105,7 @@ $csrf = generateCsrfToken();
 <?php endif; ?>
 
 <div class="tab-nav">
-    <?php $tabs = [['company','Company'],['attendance','Attendance'],['emp_number','Employee Numbers'],['departments','Departments'],['leave_types','Leave Types']]; ?>
+    <?php $tabs = [['company','Company'],['attendance','Attendance'],['emp_number','Employee Numbers'],['departments','Departments'],['positions','Positions'],['leave_types','Leave Types']]; ?>
     <?php foreach ($tabs as [$k,$l]): ?>
         <a href="?tab=<?= $k ?>" class="tab-item <?= $activeTab===$k?'active':'' ?>"><?= $l ?></a>
     <?php endforeach; ?>
@@ -244,20 +244,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
     if ($deptAction === 'add') {
         $dname = trim($_POST['dept_name'] ?? '');
         $dcode = trim($_POST['dept_code'] ?? '');
-        if ($dname) {
-            db()->prepare("INSERT INTO departments (name,code) VALUES (?,?)")->execute([$dname,$dcode]);
-            $deptSuccess = "Department '{$dname}' added.";
+        if (!$dname) {
+            $deptError = 'Department name is required.';
+        } else {
+            // departments.name has a DB-level UNIQUE constraint
+            // (dept_name_unique, unconditional — it also blocks reusing the
+            // name of a disabled department) but nothing checked for a
+            // collision before the INSERT, so a duplicate name threw an
+            // uncaught PDOException and crashed the whole Settings page.
+            $dupCheck = db()->prepare("SELECT id, is_active FROM departments WHERE name=?");
+            $dupCheck->execute([$dname]);
+            if ($existing = $dupCheck->fetch()) {
+                $deptError = $existing['is_active']
+                    ? "A department named '{$dname}' already exists."
+                    : "A disabled department named '{$dname}' already exists — re-enable it instead of creating a new one.";
+            } else {
+                db()->prepare("INSERT INTO departments (name,code) VALUES (?,?)")->execute([$dname,$dcode]);
+                $deptSuccess = "Department '{$dname}' added.";
+            }
         }
     } elseif ($deptAction === 'delete') {
+        // Deletion-protection check: previously this disabled a department
+        // with zero visibility into how many employees/positions currently
+        // reference it — a genuine business-workflow gap (unlike Employee
+        // Delete, which shows a full cascade-impact preview before acting).
         $did = (int)($_POST['dept_id'] ?? 0);
+        $stmt = db()->prepare("SELECT COUNT(*) FROM employees WHERE department_id=? AND status NOT IN ('resigned','terminated','archived')");
+        $stmt->execute([$did]);
+        $activeEmpCount = (int)$stmt->fetchColumn();
+        $stmt = db()->prepare("SELECT COUNT(*) FROM positions WHERE department_id=? AND is_active=1");
+        $stmt->execute([$did]);
+        $activePosCount = (int)$stmt->fetchColumn();
+
         db()->prepare("UPDATE departments SET is_active=0 WHERE id=?")->execute([$did]);
-        $deptSuccess = "Department disabled.";
+        if ($activeEmpCount > 0 || $activePosCount > 0) {
+            $deptSuccess = "Department disabled. Note: {$activeEmpCount} active employee(s) and {$activePosCount} active position(s) still reference it — they are unaffected, but this department will no longer appear in the Add/Edit Employee dropdown.";
+        } else {
+            $deptSuccess = "Department disabled.";
+        }
     }
     $depts = getDepartments();
 }
 ?>
 <div style="max-width:560px;">
     <?php if ($deptSuccess): ?><div class="alert alert-success"><?= e($deptSuccess) ?></div><?php endif; ?>
+    <?php if ($deptError): ?><div class="alert alert-danger"><?= e($deptError) ?></div><?php endif; ?>
     <div class="card" style="margin-bottom:16px;">
         <div class="card-header"><span class="card-title">Departments</span></div>
         <div class="table-wrapper" style="border:none;">
@@ -291,6 +322,102 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
                 <input type="hidden" name="dept_action" value="add">
                 <input type="text" class="form-control" name="dept_name" placeholder="Department name" style="flex:1;" required>
                 <input type="text" class="form-control" name="dept_code" placeholder="Code" style="width:80px;">
+                <button type="submit" class="btn btn-primary btn-sm">Add</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<?php elseif ($activeTab === 'positions'): ?>
+<?php
+// KOM-0xx: positions had no management UI anywhere in the application —
+// the table could only ever be populated by directly editing the database.
+// A fresh install has zero positions and no way to create one through the
+// app at all (see database/seeds/003_departments_positions.sql for the
+// matching seed-data fix, and Workflows/02-department-position-workflow-report.md).
+$posDepts   = getDepartments();
+$posList    = db()->query("SELECT p.*, d.name as dept_name FROM positions p LEFT JOIN departments d ON p.department_id=d.id WHERE p.is_active=1 ORDER BY d.name, p.title")->fetchAll();
+$posError   = $posSuccess = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'] ?? '') && ($_POST['section'] ?? '') === 'pos') {
+    $posAction = $_POST['pos_action'] ?? '';
+    if ($posAction === 'add') {
+        $ptitle = trim($_POST['pos_title'] ?? '');
+        $pdept  = (int)($_POST['pos_department_id'] ?? 0) ?: null;
+        $pgrade = trim($_POST['pos_job_grade'] ?? '');
+        if (!$ptitle) {
+            $posError = 'Position title is required.';
+        } else {
+            // No DB-level uniqueness constraint on positions.title (unlike
+            // departments.name) — check for an existing active position
+            // with the same title in the same department to avoid silent
+            // duplicates cluttering the Add/Edit Employee dropdown.
+            $dupCheck = db()->prepare("SELECT id FROM positions WHERE title=? AND department_id<=>? AND is_active=1");
+            $dupCheck->execute([$ptitle, $pdept]);
+            if ($dupCheck->fetch()) {
+                $posError = "A position named '{$ptitle}' already exists in this department.";
+            } else {
+                db()->prepare("INSERT INTO positions (department_id, title, job_grade) VALUES (?,?,?)")
+                    ->execute([$pdept, $ptitle, $pgrade ?: null]);
+                $posSuccess = "Position '{$ptitle}' added.";
+            }
+        }
+    } elseif ($posAction === 'delete') {
+        $pid = (int)($_POST['pos_id'] ?? 0);
+        $stmt = db()->prepare("SELECT COUNT(*) FROM employees WHERE position_id=? AND status NOT IN ('resigned','terminated','archived')");
+        $stmt->execute([$pid]);
+        $activeEmpCount = (int)$stmt->fetchColumn();
+        db()->prepare("UPDATE positions SET is_active=0 WHERE id=?")->execute([$pid]);
+        $posSuccess = $activeEmpCount > 0
+            ? "Position disabled. Note: {$activeEmpCount} active employee(s) still hold this position — they are unaffected, but it will no longer appear in the Add/Edit Employee dropdown."
+            : "Position disabled.";
+    }
+    $posList = db()->query("SELECT p.*, d.name as dept_name FROM positions p LEFT JOIN departments d ON p.department_id=d.id WHERE p.is_active=1 ORDER BY d.name, p.title")->fetchAll();
+}
+?>
+<div style="max-width:680px;">
+    <?php if ($posSuccess): ?><div class="alert alert-success"><?= e($posSuccess) ?></div><?php endif; ?>
+    <?php if ($posError): ?><div class="alert alert-danger"><?= e($posError) ?></div><?php endif; ?>
+    <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><span class="card-title">Positions</span></div>
+        <div class="table-wrapper" style="border:none;">
+            <table class="table">
+                <thead><tr><th>Title</th><th>Department</th><th>Grade</th><th>Actions</th></tr></thead>
+                <tbody>
+                <?php foreach ($posList as $p): ?>
+                <tr>
+                    <td><?= e($p['title']) ?></td>
+                    <td><?= e($p['dept_name'] ?? '—') ?></td>
+                    <td><?= e($p['job_grade'] ?? '—') ?></td>
+                    <td>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+                            <input type="hidden" name="section" value="pos">
+                            <input type="hidden" name="pos_action" value="delete">
+                            <input type="hidden" name="pos_id" value="<?= $p['id'] ?>">
+                            <button type="submit" class="btn btn-ghost btn-sm btn-icon" data-confirm="Disable this position?" title="Disable">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer">
+            <form method="POST" style="display:flex;gap:8px;">
+                <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+                <input type="hidden" name="section" value="pos">
+                <input type="hidden" name="pos_action" value="add">
+                <input type="text" class="form-control" name="pos_title" placeholder="Position title" style="flex:1;" required>
+                <select class="form-select" name="pos_department_id" style="width:160px;">
+                    <option value="">No department</option>
+                    <?php foreach ($posDepts as $d): ?>
+                    <option value="<?= $d['id'] ?>"><?= e($d['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <input type="text" class="form-control" name="pos_job_grade" placeholder="Grade" style="width:80px;">
                 <button type="submit" class="btn btn-primary btn-sm">Add</button>
             </form>
         </div>
