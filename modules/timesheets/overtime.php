@@ -31,7 +31,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
         $otStmt->execute([$otId]);
         $ot = $otStmt->fetch();
 
-        if ($ot) {
+        // Unlike corrections.php (its sibling page, which already checks
+        // status==='pending' before acting), this had no duplicate-action
+        // guard — an already-approved/rejected overtime record could be
+        // re-approved or flipped after the fact with no protection.
+        if ($ot && $ot['status'] === 'pending') {
             $newStatus = $action === 'approve' ? 'approved' : 'rejected';
             // On approval, copy suggested_hours → approved_hours
             $approvedHours = $action === 'approve' ? $ot['suggested_hours'] : 0;
@@ -44,6 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
                 $reason);
 
             setFlash('success','Overtime record '.ucfirst($newStatus).'.');
+        } elseif ($ot) {
+            setFlash('error','This overtime record has already been '.$ot['status'].' and cannot be changed here.');
         }
     }
     header('Location: ' . APP_URL . '/modules/timesheets/overtime.php?status='.$statusFilter);

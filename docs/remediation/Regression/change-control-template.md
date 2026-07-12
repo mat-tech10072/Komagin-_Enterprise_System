@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; **7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3 — more to follow as each subsequent workflow group completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; **4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4 — more to follow as each subsequent workflow group completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -726,6 +726,54 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** N/A
 - **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
 
+### CC-058 — Closed kiosk remote clock-in impersonation (KOM-003, closing a pre-existing finding)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-003
+- **Files changed:** `modules/attendance/kiosk.php`
+- **Reason:** KOM-003 has been open since Phase 0 — an attendance-workflow/identification gap, correctly out of scope for Phase 1's authorization-consistency focus, squarely in scope for Phase 4. A request with no kiosk token fell back to "whichever session happens to be open," allowing unauthenticated remote clock-in impersonation with no location binding, and was also functionally wrong once more than one location is open concurrently (which the app explicitly permits).
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Temporarily opened one kiosk location; no-token requests rejected on both page-render and actual POST clock-in paths (zero attendance rows written); correct token for that location worked normally. Kiosk restored to closed state afterward.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-003, closed)
+
+### CC-059 — Added duplicate-action guard to overtime approval (KOM-084)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-084
+- **Files changed:** `modules/timesheets/overtime.php`
+- **Reason:** `corrections.php` (the sibling approval page) already checks `status==='pending'` before acting; `overtime.php` had no equivalent guard, letting an already-decided record be re-approved or flipped.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Approved a test overtime record; a second action on the same record was correctly rejected with status unchanged.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-084)
+
+### CC-060 — Master Remediation Register updated for Phase 4 Workflow Group 4
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-084 (new), KOM-003 (closed)
+- **Files changed:** `docs/remediation/Findings/08-master-remediation-register.md`
+- **Reason:** Record this workflow group's outcomes per the program's change-control requirement.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (this entry documents that update itself)
+
+### CC-061 — Change Control Log updated for Phase 4 Workflow Group 4
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** N/A (documentation-only)
+- **Files changed:** `docs/remediation/Regression/change-control-template.md`
+- **Reason:** Record this log's own Phase 4 Workflow Group 4 entries (CC-058–CC-061).
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
+
 ---
 
 ## Change Log for This Document
@@ -739,3 +787,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-12 | 10 entries (CC-036–CC-045) recorded for Phase 4, Workflow Group 1 (Employee Management) | Remediation Program — Phase 4 |
 | 2026-07-12 | 5 entries (CC-046–CC-050) recorded for Phase 4, Workflow Group 2 (Department & Position Management) | Remediation Program — Phase 4 |
 | 2026-07-12 | 7 entries (CC-051–CC-057) recorded for Phase 4, Workflow Group 3 (Leave Management) | Remediation Program — Phase 4 |
+| 2026-07-12 | 4 entries (CC-058–CC-061) recorded for Phase 4, Workflow Group 4 (Attendance & Timesheets) | Remediation Program — Phase 4 |

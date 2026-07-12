@@ -11,19 +11,31 @@ $today = date('Y-m-d');
 $now   = date('H:i:s');
 
 // ── Kiosk state check ──────────────────────────────────────────────────────
+// KOM-003: a request with no ?t= token used to fall back to "whichever
+// kiosk_sessions row happens to be open" — with no login and no CSRF (this
+// is deliberately a public, unauthenticated terminal page), that let anyone
+// on the internet clock any guessable employee number in/out by simply
+// omitting the token, no location binding required at all. Every kiosk
+// session opened through kiosk_manage.php already has a token and HR is
+// always given the token-bearing URL to bookmark on the physical terminal
+// (see kiosk_manage.php's "Open Kiosk" flow) — nothing legitimate relies on
+// the fallback. It's also wrong on its own terms the moment more than one
+// location is open at once (kiosk_manage.php allows exactly that): the
+// fallback picks an arbitrary single row, not necessarily the requesting
+// terminal's actual location. A missing/invalid token now simply means "not
+// a configured kiosk terminal" rather than "any open terminal will do."
 $kioskToken    = trim($_GET['t'] ?? '');
 $activeSession = null;
 try {
     if ($kioskToken) {
         $sessStmt = db()->prepare("SELECT * FROM kiosk_sessions WHERE kiosk_token = ? LIMIT 1");
         $sessStmt->execute([$kioskToken]);
-    } else {
-        $sessStmt = db()->query("SELECT * FROM kiosk_sessions WHERE status='open' LIMIT 1");
+        $activeSession = $sessStmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
-    $activeSession = $sessStmt->fetch(PDO::FETCH_ASSOC) ?: null;
 } catch (Exception $e) { /* table may not exist on first install */ }
 $kioskOpen     = $activeSession !== null && $activeSession['status'] === 'open';
 $locationName  = $activeSession['location_name'] ?? null;
+$kioskNotConfigured = $kioskToken === '' || $activeSession === null;
 
 $message = '';
 $msgType = '';
@@ -44,7 +56,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $recentFails = (int)$failCount->fetchColumn();
     } catch (Exception $e) { $recentFails = 0; }
 
-    if (!$kioskOpen) {
+    if ($kioskNotConfigured) {
+        $message = 'This terminal is not a configured kiosk location. Please contact HR.';
+        $msgType = 'error';
+    } elseif (!$kioskOpen) {
         $message = 'The attendance kiosk is currently closed. Please contact HR to open it.';
         $msgType = 'error';
     } elseif ($recentFails >= 10) {
@@ -417,7 +432,15 @@ $companyName = $companySettings['company_name'] ?? 'Komagin Limited';
 
     <div class="kiosk-card">
 
-        <?php if (!$kioskOpen): ?>
+        <?php if ($kioskNotConfigured): ?>
+        <div class="kiosk-result error" style="text-align:center;flex-direction:column;gap:12px;padding:24px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto;opacity:.7;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <div>
+                <strong style="display:block;font-size:1rem;margin-bottom:6px;">Not a Configured Kiosk Terminal</strong>
+                <span style="font-size:0.8rem;opacity:.8;">This link does not correspond to a known kiosk location.<br>Please contact HR Administration for the correct terminal URL.</span>
+            </div>
+        </div>
+        <?php elseif (!$kioskOpen): ?>
         <div class="kiosk-result error" style="text-align:center;flex-direction:column;gap:12px;padding:24px;">
             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto;opacity:.7;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             <div>
