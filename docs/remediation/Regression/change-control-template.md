@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; **5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11 — more to follow as each subsequent workflow group completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; **6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12 — more to follow as each subsequent workflow group completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -1146,6 +1146,78 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** N/A
 - **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
 
+### CC-093 — Fixed branding-asset .htaccess blocking all image serving (KOM-006, closing a pre-existing finding)
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-006
+- **Files changed:** `uploads/letterheads/.htaccess`, `uploads/signatures/.htaccess`, `uploads/stamps/.htaccess`, `uploads/watermarks/.htaccess`
+- **Reason:** Flagged since the baseline audit as "likely blocks all letterhead/signature/stamp/watermark image serving" but never live-verified; correctly out of scope for Phases 1–3. Live-verified in Phase 4's Documents workflow group: all 4 folders had an unconditional `Deny from all` with no `<FilesMatch>` scoping, confirmed via direct HTTP request (403) on a disposable test image — the entire document-branding feature was non-functional on every generated document.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Test image in each of the 4 folders: 403 before, 200 after. Test `.php` file in the same folder: 403 both before and after (script execution protection intact — confirmed `mod_access_compat` is loaded and this syntax genuinely works on this Apache 2.4 install). Directory listing: still 403. All test files removed after verification.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-006, closed, Critical)
+
+### CC-094 — Fixed stored XSS via unsanitized document template bodies (KOM-022, closing a pre-existing finding)
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-022
+- **Files changed:** `config/DocumentEngine.php`, `modules/documents/templates.php`
+- **Reason:** `render()` only ever escaped `{{placeholder}}` values, never the surrounding markup a `hr_officer`/`hr_manager` authors as raw HTML in a plain textarea — a `<script>` tag or `onerror=` handler in a template body would execute for every future viewer of any document generated from it, including more-privileged approvers. Flagged since the baseline audit, correctly out of Phase 1 scope, addressed here as part of the Documents generation lifecycle review.
+- **Tests added/updated:** Standalone script with 12 sanitizer test cases (script tags, event handlers, javascript:/data: URLs, CSS expression(), legitimate tables/styles/placeholders, placeholders inside href, mixed malicious+legitimate content) — 12/12 correct.
+- **Regression tests executed:** Saved a real test template through the actual hr_manager UI flow with a script tag, an onerror handler, and a javascript: href all present — all three neutralized in the stored body_html, with a legitimate {{company.website}} placeholder inside an href correctly preserved (a libxml percent-encoding quirk affecting placeholders inside URI attributes was found and fixed during this testing). Generated an actual document from the sanitized template for a real employee and confirmed the full pipeline end to end. Scanned all 47 existing live templates for dangerous markup: zero matches, no retroactive fix needed.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-022, closed, High)
+
+### CC-095 — Fixed broken separator in "Documents Expiring Soon" banner (KOM-096)
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-096
+- **Files changed:** `modules/documents/index.php`
+- **Reason:** `if (!end($expiringSoon) === $d) echo '; ';` — operator precedence means `!` applies to `end($expiringSoon)` (an array) before the comparison, so the condition is a strict-type mismatch that's never true. Every entry in the expiry-reminder banner ran together with no separator.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Inserted 2 disposable test documents with near-term expiry dates; confirmed no separator before the fix, correct `; ` separator (between entries only, not after the last) after. Test data removed after verification.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-096, new, added to LOW section, Fixed)
+
+### CC-096 — Documented QR-code verification dead-end, left deferred per user decision (KOM-097)
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-097
+- **Files changed:** None (documentation only)
+- **Reason:** A template's "Show QR Code" option encodes a URL to `/verify-doc.php`, which does not exist anywhere in the repository — confirmed dormant (0 of 47 live templates currently enable QR codes). Building a real public, unauthenticated verification page is a genuine feature requiring its own design decisions (what to expose to an anonymous third party, rate-limiting) — flagged for a decision rather than built. User chose to leave it documented, not built.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A (no code change)
+- **Master Register updated:** Yes (KOM-097, new, added to LOW section, deferred)
+
+### CC-097 — Master Remediation Register updated for Phase 4 Workflow Group 12
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-006, KOM-022, KOM-096, KOM-097
+- **Files changed:** `docs/remediation/Findings/08-master-remediation-register.md`
+- **Reason:** Record this workflow group's outcomes per the program's change-control requirement.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (this entry documents that update itself)
+
+### CC-098 — Change Control Log updated for Phase 4 Workflow Group 12
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** N/A (documentation-only)
+- **Files changed:** `docs/remediation/Regression/change-control-template.md`
+- **Reason:** Record this log's own Phase 4 Workflow Group 12 entries (CC-093–CC-098).
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
+
 ---
 
 ## Change Log for This Document
@@ -1168,3 +1240,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-12 | 3 entries (CC-079–CC-081) recorded for Phase 4, Workflow Group 9 (Consultant Module) | Remediation Program — Phase 4 |
 | 2026-07-13 | 6 entries (CC-082–CC-087) recorded for Phase 4, Workflow Group 10 (Temporary Employee Module) | Remediation Program — Phase 4 |
 | 2026-07-13 | 5 entries (CC-088–CC-092) recorded for Phase 4, Workflow Group 11 (Notifications) | Remediation Program — Phase 4 |
+| 2026-07-13 | 6 entries (CC-093–CC-098) recorded for Phase 4, Workflow Group 12 (Documents Generation Lifecycle) | Remediation Program — Phase 4 |

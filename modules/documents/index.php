@@ -69,7 +69,7 @@ $expiringSoon = db()->query("SELECT ed.document_name, e.first_name, e.last_name,
 <div class="alert alert-warning">
     <strong>Documents Expiring Soon (30 days):</strong>
     <?php foreach ($expiringSoon as $d): ?>
-        <?= e($d['first_name'].' '.$d['last_name']) ?> — <?= e($d['document_name']) ?> (<?= formatDate($d['expiry_date']) ?>)<?php if (!end($expiringSoon) === $d) echo '; '; ?>
+        <?= e($d['first_name'].' '.$d['last_name']) ?> — <?= e($d['document_name']) ?> (<?= formatDate($d['expiry_date']) ?>)<?php if ($d !== end($expiringSoon)) echo '; '; ?>
     <?php endforeach; ?>
 </div>
 <?php endif; ?>

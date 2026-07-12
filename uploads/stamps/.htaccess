@@ -1,2 +1,7 @@
-﻿Options -Indexes
-Deny from all
+# Prevent execution of uploaded files
+<FilesMatch "\.(php|php3|php4|php5|phtml|pl|py|cgi|sh|rb|asp|aspx|jsp)$">
+    Deny from all
+</FilesMatch>
+
+# Prevent directory listing
+Options -Indexes

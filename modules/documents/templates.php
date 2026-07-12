@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
         $catId   = (int)($_POST['category_id'] ?? 0);
         $title   = trim($_POST['title'] ?? '');
         $desc    = trim($_POST['description'] ?? '');
-        $body    = $_POST['body_html'] ?? '';
+        $body    = DocumentEngine::sanitizeTemplateHtml($_POST['body_html'] ?? '');
         $reqAppr = isset($_POST['requires_approval']) ? 1 : 0;
         $editId  = (int)($_POST['edit_id'] ?? 0);
 

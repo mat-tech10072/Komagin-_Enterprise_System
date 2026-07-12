@@ -293,6 +293,100 @@ class DocumentEngine
         return array_unique($matches[1] ?? []);
     }
 
+    // ── Sanitize a template's raw HTML body before it is stored (KOM-022) ──
+    // templates.php lets hr_officer/hr_manager author a template body as
+    // raw HTML with no restriction at all — render() only ever escapes
+    // {{placeholder}} *values*, never the surrounding markup, so a
+    // <script> tag or an onerror= handler embedded directly in the
+    // template body executed for every future viewer of any document
+    // generated from it, including more-privileged roles (a
+    // documents.verify/approve holder, or super_admin) who never had a
+    // chance to review the raw source first. Sanitized once here at save
+    // time — not at render time — so every existing and future render
+    // path is safe without depending on remembering to sanitize again.
+    // Denies known-dangerous tags outright and strips event-handler
+    // attributes / javascript:/vbscript:/data:text/html URLs from every
+    // remaining element; everything else (tables, divs, inline styles,
+    // images, the {{variable}} placeholders themselves) passes through
+    // untouched, since templates are deliberately raw, richly-formatted
+    // HTML authored by trusted (if not fully trusted) staff.
+    public static function sanitizeTemplateHtml(string $html): string
+    {
+        if (trim($html) === '') return $html;
+
+        $deniedTags = ['script','iframe','object','embed','link','meta','base',
+            'form','input','button','textarea','select','applet','audio','video',
+            'source','svg','math','frame','frameset'];
+        $dangerousSchemes = ['javascript:', 'vbscript:', 'data:text/html'];
+
+        // {{placeholders}} used inside a href/src/action attribute (e.g.
+        // href="{{company.website}}") get percent-encoded by libxml's HTML
+        // serializer during the DOM round-trip below — a documented quirk
+        // specific to URI-typed attributes, confirmed by testing — which
+        // would silently break render()'s later str_replace('{{key}}', ...)
+        // substitution. Protect the {{ }} delimiters with plain-alphanumeric
+        // markers (never percent-encoded or otherwise touched) before
+        // parsing, and restore them after serializing back out.
+        $html = str_replace(['{{', '}}'], ['KHRVAROPEN', 'KHRVARCLOSE'], $html);
+
+        $dom = new \DOMDocument();
+        libxml_use_internal_errors(true);
+        $dom->loadHTML(
+            '<?xml encoding="UTF-8"><div id="__khr_sanitize_root__">' . $html . '</div>',
+            LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+        );
+        libxml_clear_errors();
+
+        $root = $dom->documentElement;
+        if (!$root) return '';
+
+        // Remove denied tags entirely, including their subtree
+        foreach ($deniedTags as $tag) {
+            $toRemove = [];
+            foreach ($dom->getElementsByTagName($tag) as $node) { $toRemove[] = $node; }
+            foreach ($toRemove as $node) {
+                $node->parentNode?->removeChild($node);
+            }
+        }
+
+        // Strip event-handler attributes and dangerous URL schemes from
+        // every remaining element
+        $xpath = new \DOMXPath($dom);
+        foreach ($xpath->query('//*') as $el) {
+            if (!($el instanceof \DOMElement)) continue;
+            $attrsToRemove = [];
+            foreach ($el->attributes as $attr) {
+                $name  = strtolower($attr->name);
+                $value = trim($attr->value);
+                if (str_starts_with($name, 'on')) {
+                    $attrsToRemove[] = $attr->name;
+                    continue;
+                }
+                if (in_array($name, ['href','src','action','formaction','xlink:href'], true)) {
+                    $normalized = strtolower(preg_replace('/\s+/', '', $value));
+                    foreach ($dangerousSchemes as $scheme) {
+                        if (str_starts_with($normalized, $scheme)) {
+                            $attrsToRemove[] = $attr->name;
+                            break;
+                        }
+                    }
+                }
+                if ($name === 'style' && stripos($value, 'expression(') !== false) {
+                    $attrsToRemove[] = $attr->name;
+                }
+            }
+            foreach ($attrsToRemove as $attrName) {
+                $el->removeAttribute($attrName);
+            }
+        }
+
+        $innerHtml = '';
+        foreach ($root->childNodes as $child) {
+            $innerHtml .= $dom->saveHTML($child);
+        }
+        return str_replace(['KHRVAROPEN', 'KHRVARCLOSE'], ['{{', '}}'], $innerHtml);
+    }
+
     // ── Full variable catalogue (for the template builder UI) ─────────────
     public static function catalogue(): array
     {
