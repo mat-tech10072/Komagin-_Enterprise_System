@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; **5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5 — more to follow as each subsequent workflow group completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; **1 more (CC-067) recording the KOM-085/KOM-086 user decisions — more to follow as each subsequent workflow group completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -834,6 +834,18 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** N/A
 - **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
 
+### CC-067 — KOM-085 accepted as designed; KOM-086 orphaned rows deleted per user decision
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-085, KOM-086
+- **Files changed:** `docs/remediation/Findings/08-master-remediation-register.md` (status updates); live database (`payroll_deductions` — 32 rows deleted); new `database/backups/orphaned_payroll_deductions_20260712.tsv`
+- **Reason:** User was asked to decide both KOM-085 (deductions/savings integration into payslip totals) and KOM-086 (orphaned row cleanup) directly, given the financial/data risk of each. Decision: KOM-085 — leave as-is, accepted as designed, no code change. KOM-086 — delete the 32 orphaned rows.
+- **Tests added/updated:** None beyond direct verification query
+- **Regression tests executed:** `SELECT COUNT(*) FROM payroll_deductions WHERE employee_id NOT IN (SELECT id FROM employees)` returns 0 post-deletion (was 32); 35 legitimate rows remain (67 − 32).
+- **Verification result:** VERIFIED live. All 32 deleted rows backed up to `database/backups/orphaned_payroll_deductions_20260712.tsv` (gitignored, matching the existing `database/backups/` policy) before deletion.
+- **Master Register updated:** Yes (KOM-085 → Accepted as designed, KOM-086 → Fixed)
+
 ---
 
 ## Change Log for This Document
@@ -849,3 +861,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-12 | 7 entries (CC-051–CC-057) recorded for Phase 4, Workflow Group 3 (Leave Management) | Remediation Program — Phase 4 |
 | 2026-07-12 | 4 entries (CC-058–CC-061) recorded for Phase 4, Workflow Group 4 (Attendance & Timesheets) | Remediation Program — Phase 4 |
 | 2026-07-12 | 5 entries (CC-062–CC-066) recorded for Phase 4, Workflow Group 5 (Payroll) | Remediation Program — Phase 4 |
+| 2026-07-12 | 1 entry (CC-067) recording KOM-085/KOM-086 user decisions | Remediation Program — Phase 4 |

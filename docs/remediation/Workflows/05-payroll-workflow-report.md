@@ -1,7 +1,7 @@
 # Komagin HR — Phase 4 Workflow Group 5: Payroll
 
 **Document type:** Phase 4 Deliverable — Workflow Group Report 5 of N
-**Status:** Live-verified, including a genuine 5-way concurrent-request race test. Test payroll run created and fully cleaned up afterward. No production financial data was modified.
+**Status:** Live-verified, including a genuine 5-way concurrent-request race test. Test payroll run created and fully cleaned up afterward. §3's 32 orphaned rows were deleted from the live database per explicit user direction (backed up first) — no other production data was modified.
 **Date compiled:** 2026-07-12
 **Scope:** Payroll period creation, generation, allowances, deductions, overtime, tax, leave impacts, final approval, payslip generation. No duplicate payroll. No double payment. No orphan deductions. No inconsistent totals.
 
@@ -21,25 +21,27 @@ Three separate payroll actions — creating a run, finalizing it, and publishing
 
 **Finding ID:** KOM-030 (pre-existing since Phase 0, now closed)
 
-## 2. Finding — Payroll Deductions and Savings Are Never Reflected in Payslip Totals (NOT FIXED — decision needed)
+## 2. Finding — Payroll Deductions and Savings Are Never Reflected in Payslip Totals (ACCEPTED AS DESIGNED — user decision)
 
 `modules/payroll/payslips.php` computes `total_deductions` and `net_salary` from exactly three fields entered directly on the payslip form: `tax_amount + uif_employee + other_deductions`. It never reads `payroll_deductions` (the dedicated recurring/one-time deduction module — loan repayments, union dues, garnishees, pension, medical aid, etc.) or `employee_savings` (the savings-contribution module) at all. Neither `modules/payroll/deductions.php` nor `modules/payroll/savings.php` ever writes back to `payslips.total_deductions`/`net_salary` either — the three systems are completely disconnected.
 
 Concretely: if HR sets up a loan-repayment deduction for an employee via the Deductions module, that amount is tracked and visible there, but **does not automatically appear on or affect that employee's payslip** — HR would have to notice it separately and manually re-enter an equivalent amount into the payslip's free-text "other_deductions" field for it to actually reduce net pay. There is also a properly-designed `payslip_items` table (earning/deduction/employer_contribution/info line items) that exists in the schema but is **never referenced by any code at all** — a fully dead table, the same class of gap as the already-documented KOM-065 (`employee_skills`).
 
-Live data check: 29 employees currently have `payroll_deductions` rows, 13 have `employee_savings` rows (out of 13 total real employees) — this is not a hypothetical edge case, real deduction/savings data exists today that payslip calculations do not account for.
+Live data check: all 13 real employees have `payroll_deductions` rows, and 13 have `employee_savings` rows — not a hypothetical edge case, real tracked deduction/savings data exists today that payslip calculations do not account for.
+
+**User decision (2026-07-12): leave as-is, accepted as designed.** Deductions and savings remain record-keeping-only modules; payslip entry stays an independent manual step performed by HR. No code change made.
 
 **This was deliberately not fixed automatically.** Changing how net pay is calculated is a direct change to real employees' pay amounts — the highest-stakes kind of change in this entire system, and not something to guess at unilaterally. Options: (a) leave as-is, documented, with deductions/savings tracked for record-keeping only and payslip amounts entered independently by HR (possibly the intended design, if payslip entry is meant to be a manual final step regardless of what's tracked elsewhere); (b) auto-sum active `payroll_deductions`/`employee_savings` into a payslip's totals when it's created, with the flat fields becoming an override/adjustment on top; (c) migrate to the unused `payslip_items` table as the actual source of truth and compute totals from it.
 
 **Finding ID:** KOM-085 (new). Flagged for your decision — this affects real pay calculations, not just workflow mechanics.
 
-## 3. Finding — 32 Orphaned `payroll_deductions` Rows (Nearly Half the Table) (NOT FIXED — recommendation only, no destructive action taken)
+## 3. Finding — 32 Orphaned `payroll_deductions` Rows (Nearly Half the Table) (FIXED — per user direction)
 
 `payroll_deductions.employee_id` has a DB-level `FOREIGN KEY ... ON DELETE CASCADE` to `employees`, yet 32 of the table's 67 rows reference `employee_id` values (22–38 and others) that do not exist in the current 13-row `employees` table. `employee_savings` and `payslips` — which have the identical FK pattern — have **zero** orphans, so this is specific to `payroll_deductions`. All 32 share the exact same `created_at` timestamp (`2026-06-25 11:05:31`) and have `amount=NULL`, strongly indicating they were bulk-inserted by a demo/seed process referencing employee records that were later removed without the FK cascade actually firing (most likely a bulk cleanup that had `FOREIGN_KEY_CHECKS` disabled, or the FK constraint was added to the table after these rows already existed).
 
-**Recommendation, not applied:** these 32 rows are safe to delete — they reference no employee that exists, carry no amount, and cannot appear on any real payslip (nothing joins `payroll_deductions` to a payslip calculation at all per §2). Consistent with this program's established data-integrity practice (Phase 3, Stage 3.10: "produce recommendations, not automatic deletions"), no rows were removed. Query to review before any cleanup: `SELECT * FROM payroll_deductions WHERE employee_id NOT IN (SELECT id FROM employees);`
+**User decision (2026-07-12): delete the 32 orphaned rows.** All 32 backed up to `database/backups/orphaned_payroll_deductions_20260712.tsv` (gitignored, matching the existing `database/backups/` policy) before deletion. **Verified**: `payroll_deductions` now has 35 rows, all 13 real employees, zero orphans (confirmed by the same query that found them).
 
-**Finding ID:** KOM-086 (new). Flagged for your decision on cleanup.
+**Finding ID:** KOM-086 (new, fixed)
 
 ## 4. No Findings — Orphan Protection Elsewhere, No Double-Counting in Overtime
 
@@ -60,7 +62,7 @@ Live data check: 29 employees currently have `payroll_deductions` rows, 13 have 
 | Finding | Severity | Status |
 |---|---|---|
 | KOM-030 — Payroll run create/finalize/publish race condition (pre-existing, Phase 0) | Medium | **Fixed** |
-| KOM-085 — Deductions/savings never reflected in payslip totals | High | **Documented — decision needed (affects real pay calculations)** |
-| KOM-086 — 32 orphaned `payroll_deductions` rows | Medium | **Documented — recommendation only, no deletion applied** |
+| KOM-085 — Deductions/savings never reflected in payslip totals | High | **Accepted as designed** (user decision) |
+| KOM-086 — 32 orphaned `payroll_deductions` rows | Medium | **Fixed** (user-directed deletion, backed up first) |
 
-**1 of 3 findings fixed and live-verified (including genuine concurrency testing). 2 are flagged for your explicit decision** — one because it changes how real pay is calculated, the other because it involves deleting existing database rows, both correctly outside what should be decided unilaterally.
+**All 3 findings resolved.** KOM-030 fixed and live-verified with genuine concurrency testing. KOM-085 and KOM-086 were correctly flagged rather than decided unilaterally (one changes real pay calculations, the other deletes existing database rows) — both were resolved per explicit user direction: KOM-085 left as-is, KOM-086's orphaned rows backed up then deleted.
