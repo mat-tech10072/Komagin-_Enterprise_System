@@ -1,7 +1,7 @@
 # Komagin HR — Phase 5 Deliverable: Open Findings Scope
 
 **Document type:** Phase 5 Deliverable — Open Findings Scope (charter §4)
-**Status:** Planning only. No code or schema changes have been made. Per the Phase 5 charter, implementation does not begin until this document and the decision matrix (§5) are reviewed and approved.
+**Status:** Scope and decision matrix complete and approved (§6). Implementation begins at Stage 5.1 following this document.
 **Date compiled:** 2026-07-13
 **Baseline:** Phase 4 close, commit `40b564e52feff480a98d33069f2fc305160d789e`, branch `phase-5-workflow-completeness-automation` created from it.
 
@@ -118,16 +118,20 @@ This document, together with the Decision Matrix below, is the complete open-fin
 
 ## 5. Decision Matrix — Points Requiring Explicit Sign-Off Before Code Changes
 
-Per the charter's decision hierarchy (§5) and its instruction to present concise options before building product-level features, the following points need an explicit decision before Stages 5.1–5.9 implementation begins. These will be presented for decision in the next step, before any code is written.
+Per the charter's decision hierarchy (§5) and its instruction to present concise options before building product-level features, the following 9 points were presented to the user via structured decision prompts before any implementation began. All 9 are now resolved (§6).
 
-1. **Leave approval model (Stage 5.1 / KOM-083)** — build the real 2-stage Supervisor→HR flow, or formally lock in single-stage HR-only as the permanent, intended design (removing the misleading 2-stage schema/UI artifacts)?
-2. **ApprovalEngine's 4 dormant workflow types (Stage 5.2)** — wire up `overtime`/`correction`/`payroll_run`/`document` to the engine, remove them from configuration as dead, or leave reserved?
-3. **Self-service password recovery (Stage 5.5 / KOM-041)** — build it (and for which of the 4 auth surfaces — Admin, Employee Portal, Consultant Portal, Temp Portal — given not all surfaces necessarily have a reliable email address on file), or formally accept the current admin-assisted-only model?
-4. **Recruitment-to-employee conversion (Stage 5.7 / KOM-088)** — build the guided-conversion action (Option A, the charter's own recommended default), keep the fully manual process, or is full automation ever acceptable (charter says no)?
-5. **Temporary employee attendance capture (Stage 5.8 / KOM-090, KOM-058)** — build supervisor/HR-entered attendance (the charter's recommended safe baseline), or leave the capability absent and further correct the UI to say so plainly?
-6. **Document QR verification (Stage 5.9 / KOM-097)** — build a real public verification page, or disable the QR-code option entirely (charter recommends disabling, given 0 of 47 templates currently use it)?
-7. **KOM-016** — should a finalized/sent payslip ever be directly editable at all, or should this become a formal correction-request flow instead?
-8. **KOM-037** — merge "Audit Logs" and "Activity Logs" into one entry point, or keep both with a documented, real distinction between them?
-9. **KOM-060** — build letterhead header/footer HTML rendering, or remove the dead form fields?
+## 6. Decisions Made — User Sign-Off, 2026-07-13
 
-**No code or schema changes have been made in producing this document.** Per the charter, the next step is presenting these 9 decision points for explicit sign-off before Stage 5.1 implementation begins.
+| # | Decision point | Outcome |
+|---|---|---|
+| 1 | Leave approval model (Stage 5.1 / KOM-083) | **Lock in single-stage HR-only.** Remove the misleading 2-stage schema/UI artifacts; document single-stage HR approval as the permanent, intended design. No supervisor-facing approvals view will be built. |
+| 2 | ApprovalEngine's 4 dormant workflow types (Stage 5.2) | **Remove all 4 as dead configuration.** `overtime`, `correction`, `payroll_run`, `document` removed from `ApprovalEngine::workflowConfig()`; their existing independent approval mechanisms (which already work) are left untouched. |
+| 3 | Self-service password recovery (Stage 5.5 / KOM-041) | **Admin surface only.** Employee Portal, Consultant Portal, and Temp Portal keep the current admin-assisted-only model — not built this phase, given no guarantee of a reliable, verified email address on those records today. |
+| 4 | Recruitment-to-employee conversion (Stage 5.7 / KOM-088) | **Build guided conversion** (the charter's own recommended default): pre-fill from the application, HR reviews/confirms before saving, links back to the source application, no automatic payroll data. |
+| 5 | Temporary employee attendance capture (Stage 5.8 / KOM-090, KOM-058) | **Build supervisor/HR-entered attendance** (the charter's recommended safe baseline) — not kiosk or self-service portal clock-in. |
+| 6 | Document QR verification (Stage 5.9 / KOM-097) | **Disable the QR code option.** Remove/hide "Show QR Code" from the template builder until a real verification page is a genuine business requirement. |
+| 7 | KOM-016 — payslip edit policy | **Block edits to finalized/sent payslips entirely**, matching the atomic one-way transition pattern already used for payroll runs (KOM-030). |
+| 8 | KOM-037 — Audit/Activity log menus | **Merge into a single permission-gated entry point.** Remove the duplicate hardcoded-super-admin-only "Activity Logs" page. |
+| 9 | KOM-060 — letterhead header/footer | **Remove the dead form fields.** The working image-based letterhead (KOM-006) remains the real mechanism. |
+
+Every decision matches this document's own recommended (lowest-risk, smallest-complete-solution) option. Implementation now proceeds stage by stage per §3's mapping, in the charter's specified order.
