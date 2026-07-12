@@ -71,6 +71,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $check->execute([$email,$email,$id]);
         if ($check->fetch()) $errors[] = 'Email address is already in use.';
 
+        // Check national ID unique (exclude self) — same rehire-collision guard as add.php
+        if (!empty($nationalId)) {
+            $check = db()->prepare("SELECT id, employee_number FROM employees WHERE national_id=? AND id!=?");
+            $check->execute([$nationalId, $id]);
+            if ($existing = $check->fetch()) {
+                $errors[] = "National ID already belongs to employee {$existing['employee_number']}.";
+            }
+        }
+
         if (empty($errors)) {
             $oldData = json_encode($emp);
 
@@ -109,7 +118,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id
             ]);
 
-            auditLog('employees','edit',$id,$oldData,json_encode(['first_name'=>$firstName,'last_name'=>$lastName]),$editReason);
+            // Full new-state snapshot, not just name — a transfer (department/
+            // supervisor) or promotion (position/salary) previously left no
+            // reconstructable record of what actually changed in new_value,
+            // only in the separately-stored old snapshot.
+            auditLog('employees','edit',$id,$oldData,json_encode([
+                'first_name'=>$firstName,'last_name'=>$lastName,
+                'department_id'=>$deptId,'position_id'=>$posId,'supervisor_id'=>$supId,
+                'employment_type'=>$empType,'basic_salary'=>$salary,
+                'start_date'=>$startDate,'contract_end_date'=>$contractEnd ?: null,
+            ]),$editReason);
             setFlash('success','Employee profile updated successfully.');
             header('Location: ' . APP_URL . '/modules/employees/view.php?id='.$id);
             exit;

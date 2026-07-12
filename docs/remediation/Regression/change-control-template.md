@@ -1,9 +1,9 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; **11 more (CC-025–CC-035) recorded for Phase 3.**
-**Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — **more added 2026-07-12 (Phase 3)**
-**Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → **Phase 3 on branch `phase-3-database-schema-integrity`**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; **7 more (CC-036–CC-042) recorded for Phase 4, Workflow Group 1 — more to follow as each subsequent workflow group completes.**
+**Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
+**Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
 ---
 
@@ -462,6 +462,90 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** N/A
 - **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
 
+### CC-036 — Added missing `employees.personal_email` column, fixing 3 fatally-broken workflows
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-071
+- **Files changed:** `database/schema.sql`, new `database/phase12_workflow_integrity_fixes.sql`, applied live to the production database
+- **Reason:** `modules/employees/edit.php`, `modules/employees/pending_updates.php`, and `self-service/update.php` all read/wrote `personal_email`, but the column existed nowhere — schema.sql, any tracked migration, or the live database. Every Edit Employee save and every self-service magic-link page load threw an uncaught `PDOException` in production.
+- **Tests added/updated:** None beyond live functional re-testing (no dedicated regression script for this module yet)
+- **Regression tests executed:** Live re-test of all 3 affected code paths against a disposable test employee post-fix — Edit Employee save succeeds, self-service update page loads without error, pending-update approval writes correctly. Full Phase 1 (20/20) and Phase 2 (29/29) suites also re-run to confirm no unrelated regression.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-071)
+
+### CC-037 — `status.php`: re-enable account on reactivation to active/probation
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-074
+- **Files changed:** `modules/employees/status.php`
+- **Reason:** Exiting statuses correctly disabled the linked `users` account, but reactivating an employee (e.g. a rehire handled via status change) never re-enabled it, silently locking out a legitimately returning employee with no code path to fix it short of a manual trip to the Users module.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Terminate→reactivate cycle against a disposable test employee — `is_active` confirmed to flip 1→0→1 correctly post-fix.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-074)
+
+### CC-038 — `status.php`: require exit date for resignation/termination/death
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-075
+- **Files changed:** `modules/employees/status.php`
+- **Reason:** `exit_date` was optional server-side for every status; the UI only conditionally showed the field via JS for the 3 exit statuses, with nothing enforcing it being filled in.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Termination attempt with no exit date correctly rejected; identical request with a date succeeds.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-075)
+
+### CC-039 — `add.php`/`edit.php`: block duplicate `national_id` (rehire collision guard)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-076
+- **Files changed:** `modules/employees/add.php`, `modules/employees/edit.php`
+- **Reason:** Only `email` was checked for duplicates; a former employee could be re-added as a disconnected new record with no link to their prior history.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Adding a second employee with an in-use `national_id` correctly rejected, referencing the existing employee number.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-076)
+
+### CC-040 — `edit.php`: audit log now captures actual changed fields
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-077
+- **Files changed:** `modules/employees/edit.php`
+- **Reason:** `auditLog()`'s `new_value` only ever contained `first_name`/`last_name`, so a transfer or promotion's actual new department/position/salary was not independently reconstructable from the field meant to show it.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** A department transfer's audit log entry confirmed to include the new `department_id` post-fix.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-077)
+
+### CC-041 — Master Remediation Register updated for Phase 4 Workflow Group 1
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-071 through KOM-077 (new)
+- **Files changed:** `docs/remediation/Findings/08-master-remediation-register.md`
+- **Reason:** Record this workflow group's outcomes per the program's change-control requirement.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (this entry documents that update itself)
+
+### CC-042 — Change Control Log updated for Phase 4 Workflow Group 1
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** N/A (documentation-only)
+- **Files changed:** `docs/remediation/Regression/change-control-template.md`
+- **Reason:** Record this log's own Phase 4 Workflow Group 1 entries (CC-036–CC-042).
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
+
 ---
 
 ## Change Log for This Document
@@ -472,3 +556,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-11/12 | 13 entries (CC-001–CC-013) recorded for Phase 1 | Remediation Program — Phase 1 |
 | 2026-07-11/12 | 11 entries (CC-014–CC-024) recorded for Phase 2 | Remediation Program — Phase 2 |
 | 2026-07-12 | 11 entries (CC-025–CC-035) recorded for Phase 3 | Remediation Program — Phase 3 |
+| 2026-07-12 | 7 entries (CC-036–CC-042) recorded for Phase 4, Workflow Group 1 (Employee Management) | Remediation Program — Phase 4 |

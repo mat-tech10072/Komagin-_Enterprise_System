@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS `employees` (
   `nationality` varchar(100) DEFAULT NULL,
   `photo` varchar(255) DEFAULT NULL,
   `email` varchar(150) DEFAULT NULL,
+  `personal_email` varchar(150) DEFAULT NULL,
   `phone` varchar(30) DEFAULT NULL,
   `phone_alt` varchar(30) DEFAULT NULL,
   `residential_address` text DEFAULT NULL,

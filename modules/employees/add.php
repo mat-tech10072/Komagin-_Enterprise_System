@@ -46,6 +46,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($check->fetch()) $errors[] = 'Email address is already in use.';
         }
 
+        // Check duplicate national ID — including inactive/former employees,
+        // so a rehire is caught here rather than silently creating a second,
+        // disconnected record for the same person.
+        if (!empty($data['national_id'])) {
+            $check = db()->prepare("SELECT id, employee_number, status FROM employees WHERE national_id = ?");
+            $check->execute([$data['national_id']]);
+            if ($existing = $check->fetch()) {
+                $errors[] = "National ID already belongs to employee {$existing['employee_number']} (status: {$existing['status']}). "
+                    . "If this is a rehire, change that employee's status instead of creating a new record.";
+            }
+        }
+
         if (empty($errors)) {
             // Generate employee number
             $empNumber = generateEmployeeNumber();

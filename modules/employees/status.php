@@ -25,9 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $reason    = trim($_POST['reason'] ?? '');
         $exitDate  = $_POST['exit_date'] ?? null;
 
-        $validStatuses = ['active','probation','suspended','on_leave','resigned','terminated','deceased','archived'];
+        $validStatuses          = ['active','probation','suspended','on_leave','resigned','terminated','deceased','archived'];
+        $accountDisableStatuses = ['resigned','terminated','deceased','archived'];
+        $exitDateRequiredStatuses = ['resigned','terminated','deceased']; // matches the form's own exit-date field visibility
         if (!in_array($newStatus, $validStatuses)) $errors[] = 'Invalid status.';
         if (empty($reason)) $errors[] = 'Reason is required.';
+        if (in_array($newStatus, $exitDateRequiredStatuses) && empty($exitDate)) $errors[] = 'Exit date is required for this status.';
 
         if (empty($errors)) {
             $oldStatus = $emp['status'];
@@ -38,9 +41,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             db()->prepare("INSERT INTO employee_status_history (employee_id, old_status, new_status, reason, changed_by) VALUES (?,?,?,?,?)")
                 ->execute([$id, $oldStatus, $newStatus, $reason, $_SESSION['user_id']]);
 
-            // Disable user account if exiting
-            if (in_array($newStatus, ['resigned','terminated','deceased','archived'])) {
+            // Disable the linked user account on exit; re-enable it if the
+            // employee is brought back to an active/probation status (e.g.
+            // a rehire reactivated via status change rather than a new
+            // record) — previously this only ever disabled, never restored,
+            // silently leaving a reactivated employee's account locked out.
+            if (in_array($newStatus, $accountDisableStatuses)) {
                 db()->prepare("UPDATE users SET is_active=0 WHERE employee_id=?")->execute([$id]);
+            } elseif (in_array($newStatus, ['active','probation']) && in_array($oldStatus, $accountDisableStatuses)) {
+                db()->prepare("UPDATE users SET is_active=1 WHERE employee_id=?")->execute([$id]);
             }
 
             auditLog('employees','status_change',$id,

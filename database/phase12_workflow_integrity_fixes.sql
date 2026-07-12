@@ -1,0 +1,21 @@
+-- ============================================================
+-- Phase 12: Business Workflow Integrity Fixes (Phase 4 program)
+-- Idempotent, additive-only. Safe to run against any existing
+-- installation, including one already brought current by
+-- phase11_schema_reconciliation.sql.
+-- ============================================================
+
+-- `personal_email` is read/written by modules/employees/edit.php,
+-- modules/employees/pending_updates.php, and self-service/update.php,
+-- but was never defined anywhere — schema.sql, any other tracked
+-- migration, or (confirmed live) the running database. Every one of
+-- those three code paths threw an uncaught PDOException:
+--   - Edit Employee: fatal on every single save (the duplicate-email
+--     check queries personal_email before the UPDATE ever runs).
+--   - Pending profile update approval: fatal when approving a
+--     personal_email change request specifically.
+--   - Self-service update link: fatal on page load for every
+--     employee, every time — the SELECT itself names the column.
+-- See docs/remediation/Workflows/01-employee-management-workflow-report.md
+-- and KOM-071 in the Master Remediation Register.
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS personal_email varchar(150) DEFAULT NULL AFTER email;
