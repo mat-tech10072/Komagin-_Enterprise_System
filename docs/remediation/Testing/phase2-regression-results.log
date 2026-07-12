@@ -1,16 +1,10 @@
-Phase 2 Regression Run — Sun Jul 12 21:54:01 WPST 2026
+Phase 2 Regression Run — Sun Jul 12 22:09:09 WPST 2026
 ======================================
-PASS | Temp portal session cannot be reused after logout
 PASS | Admin login succeeds
-FAIL | Consultants add.php did not succeed as expected
 PASS | Admin login regenerates session ID (fixation defense)
 PASS | Admin dashboard reachable post-login
 PASS | Admin logout expires the cookie client-side
 PASS | Admin session cannot be reused after logout
-PASS | Consultants delete.php works with no fatal error (KOM-002 regression)
-
-======================================
-TOTAL: 28 passed, 1 failed
 PASS | Employee login WITHOUT csrf_token is rejected (re-renders form, not redirected)
 PASS | Employee login with valid CSRF succeeds
 PASS | Employee login regenerates session ID (fixation defense)

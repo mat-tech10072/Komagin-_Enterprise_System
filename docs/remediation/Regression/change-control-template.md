@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; **1 more (CC-067) recording the KOM-085/KOM-086 user decisions — more to follow as each subsequent workflow group completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; **3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6 — more to follow as each subsequent workflow group completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -846,6 +846,42 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** VERIFIED live. All 32 deleted rows backed up to `database/backups/orphaned_payroll_deductions_20260712.tsv` (gitignored, matching the existing `database/backups/` policy) before deletion.
 - **Master Register updated:** Yes (KOM-085 → Accepted as designed, KOM-086 → Fixed)
 
+### CC-068 — Fixed performance review creation, root cause more severe than originally documented (KOM-049, severity corrected)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-049
+- **Files changed:** `modules/performance/save.php`
+- **Reason:** KOM-049 was open since Phase 0, originally reported as a Low-severity single-field mismatch ("reads overall_rating; form posts overall_score"). Investigating it directly for Phase 4 revealed the actual `INSERT` named three columns that don't exist anywhere in `performance_reviews` (`overall_rating`, `comments`, `recommendations`) — not silent data loss but an uncaught `PDOException` on every single attempt. The entire Performance Review creation feature had never worked. Severity corrected from Low to Critical in the Master Register to reflect the true root cause.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Confirmed the fatal crash pre-fix; post-fix, submitted a review with a rating/comment/recommendation and confirmed all three values correctly saved into the real columns (`overall_score`, `supervisor_assessment`, `recommendation_notes`), both of the latter two already displayed by `view.php` with no UI change needed.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-049, moved from LOW to CRITICAL section, closed)
+
+### CC-069 — Master Remediation Register updated for Phase 4 Workflow Group 6
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-049 (severity-corrected, closed)
+- **Files changed:** `docs/remediation/Findings/08-master-remediation-register.md`
+- **Reason:** Record this workflow group's outcomes per the program's change-control requirement.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (this entry documents that update itself)
+
+### CC-070 — Change Control Log updated for Phase 4 Workflow Group 6
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** N/A (documentation-only)
+- **Files changed:** `docs/remediation/Regression/change-control-template.md`
+- **Reason:** Record this log's own Phase 4 Workflow Group 6 entries (CC-068–CC-070).
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
+
 ---
 
 ## Change Log for This Document
@@ -862,3 +898,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-12 | 4 entries (CC-058–CC-061) recorded for Phase 4, Workflow Group 4 (Attendance & Timesheets) | Remediation Program — Phase 4 |
 | 2026-07-12 | 5 entries (CC-062–CC-066) recorded for Phase 4, Workflow Group 5 (Payroll) | Remediation Program — Phase 4 |
 | 2026-07-12 | 1 entry (CC-067) recording KOM-085/KOM-086 user decisions | Remediation Program — Phase 4 |
+| 2026-07-12 | 3 entries (CC-068–CC-070) recorded for Phase 4, Workflow Group 6 (Performance Management) | Remediation Program — Phase 4 |

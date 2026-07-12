@@ -15,13 +15,24 @@ $empId      = (int)($_POST['employee_id'] ?? 0);
 $reviewDate = $_POST['review_date'] ?? '';
 if (!$empId || !$reviewDate) { setFlash('error','Employee and review date required.'); header('Location: ' . APP_URL . '/modules/performance/index.php'); exit; }
 
-db()->prepare("INSERT INTO performance_reviews (employee_id, reviewer_id, review_period, review_date, overall_rating, comments, recommendations, status)
+// KOM-049: this INSERT named three columns that don't exist anywhere in
+// performance_reviews at all (overall_rating, comments, recommendations) —
+// every single submission threw an uncaught PDOException, not just a silent
+// rating-not-saved bug as originally reported. The real columns are
+// overall_score (matches the form field already), and the closest existing
+// single free-text columns for the form's generic "Comments"/
+// "Recommendations" fields are supervisor_assessment and
+// recommendation_notes respectively — the table's more granular
+// self_assessment/strengths/improvements/recommendation(enum) columns have
+// no corresponding field on this form and are correctly left NULL rather
+// than guessed at.
+db()->prepare("INSERT INTO performance_reviews (employee_id, reviewer_id, review_period, review_date, overall_score, supervisor_assessment, recommendation_notes, status)
     VALUES (?,?,?,?,?,?,?,'draft')")
     ->execute([
         $empId, $_SESSION['user_id'],
         trim($_POST['review_period'] ?? '') ?: null,
         $reviewDate,
-        $_POST['overall_rating'] ?: null,
+        $_POST['overall_score'] ?: null,
         trim($_POST['comments'] ?? '') ?: null,
         trim($_POST['recommendations'] ?? '') ?: null,
     ]);
