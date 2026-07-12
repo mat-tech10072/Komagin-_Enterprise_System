@@ -40,18 +40,31 @@ $stmt->execute($params);
 $records = $stmt->fetchAll();
 
 // Summary per employee
+// Phase 5, Stage 5.3: 'absent' previously counted rows where
+// status==='absent', a value nothing anywhere ever writes (attendance
+// rows are only ever created on a kiosk sign-in, always 'present' or
+// 'late') — so this was always 0, same root cause as KOM-098. Now
+// computed from the real working calendar: working days in the period
+// (capped at today) minus days actually present.
+$today = date('Y-m-d');
+$periodEndForCalendar = $dateEnd > $today ? $today : $dateEnd;
+$workingDaysInPeriod = $dateStart <= $periodEndForCalendar ? countWorkingDays($dateStart, $periodEndForCalendar) : 0;
+
 $empSummary = [];
 foreach ($records as $r) {
     $eid = $r['employee_id'];
     if (!isset($empSummary[$eid])) {
         $empSummary[$eid] = ['name'=>$r['first_name'].' '.$r['last_name'],'number'=>$r['employee_number'],'dept'=>$r['dept_name'],'present'=>0,'absent'=>0,'late'=>0,'total_hours'=>0,'ot_hours'=>0];
     }
-    if ($r['status'] === 'present') $empSummary[$eid]['present']++;
-    if ($r['status'] === 'absent')  $empSummary[$eid]['absent']++;
+    if ($r['status'] === 'present' || $r['sign_in'] !== null) $empSummary[$eid]['present']++;
     if ($r['is_late'])              $empSummary[$eid]['late']++;
     $empSummary[$eid]['total_hours'] += $r['total_hours'] ?? 0;
     $empSummary[$eid]['ot_hours']    += $r['ot_hours'] ?? 0;
 }
+foreach ($empSummary as &$s) {
+    $s['absent'] = max(0, $workingDaysInPeriod - $s['present']);
+}
+unset($s);
 
 if ($export === 'csv') {
     header('Content-Type: text/csv');

@@ -14,6 +14,7 @@ $year  = (int)($_GET['year']  ?? date('Y'));
 $month = (int)($_GET['month'] ?? date('n'));
 $deptId= (int)($_GET['dept']  ?? 0);
 $type  = $_GET['type'] ?? 'attendance';
+$today = date('Y-m-d');
 
 $departments = getDepartments();
 $thisMonth = sprintf('%04d-%02d', $year, $month);
@@ -22,7 +23,20 @@ $thisMonth = sprintf('%04d-%02d', $year, $month);
 $reportData = [];
 
 if ($type === 'attendance') {
-    $where  = ["DATE_FORMAT(a.attendance_date,'%Y-%m') = ?"];
+    // Phase 5, Stage 5.3: previously driven by `attendance a JOIN employees`
+    // — an employee with zero attendance rows all month (i.e. 100%
+    // absenteeism) never appeared in this report at all, and absent_days
+    // came from the dead is_absent column (KOM-098: always 0). Now driven
+    // from `employees` with a LEFT JOIN, so a never-clocked-in employee
+    // still appears; absent_days is computed from the real working
+    // calendar (working days in the period so far, minus days present),
+    // not from the schema's unused is_absent flag.
+    $periodStart = sprintf('%04d-%02d-01', $year, $month);
+    $periodEnd   = date('Y-m-t', strtotime($periodStart));
+    if ($periodEnd > $today) { $periodEnd = $today; } // can't be absent on a day that hasn't happened yet
+    $workingDaysInPeriod = $periodStart <= $periodEnd ? countWorkingDays($periodStart, $periodEnd) : 0;
+
+    $where  = ['e.status NOT IN (\'archived\')'];
     $params = [$thisMonth];
     if ($deptId) { $where[] = 'e.department_id = ?'; $params[] = $deptId; }
     $whereSQL = implode(' AND ', $where);
@@ -30,20 +44,24 @@ if ($type === 'attendance') {
     $stmt = db()->prepare("SELECT
         e.employee_number, CONCAT(e.first_name,' ',e.last_name) as name, d.name as dept,
         COUNT(a.id) as total_days,
-        SUM(a.is_absent) as absent_days,
-        SUM(CASE WHEN a.sign_in IS NOT NULL AND a.is_absent=0 THEN 1 ELSE 0 END) as present_days,
+        SUM(CASE WHEN a.sign_in IS NOT NULL THEN 1 ELSE 0 END) as present_days,
         SUM(a.is_late) as late_days,
         SUM(a.is_on_leave) as leave_days,
         COALESCE(SUM(a.total_hours_worked),0) as total_hours,
         COALESCE(SUM(a.overtime_hours),0) as ot_hours
-        FROM attendance a
-        JOIN employees e ON a.employee_id = e.id
+        FROM employees e
+        LEFT JOIN attendance a ON a.employee_id = e.id AND DATE_FORMAT(a.attendance_date,'%Y-%m') = ?
         LEFT JOIN departments d ON e.department_id = d.id
         WHERE $whereSQL
         GROUP BY e.id, e.employee_number, e.first_name, e.last_name, d.name
         ORDER BY e.last_name");
-    $stmt->execute($params);
+    $stmt->execute(array_merge([$thisMonth], $deptId ? [$deptId] : []));
     $reportData = $stmt->fetchAll();
+    foreach ($reportData as &$row) {
+        $row['present_days'] = (int)($row['present_days'] ?? 0);
+        $row['absent_days']  = max(0, $workingDaysInPeriod - $row['present_days']);
+    }
+    unset($row);
 
 } elseif ($type === 'employees') {
     $where  = ['e.status NOT IN (\'archived\')'];

@@ -85,15 +85,28 @@ $leaveUtil = db()->prepare("SELECT d.name as dept,
 $leaveUtil->execute([$year]); $leaveData = $leaveUtil->fetchAll();
 
 // 4. Attendance KPIs (current month)
+// Phase 5, Stage 5.3: total_absent (from the dead is_absent column,
+// KOM-098) was fetched but never even displayed; the "Attendance Rate"
+// KPI divided present-instances by total attendance ROWS (people who
+// clocked in at least once), not true expected headcount — an employee
+// who never clocked in all month didn't lower the rate at all. Now
+// computed against the real working calendar.
 $attMonth = db()->prepare("SELECT
     COUNT(*) as total_records,
-    SUM(is_absent) as total_absent,
-    SUM(CASE WHEN sign_in IS NOT NULL AND is_absent=0 THEN 1 ELSE 0 END) as total_present,
+    SUM(CASE WHEN sign_in IS NOT NULL THEN 1 ELSE 0 END) as total_present,
     SUM(is_late) as total_late,
     ROUND(AVG(total_hours_worked),2) as avg_hours,
     SUM(overtime_hours) as total_ot
     FROM attendance WHERE MONTH(attendance_date)=? AND YEAR(attendance_date)=?");
 $attMonth->execute([date('n'), $year]); $attKpi = $attMonth->fetch();
+
+$attPeriodStart = sprintf('%04d-%02d-01', $year, (int)date('n'));
+$attPeriodEnd   = date('Y-m-t', strtotime($attPeriodStart));
+$todayForAtt    = date('Y-m-d');
+if ($attPeriodEnd > $todayForAtt) { $attPeriodEnd = $todayForAtt; }
+$attActiveCount = (int)db()->query("SELECT COUNT(*) FROM employees WHERE status IN ('active','probation')")->fetchColumn();
+$attWorkingDays = $attPeriodStart <= $attPeriodEnd ? countWorkingDays($attPeriodStart, $attPeriodEnd) : 0;
+$attExpected    = $attActiveCount * $attWorkingDays;
 
 // 5. Payroll summary
 $payrollSum = db()->query("SELECT
@@ -155,7 +168,7 @@ $csrf = generateCsrfToken();
 <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-bottom:24px;">
     <?php $kpis = [
         ['Active Staff',     $totalActive],
-        ['Attendance Rate',  $attKpi['total_records']?round(($attKpi['total_present']/$attKpi['total_records'])*100).'%':'—'],
+        ['Attendance Rate',  $attExpected > 0 ? min(100, round(($attKpi['total_present']/$attExpected)*100)).'%' : '—'],
         ['Avg Hours/Day',    $attKpi['avg_hours'] ? number_format($attKpi['avg_hours'],1).'h' : '—'],
         ['Total OT (Month)', $attKpi['total_ot'] ? number_format($attKpi['total_ot'],1).'h' : '0h'],
         ['YTD Payroll',      canViewSalaryData() ? ($payrollSum['total_gross'] ? CURRENCY_SYMBOL . " " . number_format($payrollSum['total_gross'],0) : '—') : maskSalary(0)],

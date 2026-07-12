@@ -1,0 +1,57 @@
+-- ============================================================
+-- Phase 13: Workflow Completeness, Scheduled Automation, Recovery
+-- Flows & Remaining Findings Closure (Phase 5 program)
+-- Idempotent, additive-only. Safe to run against any existing
+-- installation, including one already brought current by
+-- phase11_schema_reconciliation.sql / phase12_workflow_integrity_fixes.sql.
+-- ============================================================
+
+-- ── Stage 5.3: Working-day & holiday calendar ──────────────────────────
+-- No working-day/holiday calendar existed anywhere in this codebase
+-- before Phase 5 — every "absence" figure across Dashboard/Reports/
+-- Attendance could only ever be computed from raw attendance rows
+-- (which only exist when someone actually clocks in), never from a
+-- real notion of which days employees were expected to be present.
+-- See Workflows/00-workflow-transition-matrix.md's cross-cutting
+-- observation and KOM-098 (Phase 4, partially fixed pending exactly
+-- this infrastructure).
+
+-- Single-row settings table (same pattern as company_settings) holding
+-- which ISO weekdays count as scheduled working days.
+CREATE TABLE IF NOT EXISTS work_calendar_settings (
+  id int(10) unsigned NOT NULL AUTO_INCREMENT,
+  working_weekdays varchar(20) NOT NULL DEFAULT '1,2,3,4,5' COMMENT 'ISO-8601 weekday numbers, 1=Monday..7=Sunday, comma-separated',
+  timezone varchar(50) NOT NULL DEFAULT 'Pacific/Port_Moresby',
+  updated_at timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  updated_by int(10) unsigned DEFAULT NULL,
+  PRIMARY KEY (id),
+  KEY updated_by (updated_by),
+  CONSTRAINT work_calendar_settings_ibfk_1 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO work_calendar_settings (id, working_weekdays, timezone)
+SELECT 1, '1,2,3,4,5', 'Pacific/Port_Moresby'
+WHERE NOT EXISTS (SELECT 1 FROM work_calendar_settings WHERE id = 1);
+
+-- Public holidays / organization closure days. A "holiday" may span a
+-- date range (e.g. a multi-day office shutdown) — start_date=end_date
+-- for a single day. is_recurring_annual lets a fixed-date holiday
+-- (e.g. Christmas Day, Independence Day) repeat every year without a
+-- new row each January; the stored year is then only a placeholder for
+-- month/day matching, not itself meaningful.
+CREATE TABLE IF NOT EXISTS work_calendar_holidays (
+  id int(10) unsigned NOT NULL AUTO_INCREMENT,
+  name varchar(150) NOT NULL,
+  start_date date NOT NULL,
+  end_date date NOT NULL COMMENT 'same as start_date for a single-day holiday; later for a closure range',
+  is_recurring_annual tinyint(1) NOT NULL DEFAULT 0 COMMENT 'if set, month/day repeats every year regardless of the stored year',
+  is_active tinyint(1) NOT NULL DEFAULT 1,
+  notes text DEFAULT NULL,
+  created_by int(10) unsigned DEFAULT NULL,
+  created_at timestamp NOT NULL DEFAULT current_timestamp(),
+  updated_at timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (id),
+  KEY idx_work_calendar_holidays_dates (start_date, end_date),
+  KEY created_by (created_by),
+  CONSTRAINT work_calendar_holidays_ibfk_1 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -30,10 +30,15 @@ try {
     // is_absent=1" was structurally guaranteed to return 0 every single day,
     // permanently. "Absent Today" now means what its own sub-label ("Not
     // clocked in") already said: active/probation employees with no
-    // attendance row at all today.
-    $absentToday  = db()->query("SELECT COUNT(*) FROM employees e
-                                 WHERE e.status IN ('active','probation')
-                                 AND NOT EXISTS (SELECT 1 FROM attendance a WHERE a.employee_id = e.id AND a.attendance_date = '$today')")->fetchColumn();
+    // attendance row at all today. Phase 5, Stage 5.3: on a non-working day
+    // (weekend/holiday) no one is expected to be present, so this is
+    // deliberately 0 rather than counting the whole company as "absent".
+    $absentToday = 0;
+    if (isWorkingDay($today)) {
+        $absentToday = db()->query("SELECT COUNT(*) FROM employees e
+                                     WHERE e.status IN ('active','probation')
+                                     AND NOT EXISTS (SELECT 1 FROM attendance a WHERE a.employee_id = e.id AND a.attendance_date = '$today')")->fetchColumn();
+    }
 
     // Pending approvals
     $pendingLeave   = db()->query("SELECT COUNT(*) FROM leave_applications WHERE status = 'pending'")->fetchColumn();
@@ -62,6 +67,9 @@ try {
     // attendance row" (the is_absent=0 filter it used to carry was always
     // true anyway, so dropping it changes nothing); "absent" is now the
     // same active/probation-minus-present logic used for Absent Today.
+    // Phase 5, Stage 5.3: on a non-working day (weekend/holiday), "absent"
+    // is deliberately 0 — no one is expected to be present, so counting
+    // the whole company as absent on a Saturday would be misleading.
     $activeForTrend = (int)db()->query("SELECT COUNT(*) FROM employees WHERE status IN ('active','probation')")->fetchColumn();
     $trendData = [];
     for ($i = 6; $i >= 0; $i--) {
@@ -72,7 +80,7 @@ try {
         $trendData[] = [
             'date'    => date('D d', strtotime($d)),
             'present' => $presentCount,
-            'absent'  => max(0, $activeForTrend - $presentCount),
+            'absent'  => isWorkingDay($d) ? max(0, $activeForTrend - $presentCount) : 0,
         ];
     }
 
@@ -126,10 +134,23 @@ try {
                                     LEFT JOIN departments d ON e.department_id = d.id
                                     ORDER BY e.created_at DESC LIMIT 5")->fetchAll();
 
-    // Monthly attendance %
-    $monthPresent = db()->query("SELECT COUNT(*) FROM attendance WHERE DATE_FORMAT(attendance_date,'%Y-%m')='$thisMonth' AND is_absent=0")->fetchColumn();
-    $monthTotal   = db()->query("SELECT COUNT(*) FROM attendance WHERE DATE_FORMAT(attendance_date,'%Y-%m')='$thisMonth'")->fetchColumn();
-    $attendanceRate = $monthTotal > 0 ? round(($monthPresent / $monthTotal) * 100) : 0;
+    // Monthly attendance % — Phase 5, Stage 5.3: previously divided
+    // "attendance rows with is_absent=0" by "all attendance rows this
+    // month," which was structurally guaranteed to be ~100% (is_absent
+    // is dead — see KOM-098) or exactly 0% if no one had clocked in yet
+    // this month (division-by-zero guard). Now uses the real working
+    // calendar: expected presence = active/probation employees x
+    // working days elapsed so far this month; actual = distinct
+    // employee-days with a real sign-in this month.
+    $monthStart = date('Y-m-01');
+    $workingDaysSoFar = countWorkingDays($monthStart, $today);
+    $activeForRate = (int)db()->query("SELECT COUNT(*) FROM employees WHERE status IN ('active','probation')")->fetchColumn();
+    $expectedPresence = $activeForRate * $workingDaysSoFar;
+    // attendance has a UNIQUE KEY on (employee_id, attendance_date), so a
+    // plain COUNT(*) here already equals distinct employee-days.
+    $monthPresent = (int)db()->query("SELECT COUNT(*) FROM attendance
+        WHERE DATE_FORMAT(attendance_date,'%Y-%m')='$thisMonth' AND sign_in IS NOT NULL")->fetchColumn();
+    $attendanceRate = $expectedPresence > 0 ? min(100, round(($monthPresent / $expectedPresence) * 100)) : 0;
 
 } catch (PDOException $e) {
     // Database not yet installed — show install prompt

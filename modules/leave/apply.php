@@ -54,18 +54,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($errors) && $startDate > $endDate) $errors[] = 'End date must be on or after start date.';
 
         if (empty($errors)) {
-            // Calculate days (excluding weekends)
+            // Phase 5, Stage 5.3: previously a hand-rolled loop hardcoding
+            // "weekday < 6" (Mon-Fri) — never accounted for public holidays
+            // at all, and didn't respect the configurable working-weekdays
+            // setting. countWorkingDays() now uses the real working
+            // calendar, so a leave request spanning a public holiday
+            // correctly doesn't charge a day for the holiday itself.
             $days = 0;
             if ($isHalfDay) {
                 $days = 0.5;
             } else {
-                $d = new DateTime($startDate);
-                $endD = new DateTime($endDate);
-                while ($d <= $endD) {
-                    $dow = (int)$d->format('N');
-                    if ($dow < 6) $days++;
-                    $d->modify('+1 day');
-                }
+                $days = countWorkingDays($startDate, $endDate);
             }
 
             if ($days <= 0) { $errors[] = 'No working days in the selected range.'; }

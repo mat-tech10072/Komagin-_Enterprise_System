@@ -1582,3 +1582,42 @@ CREATE TABLE IF NOT EXISTS `schema_migrations` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `migration_name` (`migration_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: work_calendar_settings
+-- New in Phase 5, Stage 5.3 — single-row settings (same pattern as
+-- company_settings) holding which ISO weekdays count as scheduled
+-- working days. See database/phase13_workflow_completeness_automation.sql.
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `work_calendar_settings` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `working_weekdays` varchar(20) NOT NULL DEFAULT '1,2,3,4,5' COMMENT 'ISO-8601 weekday numbers, 1=Monday..7=Sunday, comma-separated',
+  `timezone` varchar(50) NOT NULL DEFAULT 'Pacific/Port_Moresby',
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `updated_by` int(10) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `updated_by` (`updated_by`),
+  CONSTRAINT `work_calendar_settings_ibfk_1` FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: work_calendar_holidays
+-- New in Phase 5, Stage 5.3 — public holidays / organization closure
+-- days, optionally recurring annually by month/day.
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `work_calendar_holidays` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(150) NOT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date NOT NULL COMMENT 'same as start_date for a single-day holiday; later for a closure range',
+  `is_recurring_annual` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'if set, month/day repeats every year regardless of the stored year',
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `notes` text DEFAULT NULL,
+  `created_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_work_calendar_holidays_dates` (`start_date`,`end_date`),
+  KEY `created_by` (`created_by`),
+  CONSTRAINT `work_calendar_holidays_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

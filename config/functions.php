@@ -846,3 +846,105 @@ function getAttendanceSettings(): array {
         'overtime_threshold' => (float)($settings['overtime_threshold_hours'] ?? DEFAULT_OVERTIME_THRESHOLD),
     ];
 }
+
+// ============================================================
+// WORKING-DAY & HOLIDAY CALENDAR (Phase 5, Stage 5.3)
+// ============================================================
+// No working-day/holiday calendar existed anywhere in this codebase
+// before this — every "absence" figure across Dashboard/Reports could
+// only ever be derived from raw attendance rows (which only exist when
+// someone actually clocks in), never from a real notion of which days
+// employees were expected to be present. See KOM-098.
+
+function getWorkCalendarSettings(): array {
+    static $cached = null;
+    if ($cached !== null) return $cached;
+    $stmt = db()->query("SELECT * FROM work_calendar_settings WHERE id=1");
+    $row = $stmt->fetch();
+    $cached = $row ?: ['working_weekdays' => '1,2,3,4,5', 'timezone' => 'Pacific/Port_Moresby'];
+    return $cached;
+}
+
+// Fetch all active holidays that could possibly affect a date range in
+// one pass — callers should never query per-day in a loop.
+function getActiveHolidaysForRange(string $startDate, string $endDate): array {
+    $fixedStmt = db()->prepare("SELECT * FROM work_calendar_holidays
+        WHERE is_active=1 AND is_recurring_annual=0
+        AND start_date <= ? AND end_date >= ?");
+    $fixedStmt->execute([$endDate, $startDate]);
+
+    $recurringStmt = db()->query("SELECT * FROM work_calendar_holidays WHERE is_active=1 AND is_recurring_annual=1");
+
+    return [
+        'fixed'     => $fixedStmt->fetchAll(PDO::FETCH_ASSOC),
+        'recurring' => $recurringStmt->fetchAll(PDO::FETCH_ASSOC),
+    ];
+}
+
+// Internal: evaluate a single date against already-fetched calendar
+// data, avoiding a DB round-trip per date when checking a range.
+function _isWorkingDayWithCalendar(string $date, array $workingWeekdays, array $holidays): bool {
+    $isoWeekday = (int)date('N', strtotime($date));
+    if (!in_array($isoWeekday, $workingWeekdays, true)) return false;
+
+    foreach ($holidays['fixed'] as $h) {
+        if ($date >= $h['start_date'] && $date <= $h['end_date']) return false;
+    }
+
+    $md = date('m-d', strtotime($date));
+    foreach ($holidays['recurring'] as $h) {
+        $startMd = date('m-d', strtotime($h['start_date']));
+        $endMd   = date('m-d', strtotime($h['end_date']));
+        if ($startMd <= $endMd) {
+            if ($md >= $startMd && $md <= $endMd) return false;
+        } else {
+            // Range wraps the year boundary (e.g. Dec 30 - Jan 2) —
+            // real-world recurring holidays in this deployment are
+            // single-day, so this is a documented simplification, not
+            // fully general.
+            if ($md >= $startMd || $md <= $endMd) return false;
+        }
+    }
+    return true;
+}
+
+function isWorkingDay(string $date): bool {
+    $settings = getWorkCalendarSettings();
+    $workingWeekdays = array_map('intval', explode(',', $settings['working_weekdays']));
+    $holidays = getActiveHolidaysForRange($date, $date);
+    return _isWorkingDayWithCalendar($date, $workingWeekdays, $holidays);
+}
+
+function getWorkingDaysBetween(string $startDate, string $endDate): array {
+    if (strtotime($startDate) > strtotime($endDate)) return [];
+    $settings = getWorkCalendarSettings();
+    $workingWeekdays = array_map('intval', explode(',', $settings['working_weekdays']));
+    $holidays = getActiveHolidaysForRange($startDate, $endDate);
+
+    $result  = [];
+    $current = strtotime($startDate);
+    $end     = strtotime($endDate);
+    while ($current <= $end) {
+        $d = date('Y-m-d', $current);
+        if (_isWorkingDayWithCalendar($d, $workingWeekdays, $holidays)) {
+            $result[] = $d;
+        }
+        $current = strtotime('+1 day', $current);
+    }
+    return $result;
+}
+
+function countWorkingDays(string $startDate, string $endDate): int {
+    return count(getWorkingDaysBetween($startDate, $endDate));
+}
+
+function getNextWorkingDay(string $date): string {
+    $next = date('Y-m-d', strtotime('+1 day', strtotime($date)));
+    // Bounded look-ahead so a misconfiguration (e.g. every weekday
+    // disabled) can never loop forever.
+    for ($i = 0; $i < 30; $i++) {
+        if (isWorkingDay($next)) return $next;
+        $next = date('Y-m-d', strtotime('+1 day', strtotime($next)));
+    }
+    return $next;
+}

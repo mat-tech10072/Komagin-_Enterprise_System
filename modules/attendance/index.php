@@ -60,7 +60,10 @@ $absentStmt = db()->prepare("SELECT COUNT(*) FROM employees e
     WHERE " . implode(' AND ', $absentWhere) . "
     AND NOT EXISTS (SELECT 1 FROM attendance a WHERE a.employee_id = e.id AND a.attendance_date = ?)");
 $absentStmt->execute($deptId ? [$deptId, $viewDate] : [$viewDate]);
-$daySum['absent'] = (int)$absentStmt->fetchColumn();
+// Phase 5, Stage 5.3: on a non-working day (weekend/holiday), "absent"
+// is deliberately 0 rather than the full headcount — no one is expected
+// to be present on a day off.
+$daySum['absent'] = isWorkingDay($viewDate) ? (int)$absentStmt->fetchColumn() : 0;
 ?>
 <?php include dirname(dirname(__DIR__)) . '/includes/header.php'; ?>
 
