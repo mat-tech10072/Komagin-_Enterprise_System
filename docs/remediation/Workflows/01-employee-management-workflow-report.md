@@ -38,25 +38,47 @@
 
 **Finding ID:** KOM-071 (new)
 
-## 3. Finding — Terminations, Transfers, and Promotions Bypass the Approval Engine Entirely (NOT FIXED — decision needed)
+## 3. Finding — Terminations, Transfers, and Promotions Bypass the Approval Engine Entirely (FIXED, per user direction)
 
-`approval_workflows.workflow_type` is an ENUM that explicitly includes `promotion`, `transfer`, and `termination` as first-class values, and `config/ApprovalEngine.php`'s `workflowConfig()` defines a full stage/approver-role configuration for all three (each currently: one `hr_manager` review stage). **Nothing in the codebase ever calls `ApprovalEngine::create()` for any of them.** Of the 8 workflow types the engine supports, only `leave` (in `modules/leave/apply.php`) is ever actually instantiated.
+`approval_workflows.workflow_type` is an ENUM that explicitly includes `promotion`, `transfer`, and `termination` as first-class values, and `config/ApprovalEngine.php`'s `workflowConfig()` defines a full stage/approver-role configuration for all three (each currently: one `hr_manager` review stage). **Nothing in the codebase ever called `ApprovalEngine::create()` for any of them.** Of the 8 workflow types the engine supports, only `leave` (in `modules/leave/apply.php`) was ever actually instantiated.
 
-In practice, this means: an HR Officer with `employees.status:edit` permission can terminate, "resign," or reactivate any employee **instantly**, alone, with only a free-text reason box — the same single-actor authority as changing someone's phone number. A promotion (position/salary change via `edit.php`) or a transfer (department/supervisor change, same file) is likewise a single-person, unreviewed edit. There is no second-person sign-off, no pending state, no notification to a reviewer, despite the system being explicitly built with the data model to support exactly that.
+**User direction:** wire all three into the approval engine (option 3 of the 3 presented).
 
-**This was deliberately not fixed automatically.** Wiring `status.php`/`edit.php` into the approval engine is a genuine workflow-behavior change — it would add a mandatory review step to actions HR currently performs instantly — and changing how termination/promotion/transfer actually work in daily practice is a decision for you, not one to make unilaterally. Options, roughly in order of effort:
+**Fix implemented:**
+- `modules/employees/status.php`: setting status to `terminated` no longer applies immediately. It creates an `ApprovalEngine` workflow (`type='termination'`, `hr_manager` review stage), notifies `hr_manager` role holders, and leaves the employee's actual `status` untouched until approved.
+- `modules/employees/edit.php`: a department/supervisor change is now detected as a **transfer**, and a position/salary change as a **promotion** — both fields are held at their current value in the immediate `UPDATE` and instead carried in their own pending workflow. Every other field on the same form (name, contact info, bank details, emergency contacts) still applies instantly, since only transfer/promotion fields are approval-gated by the schema's own design.
+- `config/ApprovalEngine.php`: `updateReference()` extended so that, on approval (not rejection), the proposed change is read back out of the workflow's `notes` JSON and actually applied — `applyApprovedTermination()` updates `employees.status`/`status_reason`/`exit_date`, writes `employee_status_history`, and disables the linked user account; `applyApprovedTransferOrPromotion()` applies the relevant field pair. Rejection leaves the employee record completely untouched, by design.
 
-1. **Leave as-is, documented as an accepted gap** (matches Phase 0/2's precedent for KOM-041's self-service password reset — logged, not built, until there's a product decision).
-2. **Wire `termination` only** into the approval engine (arguably the highest-stakes of the three — irreversible, affects pay/benefits/access immediately).
-3. **Wire all three** (`promotion`, `transfer`, `termination`) — matches what the schema was clearly designed for.
+**Live-verified end-to-end**, using disposable test employees and a real second-actor approval (logged in as `hrmanager`, a different user than the one who submitted the request, honoring the engine's existing separation-of-duties check):
+- Termination: submitted as `superadmin` → employee status remained `active` → approved as `hrmanager` → status flipped to `terminated`, `status_reason`/`exit_date` recorded, linked user account disabled, `employee_status_history` row written.
+- Termination rejection: submitted → rejected as `hrmanager` → employee status confirmed untouched (`active`).
+- Transfer: submitted a department change → `department_id` unchanged pending approval → approved → `department_id` updated to the requested value.
+- Promotion: submitted a position + salary change → both fields unchanged pending approval → approved → both applied correctly.
 
-**Finding ID:** KOM-072 (new). Flagged for your decision before any workflow-engine wiring is implemented.
+**Finding ID:** KOM-072 (new, fixed)
 
-## 4. Finding — Unrestricted Any-to-Any Status Transitions (NOT FIXED — decision needed)
+## 4. Finding — Unrestricted Any-to-Any Status Transitions (FIXED, per user direction)
 
-`status.php` allows any of the 8 `employees.status` values to transition directly to any other, with no legality check. **Live-verified**: an `active` employee was moved directly to `archived` (normally a terminal/records-only state), then directly back to `active` — both succeeded with zero server-side objection beyond the free-text reason field.
+`status.php` allowed any of the 8 `employees.status` values to transition directly to any other, with no legality check. **Live-verified before the fix**: an `active` employee was moved directly to `archived` (normally a terminal/records-only state), then directly back to `active` — both succeeded with zero server-side objection beyond the free-text reason field.
 
-Concretely reachable (and arguably nonsensical) transitions today: `deceased → active`, `archived → probation`, `terminated → on_leave`, etc. A real HR system typically restricts at least some of these (e.g., reversing "deceased" should not be a same-form edit; "archived" is usually meant to be a records-retention end state, not something casually un-done).
+**Fix implemented:** a transition matrix now governs which `(old_status → new_status)` pairs are legal for ordinary roles:
+
+| From | Legal next statuses |
+|---|---|
+| `active` | probation, suspended, on_leave, resigned, terminated, deceased, archived |
+| `probation` | active, suspended, on_leave, resigned, terminated, deceased |
+| `suspended` | active, on_leave, resigned, terminated, deceased |
+| `on_leave` | active, suspended, resigned, terminated, deceased |
+| `resigned` | archived, active, probation *(reactivation/rehire)* |
+| `terminated` | archived, active, probation *(reactivation/rehire)* |
+| `deceased` | archived *(terminal, records-closure only)* |
+| `archived` | active, probation *(reactivation/rehire)* |
+
+`super_admin` may override the matrix entirely — a deliberate escape hatch for genuine data-entry corrections, so a mis-specified matrix can never permanently trap a real record; every other role is held to it. The status dropdown itself now only lists legal next-statuses for the current role (super_admin sees an additional "Override" group for everything else).
+
+**Live-verified**: `terminated → suspended` correctly rejected for `hrmanager` (not in the matrix); `terminated → archived` correctly succeeded (in the matrix); `archived → suspended` correctly succeeded for `superadmin` only, via the override path.
+
+**Finding ID:** KOM-073 (new, fixed)
 
 **This was deliberately not fixed automatically**, for the same reason as §3 — defining "which transitions are legal" is an HR business-policy decision I'm not positioned to make unilaterally, and a wrong guess would block legitimate HR corrections (e.g., an HR team might have a real, accepted reason to reverse an accidental archive). Recommend: you specify the intended transition matrix (or confirm "any-to-any is intentional, HR is trusted"), and I implement server-side enforcement accordingly in a follow-up.
 
@@ -104,11 +126,11 @@ No regression to Phase 1 (authorization) or Phase 2 (authentication/session) gua
 | Finding | Severity | Status |
 |---|---|---|
 | KOM-071 — `personal_email` column never existed, 3 workflows fatally broken | Critical | **Fixed** |
-| KOM-072 — Promotion/transfer/termination bypass the approval engine entirely | High | **Documented — decision needed** |
-| KOM-073 — Unrestricted any-to-any status transitions | Medium | **Documented — decision needed** |
+| KOM-072 — Promotion/transfer/termination bypass the approval engine entirely | High | **Fixed** (per user direction: wired all three) |
+| KOM-073 — Unrestricted any-to-any status transitions | Medium | **Fixed** (per user direction) |
 | KOM-074 — One-directional account disable (reactivation doesn't restore access) | High | **Fixed** |
 | KOM-075 — Exit statuses didn't require an exit date | Medium | **Fixed** |
 | KOM-076 — No duplicate detection for rehires (`national_id`) | Medium | **Fixed** |
 | KOM-077 — Employee-edit audit log didn't capture actual changes | Low | **Fixed** |
 
-**5 of 7 findings fixed and live-verified this round. 2 (KOM-072, KOM-073) are genuine business-policy decisions flagged for your confirmation before implementation**, per the charter's instruction not to redesign business workflow unilaterally.
+**All 7 findings fixed and live-verified.** KOM-072 and KOM-073 were initially flagged as business-policy decisions rather than fixed unilaterally; the user reviewed both and directed a full fix (wire all three workflow types into the approval engine; enforce the transition matrix with a super_admin override). Both are now implemented and live-tested end-to-end, including a real second-actor approval and a rejection path.

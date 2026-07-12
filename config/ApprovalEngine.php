@@ -191,7 +191,7 @@ class ApprovalEngine
         if ($nextStage > $workflow['total_stages']) {
             $this->db->prepare("UPDATE approval_workflows SET status='approved', updated_at=NOW() WHERE id=?")
                 ->execute([$workflowId]);
-            $this->updateReference($workflow, 'approved');
+            $this->updateReference($workflow, 'approved', $actingUserId);
         } else {
             $this->db->prepare("UPDATE approval_workflows SET status='in_review', current_stage=?, updated_at=NOW() WHERE id=?")
                 ->execute([$nextStage, $workflowId]);
@@ -277,7 +277,7 @@ class ApprovalEngine
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    private function updateReference(array $workflow, string $finalStatus): void
+    private function updateReference(array $workflow, string $finalStatus, ?int $actingUserId = null): void
     {
         $table = $workflow['reference_table'];
         $id    = $workflow['reference_id'];
@@ -300,6 +300,70 @@ class ApprovalEngine
             } catch (\Exception $e) {
                 error_log("ApprovalEngine::updateReference failed: " . $e->getMessage());
             }
+            return;
+        }
+
+        // 'termination'/'transfer'/'promotion' have no pre-existing "pending
+        // request" row to flip a status column on (unlike leave, which
+        // creates a leave_applications row up front) — the proposed change
+        // is carried in workflow.notes as JSON and only actually applied to
+        // `employees` here, on approval. Rejection intentionally leaves the
+        // employee untouched.
+        if ($finalStatus !== 'approved') return;
+        if ($type === 'termination') { $this->applyApprovedTermination($workflow, $actingUserId); }
+        elseif ($type === 'transfer')  { $this->applyApprovedTransferOrPromotion($workflow, $actingUserId, ['department_id','supervisor_id']); }
+        elseif ($type === 'promotion') { $this->applyApprovedTransferOrPromotion($workflow, $actingUserId, ['position_id','basic_salary']); }
+    }
+
+    private function applyApprovedTransferOrPromotion(array $workflow, ?int $actingUserId, array $fields): void
+    {
+        $id      = (int)$workflow['reference_id'];
+        $payload = json_decode($workflow['notes'] ?? '', true) ?: [];
+
+        $setClauses = [];
+        $params     = [];
+        foreach ($fields as $f) {
+            if (array_key_exists($f, $payload)) {
+                $setClauses[] = "`$f`=?";
+                $params[]     = $payload[$f];
+            }
+        }
+        if (!$setClauses) return;
+        $setClauses[] = 'updated_by=?';
+        $params[]     = $actingUserId;
+        $params[]     = $id;
+
+        try {
+            $this->db->prepare("UPDATE employees SET " . implode(', ', $setClauses) . ", updated_at=NOW() WHERE id=?")
+                ->execute($params);
+        } catch (\Exception $e) {
+            error_log("ApprovalEngine::applyApprovedTransferOrPromotion failed: " . $e->getMessage());
+        }
+    }
+
+    private function applyApprovedTermination(array $workflow, ?int $actingUserId): void
+    {
+        $id      = (int)$workflow['reference_id'];
+        $payload = json_decode($workflow['notes'] ?? '', true) ?: [];
+        $newStatus = $payload['new_status'] ?? 'terminated';
+        $reason    = $payload['reason'] ?? 'Termination approved';
+        $exitDate  = $payload['exit_date'] ?? null;
+
+        try {
+            $stmt = $this->db->prepare("SELECT status FROM employees WHERE id=?");
+            $stmt->execute([$id]);
+            $oldStatus = $stmt->fetchColumn();
+            if ($oldStatus === false) return; // employee no longer exists
+
+            $this->db->prepare("UPDATE employees SET status=?, status_reason=?, exit_date=?, updated_by=? WHERE id=?")
+                ->execute([$newStatus, $reason, $exitDate, $actingUserId, $id]);
+
+            $this->db->prepare("INSERT INTO employee_status_history (employee_id, old_status, new_status, reason, changed_by) VALUES (?,?,?,?,?)")
+                ->execute([$id, $oldStatus, $newStatus, $reason, $actingUserId]);
+
+            $this->db->prepare("UPDATE users SET is_active=0 WHERE employee_id=?")->execute([$id]);
+        } catch (\Exception $e) {
+            error_log("ApprovalEngine::applyApprovedTermination failed: " . $e->getMessage());
         }
     }
 }

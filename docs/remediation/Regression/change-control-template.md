@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; **7 more (CC-036–CC-042) recorded for Phase 4, Workflow Group 1 — more to follow as each subsequent workflow group completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; **10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1 — more to follow as each subsequent workflow group completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -546,6 +546,42 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** N/A
 - **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
 
+### CC-043 — Termination wired into the approval engine (KOM-072, part 1)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-072
+- **Files changed:** `modules/employees/status.php`, `config/ApprovalEngine.php`
+- **Reason:** User reviewed KOM-072 (flagged as a business-policy decision, not fixed unilaterally) and directed wiring all three of promotion/transfer/termination into the approval engine, matching what the schema's `approval_workflows.workflow_type` ENUM was already built for. Termination is the highest-stakes of the three (irreversible, immediately affects pay/benefits/access), implemented first.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Full termination lifecycle against disposable test employees: (1) submitted by `superadmin`, status confirmed unchanged pending approval; (2) approved by a different `hr_manager` user (separation-of-duties honored), status correctly flipped to `terminated` with `status_reason`/`exit_date` recorded, linked user account disabled, `employee_status_history` written; (3) a second request rejected, employee confirmed completely untouched. Full Phase 1 (20/20) and Phase 2 (29/29) suites re-run — no regression.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-072)
+
+### CC-044 — Transfer and promotion wired into the approval engine (KOM-072, part 2)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-072
+- **Files changed:** `modules/employees/edit.php`, `config/ApprovalEngine.php`
+- **Reason:** Completes KOM-072 — a department/supervisor change is now detected as a transfer and a position/salary change as a promotion, each held pending approval while every other field on the same edit form still applies immediately.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Submitted a department transfer — `department_id` unchanged until approved, then correctly applied. Submitted a position+salary promotion — both fields unchanged until approved, then correctly applied. Full Phase 1 (20/20) and Phase 2 (29/29) suites re-run — no regression.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-072, closed)
+
+### CC-045 — Status-transition matrix enforced (KOM-073)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-073
+- **Files changed:** `modules/employees/status.php`
+- **Reason:** User reviewed KOM-073 (flagged as a business-policy decision) and directed implementing a transition matrix. A `super_admin`-only override was included so the matrix can never permanently trap a real record via a wrong guess.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** `terminated→suspended` correctly rejected for `hrmanager`; `terminated→archived` correctly succeeded; `archived→suspended` correctly succeeded for `superadmin` via override only.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-073)
+
 ---
 
 ## Change Log for This Document
@@ -556,4 +592,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-11/12 | 13 entries (CC-001–CC-013) recorded for Phase 1 | Remediation Program — Phase 1 |
 | 2026-07-11/12 | 11 entries (CC-014–CC-024) recorded for Phase 2 | Remediation Program — Phase 2 |
 | 2026-07-12 | 11 entries (CC-025–CC-035) recorded for Phase 3 | Remediation Program — Phase 3 |
-| 2026-07-12 | 7 entries (CC-036–CC-042) recorded for Phase 4, Workflow Group 1 (Employee Management) | Remediation Program — Phase 4 |
+| 2026-07-12 | 10 entries (CC-036–CC-045) recorded for Phase 4, Workflow Group 1 (Employee Management) | Remediation Program — Phase 4 |

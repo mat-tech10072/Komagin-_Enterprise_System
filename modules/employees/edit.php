@@ -3,6 +3,7 @@ require_once dirname(dirname(__DIR__)) . '/auth/session.php';
 require_once dirname(dirname(__DIR__)) . '/config/config.php';
 require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
+require_once dirname(dirname(__DIR__)) . '/config/ApprovalEngine.php';
 
 requireLogin();
 requirePermission('employees.edit', 'edit');
@@ -91,6 +92,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 else $errors[] = $upload['error'];
             }
 
+            // KOM-072: a department/supervisor change is a transfer; a
+            // position/salary change is a promotion — both are explicitly
+            // approval-gated workflow types in the schema, but were
+            // previously applied instantly through this same generic edit
+            // form. Detect them here and hold the specific fields at their
+            // current value in this UPDATE; the proposed new values are
+            // carried in a pending ApprovalEngine workflow instead and only
+            // actually applied to the employee record on approval. Every
+            // other field on this form (name, contact, bank, emergency
+            // contacts) is not approval-gated and still applies immediately.
+            $oldDeptId = $emp['department_id'] !== null ? (int)$emp['department_id'] : null;
+            $oldSupId  = $emp['supervisor_id']  !== null ? (int)$emp['supervisor_id']  : null;
+            $oldPosId  = $emp['position_id']    !== null ? (int)$emp['position_id']    : null;
+            $oldSalary = $emp['basic_salary'] !== null && $emp['basic_salary'] !== '' ? (float)$emp['basic_salary'] : null;
+            $newSalary = ($salary !== '' && $salary !== null) ? (float)$salary : null;
+
+            $isTransfer  = ($deptId !== $oldDeptId) || ($supId !== $oldSupId);
+            $isPromotion = ($posId !== $oldPosId) || ($newSalary !== $oldSalary);
+
+            $appliedDeptId  = $isTransfer  ? $oldDeptId  : $deptId;
+            $appliedSupId   = $isTransfer  ? $oldSupId   : $supId;
+            $appliedPosId   = $isPromotion ? $oldPosId   : $posId;
+            $appliedSalary  = $isPromotion ? ($oldSalary !== null ? (string)$oldSalary : null) : ($salary ?: null);
+
             db()->prepare("UPDATE employees SET
                 first_name=?, last_name=?, date_of_birth=?, gender=?, national_id=?,
                 email=?, personal_email=?, phone=?,
@@ -107,10 +132,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $firstName, $lastName, $dob ?: null, $gender, $nationalId,
                 $email, $personalEmail ?: null, $phone,
                 $address, $city, $country, $marital,
-                $deptId, $posId, $supId,
+                $appliedDeptId, $appliedPosId, $appliedSupId,
                 $empType, $startDate, $contractEnd ?: null,
                 $probStart ?: null, $probEnd ?: null,
-                $workLocation, $salary ?: null,
+                $workLocation, $appliedSalary,
                 $bankName, $bankAccount, $branchCode, $bankType,
                 $emergencyName, $emergencyRel, $emergencyPhone,
                 $nokName, $nokRel, $nokPhone,
@@ -118,17 +143,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id
             ]);
 
+            $pendingNotices = [];
+            $wfEngine = new ApprovalEngine(db());
+            if ($isTransfer) {
+                try {
+                    $title = "Transfer Request: {$firstName} {$lastName} ({$emp['employee_number']})";
+                    $wfEngine->create('transfer', $id, 'employees', $title, $_SESSION['user_id'], $id, 'normal', null,
+                        json_encode(['department_id'=>$deptId,'supervisor_id'=>$supId,'reason'=>$editReason]));
+                    notifyRole('hr_manager', 'approval', 'Transfer Request Awaiting Approval',
+                        "{$firstName} {$lastName} ({$emp['employee_number']}) has a pending transfer request.",
+                        APP_URL . '/modules/approvals/index.php');
+                    $pendingNotices[] = 'transfer (department/supervisor change)';
+                } catch (Exception $wfEx) { error_log('Transfer workflow creation failed: '.$wfEx->getMessage()); }
+            }
+            if ($isPromotion) {
+                try {
+                    $title = "Promotion Request: {$firstName} {$lastName} ({$emp['employee_number']})";
+                    $wfEngine->create('promotion', $id, 'employees', $title, $_SESSION['user_id'], $id, 'normal', null,
+                        json_encode(['position_id'=>$posId,'basic_salary'=>$newSalary,'reason'=>$editReason]));
+                    notifyRole('hr_manager', 'approval', 'Promotion Request Awaiting Approval',
+                        "{$firstName} {$lastName} ({$emp['employee_number']}) has a pending promotion request.",
+                        APP_URL . '/modules/approvals/index.php');
+                    $pendingNotices[] = 'promotion (position/salary change)';
+                } catch (Exception $wfEx) { error_log('Promotion workflow creation failed: '.$wfEx->getMessage()); }
+            }
+
             // Full new-state snapshot, not just name — a transfer (department/
             // supervisor) or promotion (position/salary) previously left no
             // reconstructable record of what actually changed in new_value,
-            // only in the separately-stored old snapshot.
+            // only in the separately-stored old snapshot. Reflects what was
+            // actually APPLIED this request, not a still-pending proposal.
             auditLog('employees','edit',$id,$oldData,json_encode([
                 'first_name'=>$firstName,'last_name'=>$lastName,
-                'department_id'=>$deptId,'position_id'=>$posId,'supervisor_id'=>$supId,
-                'employment_type'=>$empType,'basic_salary'=>$salary,
+                'department_id'=>$appliedDeptId,'position_id'=>$appliedPosId,'supervisor_id'=>$appliedSupId,
+                'employment_type'=>$empType,'basic_salary'=>$appliedSalary,
                 'start_date'=>$startDate,'contract_end_date'=>$contractEnd ?: null,
+                'pending_approval'=>$pendingNotices,
             ]),$editReason);
-            setFlash('success','Employee profile updated successfully.');
+
+            $msg = 'Employee profile updated successfully.';
+            if ($pendingNotices) {
+                $msg .= ' The following change(s) require HR Manager approval before taking effect: ' . implode(', ', $pendingNotices) . '.';
+            }
+            setFlash('success', $msg);
             header('Location: ' . APP_URL . '/modules/employees/view.php?id='.$id);
             exit;
         }
