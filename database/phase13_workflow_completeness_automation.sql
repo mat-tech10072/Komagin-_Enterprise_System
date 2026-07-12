@@ -55,3 +55,33 @@ CREATE TABLE IF NOT EXISTS work_calendar_holidays (
   KEY created_by (created_by),
   CONSTRAINT work_calendar_holidays_ibfk_1 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── Stage 5.4: Scheduled task infrastructure ───────────────────────────
+-- No cron/scheduled-task mechanism existed anywhere in this codebase —
+-- confirmed by a full repository search in Phase 4. cron/run.php (new)
+-- is meant to be triggered by a host-level cron job (e.g. cPanel),
+-- never a web request. These two tables give it a single-run lock (so
+-- an overlapping cron invocation exits immediately instead of racing
+-- the one already in progress) and a per-task-per-run audit trail.
+
+CREATE TABLE IF NOT EXISTS scheduled_task_locks (
+  id int(10) unsigned NOT NULL AUTO_INCREMENT,
+  lock_name varchar(100) NOT NULL,
+  locked_at timestamp NOT NULL DEFAULT current_timestamp(),
+  locked_by varchar(150) DEFAULT NULL COMMENT 'hostname:pid, for diagnostics only',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_scheduled_task_locks_name (lock_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS scheduled_task_runs (
+  id int(10) unsigned NOT NULL AUTO_INCREMENT,
+  task_name varchar(100) NOT NULL,
+  status enum('running','success','failed') NOT NULL DEFAULT 'running',
+  items_processed int(10) unsigned NOT NULL DEFAULT 0,
+  error_summary text DEFAULT NULL,
+  started_at timestamp NOT NULL DEFAULT current_timestamp(),
+  finished_at timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  KEY idx_scheduled_task_runs_name (task_name),
+  KEY idx_scheduled_task_runs_started (started_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

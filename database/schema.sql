@@ -1621,3 +1621,35 @@ CREATE TABLE IF NOT EXISTS `work_calendar_holidays` (
   KEY `created_by` (`created_by`),
   CONSTRAINT `work_calendar_holidays_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: scheduled_task_locks
+-- New in Phase 5, Stage 5.4 — single-run lock for cron/run.php so an
+-- overlapping cron invocation exits immediately instead of racing.
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `scheduled_task_locks` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `lock_name` varchar(100) NOT NULL,
+  `locked_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `locked_by` varchar(150) DEFAULT NULL COMMENT 'hostname:pid, for diagnostics only',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_scheduled_task_locks_name` (`lock_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: scheduled_task_runs
+-- New in Phase 5, Stage 5.4 — per-task-per-run audit trail for the
+-- scheduler (start/finish time, status, items processed, error summary).
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `scheduled_task_runs` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `task_name` varchar(100) NOT NULL,
+  `status` enum('running','success','failed') NOT NULL DEFAULT 'running',
+  `items_processed` int(10) unsigned NOT NULL DEFAULT 0,
+  `error_summary` text DEFAULT NULL,
+  `started_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `finished_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_scheduled_task_runs_name` (`task_name`),
+  KEY `idx_scheduled_task_runs_started` (`started_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

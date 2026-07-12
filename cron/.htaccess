@@ -1,0 +1,10 @@
+# Phase 5, Stage 5.4: these scripts are meant to be triggered by a
+# host-level cron job only, never a web request — bootstrap.php already
+# refuses to run outside PHP_SAPI==cli, but this blocks the entire
+# directory at the web-server level too, as an independent second layer
+# (matching the pattern already used for uploads/*/.htaccess).
+<FilesMatch "\.(php|php3|php4|php5|phtml)$">
+    Deny from all
+</FilesMatch>
+
+Options -Indexes
