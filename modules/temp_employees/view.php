@@ -72,12 +72,7 @@ require_once dirname(dirname(dirname(__FILE__))) . '/includes/header.php';
             </a>
             <?php endif; ?>
             <?php if (canDelete('temp_employees.delete')): ?>
-            <form method="POST" action="<?= APP_URL ?>/modules/temp_employees/delete.php"
-                  onsubmit="return confirm('Permanently delete this temporary employee? This cannot be undone.');">
-                <input type="hidden" name="csrf_token" value="<?= generateCsrfToken() ?>">
-                <input type="hidden" name="id" value="<?= $id ?>">
-                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-            </form>
+            <a href="<?= APP_URL ?>/modules/temp_employees/delete.php?id=<?= $id ?>" class="btn btn-danger btn-sm">Delete</a>
             <?php endif; ?>
             <a href="<?= APP_URL ?>/modules/temp_employees/index.php" class="btn btn-outline-secondary btn-sm">← Back</a>
         </div>
@@ -256,10 +251,17 @@ require_once dirname(dirname(dirname(__FILE__))) . '/includes/header.php';
                         'both'      => 'success',
                         default     => 'secondary',
                     };
+                    // KOM-090: neither method actually captures attendance data
+                    // digitally for temp employees yet — the kiosk only
+                    // recognizes permanent employees, and the timesheet is a
+                    // blank paper form with no re-entry point. These
+                    // descriptions previously implied both were fully
+                    // working; corrected to say so plainly rather than build
+                    // the capture mechanism (a separate, larger feature).
                     $methodDesc = match($method) {
-                        'kiosk'     => 'This employee clocks in and out using the kiosk tablet.',
-                        'timesheet' => 'This employee records hours on a downloadable timesheet.',
-                        'both'      => 'This employee may use either the kiosk or a timesheet.',
+                        'kiosk'     => 'Not yet available for temp employees — the attendance kiosk does not recognize this employee number. Hours must be tracked manually outside the system.',
+                        'timesheet' => 'Downloadable paper timesheet only, filled in by hand — not re-entered into the system. For manual record-keeping.',
+                        'both'      => 'Neither the kiosk nor the timesheet digitally captures attendance for temp employees yet — for manual record-keeping only.',
                         default     => '',
                     };
                     ?>

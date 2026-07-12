@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; **3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9 — more to follow as each subsequent workflow group completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; **6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10 — more to follow as each subsequent workflow group completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -1014,6 +1014,78 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** N/A
 - **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
 
+### CC-082 — Fixed reflected XSS in the temp employee export status banner (KOM-020, closing a pre-existing finding)
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-020
+- **Files changed:** `modules/temp_employees/index.php`
+- **Reason:** `$_GET['status']` was echoed unescaped in the PDF export's "Filtered:" banner, while the adjacent search-term display on the same line correctly called `htmlspecialchars()`. Open since the original baseline audit (Audit II, NH-03); correctly out of scope for Phase 2 (session/authentication, not output encoding); found still open while reviewing this module in Phase 4.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Submitted `?export=pdf&status=<script>alert(1)</script>` before and after the fix.
+- **Verification result:** VERIFIED live — payload rendered as raw, executable `<script>` before the fix; renders as inert, HTML-entity-encoded text after
+- **Master Register updated:** Yes (KOM-020, moved from Open to Fixed)
+
+### CC-083 — Added type-to-confirm safety pattern to temp employee deletion (KOM-091)
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-091
+- **Files changed:** `modules/temp_employees/delete.php`, `modules/temp_employees/index.php`, `modules/temp_employees/view.php`
+- **Reason:** `delete.php` was a single-click, JS `confirm()`-only instant hard delete with no server-side confirmation safeguard, the same class of gap closed for consultants in Workflow Group 9 (KOM-089). Rewrote to a GET confirmation page requiring the exact `employee_number` typed before the `POST` proceeds; updated both Delete buttons (list and detail view) from instant form-submits to links to the confirmation page.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Phase 1 (20/20), Phase 2 (29/29). Live functional: created a disposable test temp employee; confirmation page loaded correctly; wrong confirmation text correctly rejected (record still present); correct employee number correctly deleted it.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-091, new, added to MEDIUM section, Fixed)
+
+### CC-084 — Fixed auditLog() wrong argument order corrupting the module's audit trail (KOM-092)
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-092
+- **Files changed:** `modules/temp_employees/add.php`, `modules/temp_employees/edit.php`, `modules/temp_employees/delete.php`
+- **Reason:** All three files called `auditLog('temp_employees', '<action>', $_SESSION['user_id'], 'temp_employees', $id, "...")` against the real signature `auditLog(module, action, recordId, oldValue, newValue, reason)` — the acting admin's own user ID landed in `record_id` instead of the temp employee's ID, a nonsensical literal string landed in `old_value`, and the employee's real ID was silently discarded into `new_value`. Discovered while live-verifying CC-083: a test deletion recorded `record_id=1` (the admin's ID) instead of the deleted employee's actual ID (9). Cross-checked `employees/delete.php`, `employees/edit.php`, and this phase's `consultants/delete.php` — all three call the function correctly; the bug was confined to this module.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Created, edited, then deleted a disposable test temp employee; confirmed each resulting `audit_logs` row's `record_id` directly against the database, both before the fix (wrong) and after (correct).
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-092, new, added to HIGH section, Fixed)
+
+### CC-085 — Corrected misleading attendance-method UI copy per user decision (KOM-090)
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-090
+- **Files changed:** `modules/temp_employees/add.php`, `modules/temp_employees/edit.php`, `modules/temp_employees/view.php`
+- **Reason:** The Attendance Method selector described "Kiosk Only" as "Clock in/out via the kiosk tablet," but the real kiosk (`modules/attendance/kiosk.php`) only recognizes permanent employees, and the "Timesheet Only" option is a blank paper form with no digital re-entry point — no temp employee's hours are ever actually captured anywhere in the system. Flagged for a user decision rather than built unilaterally, since a real fix (new attendance table, kiosk wiring, digital timesheet entry) is a substantial feature addition, not a bug fix. User chose (2026-07-13) to correct the misleading copy only, deferring the underlying capture mechanism.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Loaded Add, Edit, and View pages and confirmed the corrected copy renders for all three attendance-method options.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-090, new, added to MEDIUM section, Partially Fixed — capture mechanism deferred)
+
+### CC-086 — Master Remediation Register updated for Phase 4 Workflow Group 10
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-020, KOM-090, KOM-091, KOM-092
+- **Files changed:** `docs/remediation/Findings/08-master-remediation-register.md`
+- **Reason:** Record this workflow group's outcomes per the program's change-control requirement.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (this entry documents that update itself)
+
+### CC-087 — Change Control Log updated for Phase 4 Workflow Group 10
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** N/A (documentation-only)
+- **Files changed:** `docs/remediation/Regression/change-control-template.md`
+- **Reason:** Record this log's own Phase 4 Workflow Group 10 entries (CC-082–CC-087).
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
+
 ---
 
 ## Change Log for This Document
@@ -1034,3 +1106,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-12 | 4 entries (CC-071–CC-074) recorded for Phase 4, Workflow Group 7 (Recruitment) | Remediation Program — Phase 4 |
 | 2026-07-12 | 4 entries (CC-075–CC-078) recorded for Phase 4, Workflow Group 8 (Training) | Remediation Program — Phase 4 |
 | 2026-07-12 | 3 entries (CC-079–CC-081) recorded for Phase 4, Workflow Group 9 (Consultant Module) | Remediation Program — Phase 4 |
+| 2026-07-13 | 6 entries (CC-082–CC-087) recorded for Phase 4, Workflow Group 10 (Temporary Employee Module) | Remediation Program — Phase 4 |

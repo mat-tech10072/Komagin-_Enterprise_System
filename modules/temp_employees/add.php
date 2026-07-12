@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $portalPwHash,
             ]);
             $newId = db()->lastInsertId();
-            auditLog('temp_employees', 'create', $_SESSION['user_id'], 'temp_employees', $newId, "Created temp employee $empNum");
+            auditLog('temp_employees', 'create', $newId, null, null, "Created temp employee $empNum");
             setFlash('success', "Temporary employee {$form['first_name']} {$form['last_name']} ($empNum) added successfully.");
             header('Location: ' . APP_URL . '/modules/temp_employees/index.php');
             exit;
@@ -276,7 +276,7 @@ require_once dirname(dirname(dirname(__FILE__))) . '/includes/header.php';
                                             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                                             Kiosk Only
                                         </div>
-                                        <div class="text-muted" style="font-size:0.75rem;">Clock in/out via the kiosk tablet</div>
+                                        <div class="text-muted" style="font-size:0.75rem;">Not yet supported — kiosk doesn't recognize temp employees</div>
                                     </div>
                                 </label>
                             </div>
@@ -289,7 +289,7 @@ require_once dirname(dirname(dirname(__FILE__))) . '/includes/header.php';
                                             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                                             Timesheet Only
                                         </div>
-                                        <div class="text-muted" style="font-size:0.75rem;">Downloadable timesheet to fill manually</div>
+                                        <div class="text-muted" style="font-size:0.75rem;">Blank paper form only — filled by hand, not entered back into the system</div>
                                     </div>
                                 </label>
                             </div>
@@ -302,7 +302,7 @@ require_once dirname(dirname(dirname(__FILE__))) . '/includes/header.php';
                                             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                                             Both (Kiosk &amp; Timesheet)
                                         </div>
-                                        <div class="text-muted" style="font-size:0.75rem;">Employee may use either method</div>
+                                        <div class="text-muted" style="font-size:0.75rem;">Neither currently captures data digitally for temp employees</div>
                                     </div>
                                 </label>
                             </div>

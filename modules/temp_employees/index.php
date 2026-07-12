@@ -101,7 +101,7 @@ if ($export === 'excel' || $export === 'pdf') {
     <div style="font-size:9px;color:#555;margin-top:4px;">
       Filtered:
       <?= $exportSearch ? 'Search: ' . htmlspecialchars($exportSearch) . '  ' : '' ?>
-      <?= $exportStatus ? 'Status: ' . ucfirst($exportStatus) : '' ?>
+      <?= $exportStatus ? 'Status: ' . htmlspecialchars(ucfirst($exportStatus)) : '' ?>
     </div>
     <?php endif; ?>
   </div>
@@ -187,8 +187,6 @@ if ($status)    { $where[] = 'te.status = ?';     $params[] = $status; }
 
 $whereSQL = implode(' AND ', $where);
 
-$total = (int)db()->prepare("SELECT COUNT(*) FROM temp_employees te WHERE $whereSQL")
-                   ->execute($params) ? db()->prepare("SELECT COUNT(*) FROM temp_employees te WHERE $whereSQL") : 0;
 $stmtCount = db()->prepare("SELECT COUNT(*) FROM temp_employees te WHERE $whereSQL");
 $stmtCount->execute($params);
 $total = (int)$stmtCount->fetchColumn();
@@ -435,15 +433,10 @@ require_once dirname(dirname(dirname(__FILE__))) . '/includes/header.php';
                                 </a>
                                 <?php endif; ?>
                                 <?php if (canDelete('temp_employees.delete')): ?>
-                                <form method="POST" action="<?= APP_URL ?>/modules/temp_employees/delete.php"
-                                      onsubmit="return confirm('Delete <?= e(addslashes($emp['first_name'] . ' ' . $emp['last_name'])) ?>? This cannot be undone.');"
-                                      style="display:inline;">
-                                    <input type="hidden" name="csrf_token" value="<?= generateCsrfToken() ?>">
-                                    <input type="hidden" name="id" value="<?= $emp['id'] ?>">
-                                    <button type="submit" class="btn btn-danger btn-sm" title="Delete" style="padding:3px 8px;">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                                    </button>
-                                </form>
+                                <a href="<?= APP_URL ?>/modules/temp_employees/delete.php?id=<?= $emp['id'] ?>"
+                                   class="btn btn-danger btn-sm" title="Delete" style="padding:3px 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                                </a>
                                 <?php endif; ?>
                             </div>
                         </td>
