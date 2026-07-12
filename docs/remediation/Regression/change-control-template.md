@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; **4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13 — more to follow as each subsequent workflow group completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; 4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13; **1 more (CC-103) recording the KOM-045 close-out decision — all 13 Phase 4 workflow groups now complete, see the Phase 4 Completion Report.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -1266,6 +1266,18 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** N/A
 - **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
 
+### CC-103 — KOM-045 (unused permission slugs) reviewed and closed, no changes, per user decision
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-045
+- **Files changed:** None (documentation only)
+- **Reason:** KOM-045 (deferred from Phase 3, out of that phase's schema-integrity charter scope) re-verified fresh against the post-Workflow-Group-13 codebase — a full scan of all 97 live permission slugs against actual code usage corrected the unused count from 24 to 26 (a few originally-flagged slugs were incidentally wired up by Phase 1–3 fixes; a few new never-wired slugs were seeded since). Grouped into 3 categories (8 redundant export slugs, 5 portal.* feature-toggle slugs, 13 miscellaneous) and presented to the user for a keep/wire-up/remove decision. User chose to leave all 26 documented, no code or database changes, matching the treatment already given to every other genuine feature-gap finding this phase.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A (no code change; verification was the permission-usage audit itself)
+- **Master Register updated:** Yes (KOM-045 status changed from Open/deferred to Accepted as designed; count corrected 24→26; no register-total change, a status update to an existing finding)
+
 ---
 
 ## Change Log for This Document
@@ -1290,3 +1302,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-13 | 5 entries (CC-088–CC-092) recorded for Phase 4, Workflow Group 11 (Notifications) | Remediation Program — Phase 4 |
 | 2026-07-13 | 6 entries (CC-093–CC-098) recorded for Phase 4, Workflow Group 12 (Documents Generation Lifecycle) | Remediation Program — Phase 4 |
 | 2026-07-13 | 4 entries (CC-099–CC-102) recorded for Phase 4, Workflow Group 13 (Reports & Dashboards Consistency) | Remediation Program — Phase 4 |
+| 2026-07-13 | 1 entry (CC-103) recorded for the KOM-045 close-out decision — all 13 Phase 4 workflow groups now complete | Remediation Program — Phase 4 |
