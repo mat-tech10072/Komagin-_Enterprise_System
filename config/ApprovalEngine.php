@@ -28,11 +28,19 @@ class ApprovalEngine
     public static function workflowConfig(): array
     {
         return [
+            // Phase 5, Stage 5.1 (KOM-083): this was modeled as a 2-stage
+            // Supervisor Review -> HR Approval flow, but leave/approve.php
+            // has always resolved the entire request in one HR-only step —
+            // no supervisor-facing review UI was ever built, and the
+            // supervisor stage was never actually enforced. Rather than
+            // build that missing UI, the user chose to lock in single-stage
+            // HR-only as the permanent, intended design. Existing/historical
+            // leave workflow rows created under the old 2-stage config are
+            // untouched; only new applications use this single stage.
             'leave' => [
                 'label'  => 'Leave Application',
                 'stages' => [
-                    ['name'=>'Supervisor Review','role'=>'supervisor'],
-                    ['name'=>'HR Approval',      'role'=>'hr_manager'],
+                    ['name'=>'HR Approval', 'role'=>'hr_manager'],
                 ],
             ],
             'overtime' => [
