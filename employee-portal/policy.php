@@ -19,14 +19,26 @@ $limit         = 300; // 5 minutes
 $remaining     = max(0, $limit - $elapsed);
 
 if ($elapsed > $limit) {
-    session_destroy();
+    destroySessionCompletely();
     header('Location: ' . EP_URL . '/login.php?reason=policy_expired');
     exit;
 }
 
+// Phase 3 fix: this state-changing POST (agrees to the policy and writes
+// portal_policy_agreed to the employee's record) had no CSRF token at all —
+// found during Phase 3 database-layer work, recorded against a newly
+// assigned finding ID since it predates this program's CSRF standardization
+// pass (Phase 2 covered every OTHER portal mutation but this one was
+// missed). See docs/remediation/Findings/08-master-remediation-register.md.
+$csrf = generateCsrfToken();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['agree'])) {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        header('Location: ' . EP_URL . '/policy.php');
+        exit;
+    }
     if ($elapsed > $limit) {
-        session_destroy();
+        destroySessionCompletely();
         header('Location: ' . EP_URL . '/login.php?reason=policy_expired');
         exit;
     }
@@ -104,6 +116,7 @@ body { background: linear-gradient(135deg,#0F172A 0%,#1D4ED8 100%); }
             <p><strong>This agreement is recorded with a timestamp and linked to your employee profile.</strong></p>
         </div>
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
             <div class="policy-footer">
                 <div>
                     <label style="display:flex;align-items:center;gap:8px;font-size:0.78rem;cursor:pointer">

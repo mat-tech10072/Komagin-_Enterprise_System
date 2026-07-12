@@ -1,0 +1,853 @@
+approval_stages.id int(10) unsigned NOT NULL PK
+approval_stages.workflow_id int(10) unsigned NOT NULL
+approval_stages.stage_number tinyint(4) NOT NULL
+approval_stages.stage_name varchar(100) NOT NULL
+approval_stages.approver_role varchar(50)
+approval_stages.approver_user_id int(10) unsigned
+approval_stages.status enum('pending','approved','rejected','skipped')
+approval_stages.action enum('approve','reject')
+approval_stages.comments text
+approval_stages.acted_at datetime
+approval_stages.created_at timestamp NOT NULL
+approval_workflows.id int(10) unsigned NOT NULL PK
+approval_workflows.workflow_type enum('leave','payroll_run','promotion','transfer','termination','document','overtime','correction') NOT NULL
+approval_workflows.reference_id int(10) unsigned NOT NULL
+approval_workflows.reference_table varchar(100) NOT NULL
+approval_workflows.title varchar(255) NOT NULL
+approval_workflows.initiated_by int(10) unsigned
+approval_workflows.employee_id int(10) unsigned
+approval_workflows.status enum('pending','in_review','approved','rejected','cancelled','withdrawn')
+approval_workflows.current_stage tinyint(4)
+approval_workflows.total_stages tinyint(4)
+approval_workflows.priority enum('low','normal','high','urgent')
+approval_workflows.due_date date
+approval_workflows.notes text
+approval_workflows.created_at timestamp NOT NULL
+approval_workflows.updated_at timestamp NOT NULL
+archive_records.id int(10) unsigned NOT NULL PK
+archive_records.archive_type enum('monthly','quarterly','yearly') NOT NULL
+archive_records.year year(4) NOT NULL
+archive_records.month tinyint(2)
+archive_records.quarter tinyint(1)
+archive_records.document_type enum('timesheets','attendance','leave_report','overtime_report','payroll_support','hr_summary','employee_list','recruitment_summary','training_summary','disciplinary_summary','compliance') NOT NULL
+archive_records.title varchar(255) NOT NULL
+archive_records.file_path varchar(500)
+archive_records.department_id int(10) unsigned
+archive_records.is_locked tinyint(1)
+archive_records.locked_by int(10) unsigned
+archive_records.locked_at datetime
+archive_records.generated_by int(10) unsigned
+archive_records.generated_at timestamp NOT NULL
+archive_records.notes text
+asset_assignments.id int(10) unsigned NOT NULL PK
+asset_assignments.asset_id int(10) unsigned NOT NULL
+asset_assignments.employee_id int(10) unsigned NOT NULL
+asset_assignments.issued_date date NOT NULL
+asset_assignments.condition_on_issue enum('excellent','good','fair','poor')
+asset_assignments.issued_by int(10) unsigned
+asset_assignments.acknowledgement tinyint(1)
+asset_assignments.acknowledgement_date datetime
+asset_assignments.expected_return_date date
+asset_assignments.actual_return_date date
+asset_assignments.condition_on_return enum('excellent','good','fair','poor','damaged','lost')
+asset_assignments.return_remarks text
+asset_assignments.received_by int(10) unsigned
+asset_assignments.is_returned tinyint(1)
+asset_assignments.created_at timestamp NOT NULL
+attendance.id int(10) unsigned NOT NULL PK
+attendance.employee_id int(10) unsigned NOT NULL
+attendance.employee_number varchar(30) NOT NULL
+attendance.attendance_date date NOT NULL
+attendance.sign_in time
+attendance.break_out time
+attendance.break_in time
+attendance.sign_out time
+attendance.break_duration_minutes int(11)
+attendance.total_hours_worked decimal(5,2)
+attendance.normal_hours decimal(5,2)
+attendance.overtime_hours decimal(5,2)
+attendance.is_late tinyint(1)
+attendance.late_minutes int(11)
+attendance.is_early_departure tinyint(1)
+attendance.is_absent tinyint(1)
+attendance.is_on_leave tinyint(1)
+attendance.status enum('present','absent','late','on_leave','half_day','holiday')
+attendance.is_manually_adjusted tinyint(1)
+attendance.adjustment_reason text
+attendance.adjusted_by int(10) unsigned
+attendance.adjusted_at datetime
+attendance.hr_remarks text
+attendance.is_approved tinyint(1)
+attendance.approved_by int(10) unsigned
+attendance.approved_at datetime
+attendance.is_locked tinyint(1)
+attendance.device_info varchar(255)
+attendance.ip_address varchar(45)
+attendance.created_at timestamp NOT NULL
+attendance.updated_at timestamp NOT NULL
+audit_logs.id bigint(20) unsigned NOT NULL PK
+audit_logs.user_id int(10) unsigned
+audit_logs.user_name varchar(150)
+audit_logs.module varchar(100) NOT NULL
+audit_logs.action varchar(100) NOT NULL
+audit_logs.record_id int(10) unsigned
+audit_logs.old_value text
+audit_logs.new_value text
+audit_logs.reason text
+audit_logs.ip_address varchar(45)
+audit_logs.user_agent text
+audit_logs.created_at timestamp NOT NULL
+company_assets.id int(10) unsigned NOT NULL PK
+company_assets.asset_code varchar(30)
+company_assets.asset_type enum('laptop','phone','vehicle','ppe','tools','id_card','uniform','other') NOT NULL
+company_assets.description varchar(255) NOT NULL
+company_assets.serial_number varchar(100)
+company_assets.make_model varchar(100)
+company_assets.purchase_date date
+company_assets.purchase_value decimal(12,2)
+company_assets.current_condition enum('excellent','good','fair','poor','damaged','lost')
+company_assets.image varchar(255)
+company_assets.notes text
+company_assets.is_available tinyint(1)
+company_assets.created_at timestamp NOT NULL
+company_letterheads.id int(10) unsigned NOT NULL PK
+company_letterheads.name varchar(150) NOT NULL
+company_letterheads.type enum('official','contract','payroll','hr_letter','certificate','memo','general')
+company_letterheads.image_path varchar(500) NOT NULL
+company_letterheads.header_html longtext
+company_letterheads.footer_html longtext
+company_letterheads.paper_size enum('A4','A5','Letter','Legal')
+company_letterheads.orientation enum('portrait','landscape')
+company_letterheads.margin_top smallint(6)
+company_letterheads.margin_bottom smallint(6)
+company_letterheads.is_default tinyint(1)
+company_letterheads.is_active tinyint(1)
+company_letterheads.created_by int(10) unsigned
+company_letterheads.created_at timestamp NOT NULL
+company_letterheads.updated_at timestamp NOT NULL
+company_settings.id int(10) unsigned NOT NULL PK
+company_settings.company_name varchar(255)
+company_settings.company_logo varchar(255)
+company_settings.company_favicon varchar(255)
+company_settings.company_footer varchar(255)
+company_settings.login_background varchar(255)
+company_settings.address text
+company_settings.phone varchar(50)
+company_settings.email varchar(100)
+company_settings.website varchar(100)
+company_settings.work_start_time time
+company_settings.work_end_time time
+company_settings.grace_period_minutes int(11)
+company_settings.break_duration_minutes int(11)
+company_settings.standard_work_hours decimal(4,2)
+company_settings.overtime_threshold_hours decimal(4,2)
+company_settings.emp_number_settings longtext
+company_settings.leave_settings longtext
+company_settings.archive_settings longtext
+company_settings.theme_settings longtext
+company_settings.email_settings longtext
+company_settings.doc_number_prefix varchar(20)
+company_settings.doc_number_counter int(10) unsigned
+company_settings.created_at timestamp NOT NULL
+company_settings.updated_at timestamp NOT NULL
+company_signatures.id int(10) unsigned NOT NULL PK
+company_signatures.signatory_name varchar(150) NOT NULL
+company_signatures.designation varchar(150)
+company_signatures.department varchar(150)
+company_signatures.image_path varchar(500) NOT NULL
+company_signatures.approval_level tinyint(3) unsigned
+company_signatures.is_active tinyint(1)
+company_signatures.version tinyint(3) unsigned
+company_signatures.notes text
+company_signatures.created_by int(10) unsigned
+company_signatures.created_at timestamp NOT NULL
+company_signatures.updated_at timestamp NOT NULL
+company_stamps.id int(10) unsigned NOT NULL PK
+company_stamps.name varchar(150) NOT NULL
+company_stamps.image_path varchar(500) NOT NULL
+company_stamps.is_active tinyint(1)
+company_stamps.created_by int(10) unsigned
+company_stamps.created_at timestamp NOT NULL
+company_watermarks.id int(10) unsigned NOT NULL PK
+company_watermarks.name varchar(150) NOT NULL
+company_watermarks.type enum('image','text')
+company_watermarks.image_path varchar(500)
+company_watermarks.text varchar(100)
+company_watermarks.opacity decimal(3,2)
+company_watermarks.color varchar(20)
+company_watermarks.font_size smallint(6)
+company_watermarks.rotation smallint(6)
+company_watermarks.is_active tinyint(1)
+company_watermarks.created_by int(10) unsigned
+company_watermarks.created_at timestamp NOT NULL
+consultants.id int(10) unsigned NOT NULL PK
+consultants.consultant_number varchar(30) NOT NULL
+consultants.first_name varchar(100) NOT NULL
+consultants.last_name varchar(100) NOT NULL
+consultants.email varchar(200)
+consultants.phone varchar(30)
+consultants.company varchar(200)
+consultants.position_title varchar(200)
+consultants.type enum('time_based','output_based') NOT NULL
+consultants.department varchar(100)
+consultants.start_date date
+consultants.end_date date
+consultants.status enum('active','completed','terminated') NOT NULL
+consultants.hourly_rate decimal(10,2)
+consultants.daily_rate decimal(10,2)
+consultants.contract_value decimal(12,2)
+consultants.notes text
+consultants.portal_active tinyint(1) NOT NULL
+consultants.portal_password varchar(255)
+consultants.portal_last_login datetime
+consultants.created_at datetime NOT NULL
+consultants.updated_at datetime NOT NULL
+consultant_attendance.id int(10) unsigned NOT NULL PK
+consultant_attendance.consultant_id int(10) unsigned NOT NULL
+consultant_attendance.work_date date NOT NULL
+consultant_attendance.clock_in datetime
+consultant_attendance.break_start datetime
+consultant_attendance.break_end datetime
+consultant_attendance.clock_out datetime
+consultant_attendance.total_hours decimal(5,2)
+consultant_attendance.notes varchar(500)
+consultant_attendance.created_at datetime NOT NULL
+consultant_attendance.updated_at datetime NOT NULL
+consultant_scopes.id int(10) unsigned NOT NULL PK
+consultant_scopes.consultant_id int(10) unsigned NOT NULL
+consultant_scopes.title varchar(300) NOT NULL
+consultant_scopes.description text
+consultant_scopes.priority enum('low','normal','high','urgent') NOT NULL
+consultant_scopes.due_date date
+consultant_scopes.status enum('pending','in_progress','completed','on_hold') NOT NULL
+consultant_scopes.completion_pct tinyint(3) unsigned NOT NULL
+consultant_scopes.hr_notes text
+consultant_scopes.consultant_notes text
+consultant_scopes.completed_at datetime
+consultant_scopes.sort_order int(10) unsigned NOT NULL
+consultant_scopes.created_at datetime NOT NULL
+consultant_scopes.updated_at datetime NOT NULL
+correction_requests.id int(10) unsigned NOT NULL PK
+correction_requests.employee_id int(10) unsigned NOT NULL
+correction_requests.attendance_id int(10) unsigned
+correction_requests.request_date date NOT NULL
+correction_requests.request_type enum('forgot_sign_in','forgot_sign_out','forgot_break_out','forgot_break_in','wrong_time','overtime_not_captured','other') NOT NULL
+correction_requests.description text NOT NULL
+correction_requests.requested_sign_in time
+correction_requests.requested_sign_out time
+correction_requests.requested_break_out time
+correction_requests.requested_break_in time
+correction_requests.status enum('pending','approved','rejected')
+correction_requests.hr_remarks text
+correction_requests.reviewed_by int(10) unsigned
+correction_requests.reviewed_at datetime
+correction_requests.created_at timestamp NOT NULL
+departments.id int(10) unsigned NOT NULL PK
+departments.name varchar(150) NOT NULL
+departments.code varchar(20)
+departments.description text
+departments.head_employee_id int(10) unsigned
+departments.is_active tinyint(1)
+departments.created_at timestamp NOT NULL
+departments.updated_at timestamp NOT NULL
+disciplinary_records.id int(10) unsigned NOT NULL PK
+disciplinary_records.employee_id int(10) unsigned NOT NULL
+disciplinary_records.case_number varchar(30)
+disciplinary_records.incident_date date NOT NULL
+disciplinary_records.incident_description text NOT NULL
+disciplinary_records.case_type enum('misconduct','poor_performance','absenteeism','insubordination','harassment','theft','fraud','other') NOT NULL
+disciplinary_records.action_taken enum('verbal_warning','written_warning','final_warning','suspension','demotion','termination','dismissed','no_action')
+disciplinary_records.investigation_notes text
+disciplinary_records.evidence_file varchar(255)
+disciplinary_records.warning_letter_file varchar(255)
+disciplinary_records.status enum('open','investigating','closed','appealed')
+disciplinary_records.hearing_date date
+disciplinary_records.resolved_at date
+disciplinary_records.hr_officer_id int(10) unsigned
+disciplinary_records.created_by int(10) unsigned
+disciplinary_records.created_at timestamp NOT NULL
+disciplinary_records.updated_at timestamp NOT NULL
+doc_categories.id int(10) unsigned NOT NULL PK
+doc_categories.name varchar(150) NOT NULL
+doc_categories.slug varchar(100) NOT NULL
+doc_categories.description text
+doc_categories.icon varchar(50)
+doc_categories.sort_order int(11)
+doc_categories.is_active tinyint(1)
+doc_categories.created_at timestamp NOT NULL
+doc_templates.id int(10) unsigned NOT NULL PK
+doc_templates.category_id int(10) unsigned NOT NULL
+doc_templates.title varchar(200) NOT NULL
+doc_templates.slug varchar(150) NOT NULL
+doc_templates.description text
+doc_templates.body_html longtext NOT NULL
+doc_templates.variables_used longtext
+doc_templates.version tinyint(3) unsigned
+doc_templates.is_active tinyint(1)
+doc_templates.requires_approval tinyint(1)
+doc_templates.letterhead_id int(10) unsigned
+doc_templates.signature_ids longtext
+doc_templates.stamp_id int(10) unsigned
+doc_templates.watermark_id int(10) unsigned
+doc_templates.created_by int(10) unsigned
+doc_templates.updated_by int(10) unsigned
+doc_templates.created_at timestamp NOT NULL
+doc_templates.updated_at timestamp NOT NULL
+doc_templates.show_letterhead tinyint(1)
+doc_templates.show_signature tinyint(1)
+doc_templates.show_stamp tinyint(1)
+doc_templates.show_watermark tinyint(1)
+doc_templates.show_qr_code tinyint(1)
+doc_templates.show_doc_number tinyint(1)
+doc_templates.show_page_number tinyint(1)
+doc_templates.show_header tinyint(1)
+doc_templates.show_footer tinyint(1)
+doc_template_versions.id int(10) unsigned NOT NULL PK
+doc_template_versions.template_id int(10) unsigned NOT NULL
+doc_template_versions.version tinyint(3) unsigned NOT NULL
+doc_template_versions.body_html longtext NOT NULL
+doc_template_versions.changed_by int(10) unsigned
+doc_template_versions.changed_at timestamp NOT NULL
+email_logs.id bigint(20) unsigned NOT NULL PK
+email_logs.type enum('payslip','leave_approval','leave_rejection','document','general','test')
+email_logs.recipient_name varchar(200)
+email_logs.recipient_email varchar(200) NOT NULL
+email_logs.subject varchar(500) NOT NULL
+email_logs.body_html longtext
+email_logs.status enum('sent','failed','pending','bounced')
+email_logs.employee_id int(10) unsigned
+email_logs.reference_id int(10) unsigned
+email_logs.reference_type varchar(50)
+email_logs.failure_reason text
+email_logs.retry_count tinyint(4)
+email_logs.sent_at datetime
+email_logs.created_at timestamp NOT NULL
+employees.id int(10) unsigned NOT NULL PK
+employees.employee_number varchar(30) NOT NULL
+employees.first_name varchar(100) NOT NULL
+employees.last_name varchar(100) NOT NULL
+employees.middle_name varchar(100)
+employees.preferred_name varchar(100)
+employees.date_of_birth date
+employees.gender enum('male','female','other','prefer_not_to_say')
+employees.marital_status enum('single','married','divorced','widowed','other')
+employees.national_id varchar(50)
+employees.passport_number varchar(50)
+employees.nationality varchar(100)
+employees.photo varchar(255)
+employees.email varchar(150)
+employees.phone varchar(30)
+employees.phone_alt varchar(30)
+employees.residential_address text
+employees.postal_address text
+employees.city varchar(100)
+employees.state_province varchar(100)
+employees.country varchar(100)
+employees.postal_code varchar(20)
+employees.department_id int(10) unsigned
+employees.position_id int(10) unsigned
+employees.supervisor_id int(10) unsigned
+employees.employment_type enum('full_time','part_time','contract','casual','intern')
+employees.status enum('active','probation','suspended','on_leave','resigned','terminated','deceased','archived')
+employees.start_date date
+employees.contract_end_date date
+employees.probation_start date
+employees.probation_end date
+employees.basic_salary decimal(12,2)
+employees.pay_frequency enum('weekly','bi_weekly','monthly')
+employees.work_location varchar(150)
+employees.kiosk_pin varchar(255)
+employees.portal_password varchar(255)
+employees.portal_policy_agreed tinyint(1)
+employees.portal_policy_agreed_at datetime
+employees.portal_last_login datetime
+employees.portal_active tinyint(1)
+employees.bank_name varchar(100)
+employees.bank_account_number varchar(50)
+employees.bank_branch_code varchar(20)
+employees.bank_account_type varchar(50)
+employees.emergency_contact_name varchar(150)
+employees.emergency_contact_relation varchar(100)
+employees.emergency_contact_phone varchar(30)
+employees.emergency_contact_email varchar(150)
+employees.nok_name varchar(150)
+employees.nok_relation varchar(100)
+employees.nok_phone varchar(30)
+employees.nok_address text
+employees.status_reason text
+employees.exit_date date
+employees.exit_reason text
+employees.created_by int(10) unsigned
+employees.updated_by int(10) unsigned
+employees.created_at timestamp NOT NULL
+employees.updated_at timestamp NOT NULL
+employee_dependents.id int(10) unsigned NOT NULL PK
+employee_dependents.employee_id int(10) unsigned NOT NULL
+employee_dependents.full_name varchar(150) NOT NULL
+employee_dependents.relationship enum('spouse','child','parent','sibling','other') NOT NULL
+employee_dependents.date_of_birth date
+employee_dependents.gender enum('male','female','other')
+employee_dependents.national_id varchar(50)
+employee_dependents.is_beneficiary tinyint(1)
+employee_dependents.beneficiary_percentage decimal(5,2)
+employee_dependents.notes text
+employee_dependents.created_at timestamp NOT NULL
+employee_documents.id int(10) unsigned NOT NULL PK
+employee_documents.employee_id int(10) unsigned NOT NULL
+employee_documents.category enum('id_document','certificate','contract','medical','warning_letter','promotion_letter','leave_document','resignation','clearance','payslip','bank_document','training_certificate','other') NOT NULL
+employee_documents.document_name varchar(255) NOT NULL
+employee_documents.file_path varchar(500) NOT NULL
+employee_documents.file_type varchar(100)
+employee_documents.file_size int(11)
+employee_documents.expiry_date date
+employee_documents.is_verified tinyint(1)
+employee_documents.verified_by int(10) unsigned
+employee_documents.verified_at datetime
+employee_documents.notes text
+employee_documents.uploaded_by int(10) unsigned
+employee_documents.uploaded_at timestamp NOT NULL
+employee_documents.is_deleted tinyint(1)
+employee_pending_updates.id int(10) unsigned NOT NULL PK
+employee_pending_updates.employee_id int(10) unsigned NOT NULL
+employee_pending_updates.update_link_id int(10) unsigned
+employee_pending_updates.field_name varchar(100) NOT NULL
+employee_pending_updates.field_label varchar(150) NOT NULL
+employee_pending_updates.old_value text
+employee_pending_updates.new_value text NOT NULL
+employee_pending_updates.status enum('pending','approved','rejected')
+employee_pending_updates.rejection_reason text
+employee_pending_updates.reviewed_by int(10) unsigned
+employee_pending_updates.reviewed_at datetime
+employee_pending_updates.submitted_at timestamp NOT NULL
+employee_qualifications.id int(10) unsigned NOT NULL PK
+employee_qualifications.employee_id int(10) unsigned NOT NULL
+employee_qualifications.qualification_type enum('matric','diploma','degree','honours','masters','phd','trade_cert','professional_cert','other') NOT NULL
+employee_qualifications.title varchar(200) NOT NULL
+employee_qualifications.institution varchar(200)
+employee_qualifications.field_of_study varchar(150)
+employee_qualifications.year_obtained year(4)
+employee_qualifications.grade_result varchar(50)
+employee_qualifications.certificate_file varchar(500)
+employee_qualifications.is_verified tinyint(1)
+employee_qualifications.verified_by int(10) unsigned
+employee_qualifications.verified_at datetime
+employee_qualifications.notes text
+employee_qualifications.created_at timestamp NOT NULL
+employee_requests.id int(10) unsigned NOT NULL PK
+employee_requests.employee_id int(10) unsigned NOT NULL
+employee_requests.request_type enum('leave_query','payslip_query','employment_certificate','bank_update','salary_query','training_request','general_query','grievance','payroll_query','document_request') NOT NULL
+employee_requests.subject varchar(255) NOT NULL
+employee_requests.description text NOT NULL
+employee_requests.priority enum('low','normal','high','urgent')
+employee_requests.status enum('open','in_progress','resolved','closed','rejected')
+employee_requests.assigned_to int(10) unsigned
+employee_requests.hr_response text
+employee_requests.internal_notes text
+employee_requests.resolved_by int(10) unsigned
+employee_requests.resolved_at datetime
+employee_requests.attachment varchar(500)
+employee_requests.created_at timestamp NOT NULL
+employee_requests.updated_at timestamp NOT NULL
+employee_savings.id int(10) unsigned NOT NULL PK
+employee_savings.employee_id int(10) unsigned NOT NULL
+employee_savings.savings_type enum('pension','provident','medical_aid','funeral','savings','other') NOT NULL
+employee_savings.fund_name varchar(255)
+employee_savings.target_amount decimal(14,2)
+employee_savings.current_balance decimal(14,2)
+employee_savings.employee_rate_pct decimal(5,2)
+employee_savings.employer_rate_pct decimal(5,2)
+employee_savings.monthly_employee_contrib decimal(12,2)
+employee_savings.monthly_employer_contrib decimal(12,2)
+employee_savings.total_employee_contrib decimal(14,2)
+employee_savings.total_employer_contrib decimal(14,2)
+employee_savings.start_date date
+employee_savings.projected_end_date date
+employee_savings.notes text
+employee_savings.created_by int(10) unsigned
+employee_savings.created_at timestamp NOT NULL
+employee_savings.updated_at timestamp NOT NULL
+employee_skills.id int(10) unsigned NOT NULL PK
+employee_skills.employee_id int(10) unsigned NOT NULL
+employee_skills.skill_name varchar(150) NOT NULL
+employee_skills.proficiency enum('beginner','intermediate','advanced','expert')
+employee_skills.certificate_file varchar(255)
+employee_skills.expiry_date date
+employee_skills.notes text
+employee_skills.created_at timestamp NOT NULL
+employee_status_history.id int(10) unsigned NOT NULL PK
+employee_status_history.employee_id int(10) unsigned NOT NULL
+employee_status_history.old_status varchar(50)
+employee_status_history.new_status varchar(50) NOT NULL
+employee_status_history.reason text
+employee_status_history.changed_by int(10) unsigned
+employee_status_history.changed_at timestamp NOT NULL
+employee_update_links.id int(10) unsigned NOT NULL PK
+employee_update_links.token varchar(64) NOT NULL
+employee_update_links.link_type enum('monthly','quarterly','individual','request_based')
+employee_update_links.scope enum('all','department','individual')
+employee_update_links.department_id int(10) unsigned
+employee_update_links.employee_id int(10) unsigned
+employee_update_links.title varchar(200)
+employee_update_links.instructions text
+employee_update_links.expires_at datetime NOT NULL
+employee_update_links.is_active tinyint(1)
+employee_update_links.is_revoked tinyint(1)
+employee_update_links.created_by int(10) unsigned NOT NULL
+employee_update_links.created_at timestamp NOT NULL
+employee_work_history.id int(10) unsigned NOT NULL PK
+employee_work_history.employee_id int(10) unsigned NOT NULL
+employee_work_history.employer_name varchar(200) NOT NULL
+employee_work_history.position_held varchar(150)
+employee_work_history.start_date date
+employee_work_history.end_date date
+employee_work_history.reason_for_leaving text
+employee_work_history.reference_name varchar(150)
+employee_work_history.reference_phone varchar(30)
+employee_work_history.notes text
+employee_work_history.created_at timestamp NOT NULL
+generated_documents.id int(10) unsigned NOT NULL PK
+generated_documents.template_id int(10) unsigned NOT NULL
+generated_documents.employee_id int(10) unsigned NOT NULL
+generated_documents.title varchar(255) NOT NULL
+generated_documents.body_html longtext NOT NULL
+generated_documents.status enum('draft','pending_approval','approved','rejected','issued')
+generated_documents.approved_by int(10) unsigned
+generated_documents.approved_at datetime
+generated_documents.issued_by int(10) unsigned
+generated_documents.issued_at datetime
+generated_documents.notes text
+generated_documents.generated_by int(10) unsigned
+generated_documents.generated_at timestamp NOT NULL
+grievance_records.id int(10) unsigned NOT NULL PK
+grievance_records.employee_id int(10) unsigned NOT NULL
+grievance_records.case_number varchar(30)
+grievance_records.filed_date date NOT NULL
+grievance_records.complaint_description text NOT NULL
+grievance_records.grievance_type varchar(100)
+grievance_records.assigned_hr_officer int(10) unsigned
+grievance_records.investigation_notes text
+grievance_records.resolution text
+grievance_records.status enum('open','investigating','resolved','closed')
+grievance_records.resolved_at date
+grievance_records.created_at timestamp NOT NULL
+grievance_records.updated_at timestamp NOT NULL
+kiosk_audit.id bigint(20) unsigned NOT NULL PK
+kiosk_audit.kiosk_session_id int(10) unsigned
+kiosk_audit.employee_id int(10) unsigned
+kiosk_audit.employee_number varchar(30)
+kiosk_audit.action enum('sign_in','break_out','break_in','sign_out','failed_auth','kiosk_opened','kiosk_closed') NOT NULL
+kiosk_audit.result enum('success','error')
+kiosk_audit.error_message text
+kiosk_audit.ip_address varchar(45)
+kiosk_audit.recorded_at timestamp NOT NULL
+kiosk_sessions.id int(10) unsigned NOT NULL PK
+kiosk_sessions.kiosk_token varchar(32) NOT NULL
+kiosk_sessions.location_name varchar(150) NOT NULL
+kiosk_sessions.status enum('open','closed') NOT NULL
+kiosk_sessions.opened_by int(10) unsigned
+kiosk_sessions.opened_at datetime
+kiosk_sessions.closed_by int(10) unsigned
+kiosk_sessions.closed_at datetime
+kiosk_sessions.scheduled_open time
+kiosk_sessions.scheduled_close time
+kiosk_sessions.notes text
+kiosk_sessions.created_at timestamp NOT NULL
+kiosk_sessions.updated_at timestamp NOT NULL
+leave_applications.id int(10) unsigned NOT NULL PK
+leave_applications.employee_id int(10) unsigned NOT NULL
+leave_applications.leave_type_id int(10) unsigned NOT NULL
+leave_applications.start_date date NOT NULL
+leave_applications.end_date date NOT NULL
+leave_applications.total_days decimal(5,1)
+leave_applications.reason text
+leave_applications.supporting_document varchar(255)
+leave_applications.status enum('pending','approved','rejected','cancelled')
+leave_applications.supervisor_status enum('pending','approved','rejected')
+leave_applications.supervisor_id int(10) unsigned
+leave_applications.supervisor_reviewed_at datetime
+leave_applications.supervisor_remarks text
+leave_applications.hr_status enum('pending','approved','rejected')
+leave_applications.hr_reviewed_by int(10) unsigned
+leave_applications.hr_reviewed_at datetime
+leave_applications.hr_remarks text
+leave_applications.created_at timestamp NOT NULL
+leave_applications.updated_at timestamp NOT NULL
+leave_balances.id int(10) unsigned NOT NULL PK
+leave_balances.employee_id int(10) unsigned NOT NULL
+leave_balances.leave_type_id int(10) unsigned NOT NULL
+leave_balances.year year(4) NOT NULL
+leave_balances.entitled_days decimal(5,1)
+leave_balances.used_days decimal(5,1)
+leave_balances.pending_days decimal(5,1)
+leave_balances.carried_forward decimal(5,1)
+leave_balances.remaining_days decimal(5,1)
+leave_balances.updated_at timestamp NOT NULL
+leave_types.id int(10) unsigned NOT NULL PK
+leave_types.name varchar(100) NOT NULL
+leave_types.code varchar(20)
+leave_types.max_days int(11)
+leave_types.carry_forward tinyint(1)
+leave_types.max_carry_forward_days int(11)
+leave_types.requires_document tinyint(1)
+leave_types.is_paid tinyint(1)
+leave_types.approval_required tinyint(1)
+leave_types.gender_specific enum('all','male','female')
+leave_types.description text
+leave_types.is_active tinyint(1)
+leave_types.created_at timestamp NOT NULL
+notifications.id int(10) unsigned NOT NULL PK
+notifications.user_id int(10) unsigned NOT NULL
+notifications.type enum('info','success','warning','danger')
+notifications.title varchar(255) NOT NULL
+notifications.message text NOT NULL
+notifications.link varchar(500)
+notifications.is_read tinyint(1)
+notifications.read_at datetime
+notifications.created_at timestamp NOT NULL
+onboarding_checklists.id int(10) unsigned NOT NULL PK
+onboarding_checklists.employee_id int(10) unsigned NOT NULL
+onboarding_checklists.task_name varchar(200) NOT NULL
+onboarding_checklists.category varchar(100)
+onboarding_checklists.is_completed tinyint(1)
+onboarding_checklists.completed_by int(10) unsigned
+onboarding_checklists.completed_at datetime
+onboarding_checklists.due_date date
+onboarding_checklists.notes text
+onboarding_checklists.created_at timestamp NOT NULL
+overtime_records.id int(10) unsigned NOT NULL PK
+overtime_records.attendance_id int(10) unsigned NOT NULL
+overtime_records.employee_id int(10) unsigned NOT NULL
+overtime_records.overtime_date date NOT NULL
+overtime_records.suggested_hours decimal(5,2)
+overtime_records.approved_hours decimal(5,2)
+overtime_records.overtime_type varchar(50)
+overtime_records.reason text
+overtime_records.status enum('pending','approved','rejected')
+overtime_records.reviewed_by int(10) unsigned
+overtime_records.reviewed_at datetime
+overtime_records.hr_remarks text
+overtime_records.is_locked tinyint(1)
+overtime_records.created_at timestamp NOT NULL
+overtime_records.updated_at timestamp NOT NULL
+payroll_deductions.id int(10) unsigned NOT NULL PK
+payroll_deductions.employee_id int(10) unsigned NOT NULL
+payroll_deductions.deduction_type enum('tax','uif','pension','provident','medical_aid','loan','garnishee','other') NOT NULL
+payroll_deductions.description varchar(255) NOT NULL
+payroll_deductions.is_percentage tinyint(1)
+payroll_deductions.amount decimal(12,2)
+payroll_deductions.percentage decimal(5,2)
+payroll_deductions.employer_contribution decimal(12,2)
+payroll_deductions.employer_percentage decimal(5,2)
+payroll_deductions.is_recurring tinyint(1)
+payroll_deductions.effective_from date NOT NULL
+payroll_deductions.effective_to date
+payroll_deductions.is_active tinyint(1)
+payroll_deductions.notes text
+payroll_deductions.created_by int(10) unsigned
+payroll_deductions.created_at timestamp NOT NULL
+payroll_deductions.updated_at timestamp NOT NULL
+payroll_runs.id int(10) unsigned NOT NULL PK
+payroll_runs.period_month tinyint(2) NOT NULL
+payroll_runs.period_year year(4) NOT NULL
+payroll_runs.status enum('draft','processing','finalized','published')
+payroll_runs.total_gross decimal(14,2)
+payroll_runs.total_net decimal(14,2)
+payroll_runs.total_deductions decimal(14,2)
+payroll_runs.employee_count int(11)
+payroll_runs.notes text
+payroll_runs.processed_by int(10) unsigned
+payroll_runs.finalized_at datetime
+payroll_runs.created_at timestamp NOT NULL
+payroll_runs.updated_at timestamp NOT NULL
+payslips.id int(10) unsigned NOT NULL PK
+payslips.employee_id int(10) unsigned NOT NULL
+payslips.period_month tinyint(2) NOT NULL
+payslips.period_year year(4) NOT NULL
+payslips.payroll_run_id int(10) unsigned
+payslips.gross_salary decimal(12,2)
+payslips.basic_salary decimal(12,2)
+payslips.deductions decimal(12,2)
+payslips.net_salary decimal(12,2)
+payslips.total_deductions decimal(12,2)
+payslips.tax_amount decimal(12,2)
+payslips.uif_employee decimal(12,2)
+payslips.uif_employer decimal(12,2)
+payslips.other_deductions decimal(12,2)
+payslips.total_employer_cost decimal(12,2)
+payslips.overtime_hours decimal(6,2)
+payslips.overtime_amount decimal(12,2)
+payslips.leave_days_taken decimal(5,1)
+payslips.notes text
+payslips.status enum('draft','finalized','sent')
+payslips.file_path varchar(500)
+payslips.uploaded_by int(10) unsigned
+payslips.uploaded_at timestamp NOT NULL
+payslip_items.id int(10) unsigned NOT NULL PK
+payslip_items.payslip_id int(10) unsigned NOT NULL
+payslip_items.item_type enum('earning','deduction','employer_contribution','info') NOT NULL
+payslip_items.description varchar(255) NOT NULL
+payslip_items.amount decimal(12,2) NOT NULL
+payslip_items.sort_order tinyint(3) unsigned
+performance_reviews.id int(10) unsigned NOT NULL PK
+performance_reviews.employee_id int(10) unsigned NOT NULL
+performance_reviews.reviewer_id int(10) unsigned NOT NULL
+performance_reviews.review_period varchar(50)
+performance_reviews.review_date date NOT NULL
+performance_reviews.overall_score decimal(5,2)
+performance_reviews.self_assessment text
+performance_reviews.supervisor_assessment text
+performance_reviews.strengths text
+performance_reviews.improvements text
+performance_reviews.recommendation enum('promote','salary_review','training','warning','no_action')
+performance_reviews.recommendation_notes text
+performance_reviews.status enum('draft','submitted','completed')
+performance_reviews.created_at timestamp NOT NULL
+performance_reviews.updated_at timestamp NOT NULL
+permissions.id int(10) unsigned NOT NULL PK
+permissions.name varchar(100) NOT NULL
+permissions.slug varchar(100) NOT NULL
+permissions.module varchar(50) NOT NULL
+permissions.description text
+positions.id int(10) unsigned NOT NULL PK
+positions.department_id int(10) unsigned
+positions.title varchar(150) NOT NULL
+positions.job_grade varchar(50)
+positions.description text
+positions.is_active tinyint(1)
+positions.created_at timestamp NOT NULL
+positions.updated_at timestamp NOT NULL
+recruitment_applications.id int(10) unsigned NOT NULL PK
+recruitment_applications.vacancy_id int(10) unsigned NOT NULL
+recruitment_applications.application_number varchar(30)
+recruitment_applications.first_name varchar(100) NOT NULL
+recruitment_applications.last_name varchar(100) NOT NULL
+recruitment_applications.email varchar(150) NOT NULL
+recruitment_applications.phone varchar(30)
+recruitment_applications.current_position varchar(150)
+recruitment_applications.current_employer varchar(150)
+recruitment_applications.years_experience int(11)
+recruitment_applications.qualifications text
+recruitment_applications.cover_letter text
+recruitment_applications.cv_file varchar(255)
+recruitment_applications.certificate_file varchar(255)
+recruitment_applications.cover_letter_file varchar(255)
+recruitment_applications.status enum('submitted','reviewing','shortlisted','interview_scheduled','interviewed','selected','rejected','withdrawn')
+recruitment_applications.interview_date datetime
+recruitment_applications.interview_notes text
+recruitment_applications.hr_remarks text
+recruitment_applications.reviewed_by int(10) unsigned
+recruitment_applications.converted_to_employee_id int(10) unsigned
+recruitment_applications.created_at timestamp NOT NULL
+recruitment_applications.updated_at timestamp NOT NULL
+recruitment_vacancies.id int(10) unsigned NOT NULL PK
+recruitment_vacancies.job_title varchar(150) NOT NULL
+recruitment_vacancies.department_id int(10) unsigned
+recruitment_vacancies.position_id int(10) unsigned
+recruitment_vacancies.description text
+recruitment_vacancies.requirements text
+recruitment_vacancies.responsibilities text
+recruitment_vacancies.employment_type enum('full_time','part_time','contract','casual','intern')
+recruitment_vacancies.location varchar(150)
+recruitment_vacancies.salary_range varchar(100)
+recruitment_vacancies.deadline date
+recruitment_vacancies.status enum('draft','open','closed','on_hold')
+recruitment_vacancies.positions_available int(11)
+recruitment_vacancies.published_at datetime
+recruitment_vacancies.closed_at datetime
+recruitment_vacancies.created_by int(10) unsigned
+recruitment_vacancies.created_at timestamp NOT NULL
+recruitment_vacancies.updated_at timestamp NOT NULL
+role_permissions.id int(10) unsigned NOT NULL PK
+role_permissions.role varchar(50) NOT NULL
+role_permissions.permission_id int(10) unsigned NOT NULL
+role_permissions.can_view tinyint(1)
+role_permissions.can_create tinyint(1)
+role_permissions.can_edit tinyint(1)
+role_permissions.can_delete tinyint(1)
+role_permissions.can_approve tinyint(1)
+role_permissions.can_export tinyint(1)
+role_permissions.can_publish tinyint(1)
+role_permissions.can_share tinyint(1)
+schema_migrations.id int(10) unsigned NOT NULL PK
+schema_migrations.migration_name varchar(150) NOT NULL
+schema_migrations.checksum char(64)
+schema_migrations.executed_at timestamp NOT NULL
+schema_migrations.execution_time_ms int(10) unsigned
+schema_migrations.status enum('success','failed') NOT NULL
+schema_migrations.error_summary text
+temp_employees.id int(10) unsigned NOT NULL PK
+temp_employees.employee_number varchar(30) NOT NULL
+temp_employees.first_name varchar(100) NOT NULL
+temp_employees.last_name varchar(100) NOT NULL
+temp_employees.phone varchar(30)
+temp_employees.email varchar(200)
+temp_employees.position_title varchar(200)
+temp_employees.project_id int(10) unsigned
+temp_employees.site_id int(10) unsigned
+temp_employees.start_date date
+temp_employees.end_date date
+temp_employees.status enum('active','completed','terminated') NOT NULL
+temp_employees.daily_rate decimal(10,2)
+temp_employees.rate_type enum('daily','hourly') NOT NULL
+temp_employees.notes text
+temp_employees.portal_active tinyint(1) NOT NULL
+temp_employees.attendance_method enum('kiosk','timesheet','both') NOT NULL
+temp_employees.portal_password varchar(255)
+temp_employees.portal_last_login datetime
+temp_employees.created_at datetime NOT NULL
+temp_employees.updated_at datetime NOT NULL
+temp_projects.id int(10) unsigned NOT NULL PK
+temp_projects.name varchar(200) NOT NULL
+temp_projects.code varchar(30) NOT NULL
+temp_projects.client varchar(200)
+temp_projects.location varchar(200)
+temp_projects.description text
+temp_projects.status enum('active','on_hold','completed') NOT NULL
+temp_projects.start_date date
+temp_projects.end_date date
+temp_projects.created_at datetime NOT NULL
+temp_sites.id int(10) unsigned NOT NULL PK
+temp_sites.project_id int(10) unsigned NOT NULL
+temp_sites.name varchar(200) NOT NULL
+temp_sites.location varchar(200)
+temp_sites.description text
+temp_sites.status enum('active','inactive') NOT NULL
+temp_sites.created_at datetime NOT NULL
+training_attendance.id int(10) unsigned NOT NULL PK
+training_attendance.training_id int(10) unsigned NOT NULL
+training_attendance.employee_id int(10) unsigned NOT NULL
+training_attendance.attended tinyint(1)
+training_attendance.certificate_file varchar(255)
+training_attendance.certificate_expiry date
+training_attendance.notes text
+training_programs.id int(10) unsigned NOT NULL PK
+training_programs.title varchar(200) NOT NULL
+training_programs.provider varchar(200)
+training_programs.description text
+training_programs.start_date date
+training_programs.end_date date
+training_programs.cost decimal(12,2)
+training_programs.location varchar(200)
+training_programs.status enum('planned','ongoing','completed','cancelled')
+training_programs.created_by int(10) unsigned
+training_programs.created_at timestamp NOT NULL
+users.id int(10) unsigned NOT NULL PK
+users.employee_id int(10) unsigned
+users.username varchar(80) NOT NULL
+users.email varchar(150) NOT NULL
+users.first_name varchar(100)
+users.last_name varchar(100)
+users.job_title varchar(150)
+users.phone varchar(30)
+users.profile_photo varchar(255)
+users.bio text
+users.password_hash varchar(255) NOT NULL
+users.role enum('super_admin','hr_manager','hr_officer','supervisor','employee','finance_viewer','payroll_manager','payroll_officer','recruitment_officer','training_officer','kiosk_terminal') NOT NULL
+users.is_active tinyint(1)
+users.must_change_password tinyint(1)
+users.last_login datetime
+users.login_attempts int(11)
+users.locked_until datetime
+users.created_by int(10) unsigned
+users.created_at timestamp NOT NULL
+users.updated_at timestamp NOT NULL

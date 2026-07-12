@@ -4,3 +4,4 @@ logs/*.log
 uploads/*/*
 !uploads/*/.htaccess
 .claude/
+database/backups/

@@ -22,7 +22,12 @@ $dateTo   = $_GET['to']   ?? date('Y-m-d');
 $dfFull = $dateFrom . ' 00:00:00';
 $dtFull = $dateTo   . ' 23:59:59';
 
-$companyName = db()->query("SELECT value FROM settings WHERE `key`='company_name' LIMIT 1")->fetchColumn() ?: 'Komagin HR';
+// Phase 3 fix: this queried a generic `settings` table that never existed
+// anywhere — live database or any tracked schema/migration file — so every
+// CSV export from this page threw an uncaught PDOException before any data
+// was ever generated. The company name actually lives on the single-row
+// `company_settings` table, same as everywhere else in the app.
+$companyName = db()->query("SELECT company_name FROM company_settings WHERE id=1 LIMIT 1")->fetchColumn() ?: 'Komagin HR';
 $generatedAt = date('Y-m-d H:i:s');
 $generatedBy = $_SESSION['user_name'] ?? 'Super Admin';
 

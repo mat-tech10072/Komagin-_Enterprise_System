@@ -1,9 +1,9 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; **11 more (CC-014–CC-024) recorded for Phase 2.**
-**Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — **more added 2026-07-11/12 (Phase 2)**
-**Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → **Phase 2 on branch `phase-2-authentication-session-security`**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; **11 more (CC-025–CC-035) recorded for Phase 3.**
+**Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — **more added 2026-07-12 (Phase 3)**
+**Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → **Phase 3 on branch `phase-3-database-schema-integrity`**
 
 ---
 
@@ -330,6 +330,138 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** N/A
 - **Master Register updated:** Yes (this entry documents that update itself)
 
+### CC-025 — Canonical `database/schema.sql` rewrite (32 tables → 60)
+
+- **Date:** 2026-07-12
+- **Phase:** 3
+- **Finding ID(s) addressed:** KOM-004, KOM-061
+- **Files changed:** `database/schema.sql` (complete rewrite)
+- **Reason:** The tracked schema file could only reconstruct 32 of the 59 tables the live application actually depends on; a from-empty install using only tracked files would fail immediately. Rewrote it as a pure-structure (no data), topologically-ordered (via a verified `information_schema.KEY_COLUMN_USAGE` dependency graph) extraction of the live database's exact structure — 59 real tables plus a new `schema_migrations` tracking table.
+- **Tests added/updated:** `database/verify_clean_install.php` (new, see CC-031)
+- **Regression tests executed:** Structural diff of a database built from `schema.sql` alone against the live database's `information_schema` — 60/60 tables present, every FK/index/CHECK constraint (e.g. `doc_templates.variables_used CHECK (json_valid(...))`) preserved. See `phase3-pre-change-schema-fingerprint.txt`/`phase3-post-change-schema-fingerprint.txt` — the only structural delta across all 59 pre-existing tables is the new `schema_migrations` table; every pre-existing column is byte-identical.
+- **Verification result:** VERIFIED — clean-install test (`Testing/12-phase3-clean-install-test-report.md`) and fingerprint diff both confirm zero unintended drift.
+- **Master Register updated:** Yes (KOM-004, KOM-061)
+
+### CC-026 — `phase8_temp_employees.sql`: added missing columns, fixed role-name typo at source
+
+- **Date:** 2026-07-12
+- **Phase:** 3
+- **Finding ID(s) addressed:** KOM-005, KOM-023
+- **Files changed:** `database/phase8_temp_employees.sql`
+- **Reason:** `rate_type` and `attendance_method` are written by `modules/temp_employees/{add,edit}.php` on every save but were never in this file's `CREATE TABLE` — only present in the live database via an untracked manual change. Also seeded `hr_officer`'s permission grants under the typo'd role string `'hrofficer'`, which Phase 1 patched on the live database (`phase10_authorization_framework.sql`'s `UPDATE`) but never fixed at the source — a fresh install would have reintroduced the exact same access-denial bug.
+- **Tests added/updated:** `database/verify_clean_install.php` structural + seed checks (see CC-031)
+- **Regression tests executed:** Clean-install test confirms both columns present and zero `'hrofficer'` rows / correct 4 `hr_officer` → `temp_employees.*` grants on a database built only from tracked files.
+- **Verification result:** VERIFIED via clean-install test
+- **Master Register updated:** Yes (KOM-005, KOM-023)
+
+### CC-027 — `phase9_consultants.sql`: fixed role-name typo at source
+
+- **Date:** 2026-07-12
+- **Phase:** 3
+- **Finding ID(s) addressed:** KOM-023
+- **Files changed:** `database/phase9_consultants.sql`
+- **Reason:** Same typo as CC-026 (`'hrofficer'` vs. `'hr_officer'`), same source-level gap — Phase 1 fixed the live database only.
+- **Tests added/updated:** `database/verify_clean_install.php`
+- **Regression tests executed:** Clean-install test confirms zero `'hrofficer'` rows for the consultants module on a fresh install.
+- **Verification result:** VERIFIED via clean-install test
+- **Master Register updated:** Yes (KOM-023)
+
+### CC-028 — New `database/phase11_schema_reconciliation.sql` (idempotent upgrade path)
+
+- **Date:** 2026-07-12
+- **Phase:** 3
+- **Finding ID(s) addressed:** KOM-004, KOM-024
+- **Files changed:** `database/phase11_schema_reconciliation.sql` (new)
+- **Reason:** A canonical `schema.sql` alone only helps *fresh* installs. Existing (pre-Phase-3) databases need a safe, idempotent path to the same end state without touching their data — `CREATE TABLE IF NOT EXISTS` for the 11 previously-undocumented-but-real tables, `ADD COLUMN IF NOT EXISTS`/safe `MODIFY COLUMN` for columns added out-of-band on the live database, plus creation of `schema_migrations` itself.
+- **Tests added/updated:** New Stage 3.9 upgrade-migration test procedure (manual, documented in `Testing/13-phase3-upgrade-migration-test-report.md`)
+- **Regression tests executed:** Restored the Stage 3.0 pre-Phase-3 backup into a scratch database, ran this file against it, and confirmed: zero data loss (exact row-count match across 10 critical tables: employees, users, payslips, consultants, temp_employees, permissions, role_permissions, attendance, leave_applications, audit_logs — pre and post identical), table count 59→60, stable primary keys, zero orphaned FK references, then ran the full Phase 1 (20/20) and Phase 2 (29/29) regression suites against the upgraded clone with the application's `config.php` temporarily repointed at it — both suites passed in full.
+- **Verification result:** VERIFIED live against a real clone of the production database
+- **Master Register updated:** Yes (KOM-004, KOM-024)
+
+### CC-029 — New seed files: `seeds/001_baseline_admin.sql`, `seeds/002_doc_categories.sql`
+
+- **Date:** 2026-07-12
+- **Phase:** 3
+- **Finding ID(s) addressed:** KOM-024, KOM-068
+- **Files changed:** `database/seeds/001_baseline_admin.sql` (new), `database/seeds/002_doc_categories.sql` (new)
+- **Reason:** A fresh install needs a default administrator account to log in with at all (none existed in any tracked file). Separately, `phase6_templates.sql` requires `doc_categories` rows to already exist (`NOT NULL` FK lookup by slug) but no tracked file ever created them — discovered only because Stage 3.8's clean-install test failed on this exact step. `001_baseline_admin.sql` seeds a `superadmin` account forced to change its password on first login (`must_change_password=1`); `002_doc_categories.sql` seeds the 10 categories verified byte-for-byte against the live database.
+- **Tests added/updated:** `database/verify_clean_install.php`
+- **Regression tests executed:** Clean-install test confirms exactly 1 `super_admin` user with `must_change_password=1`, 10/10 categories, and all 47 templates loading with valid `category_id` values.
+- **Verification result:** VERIFIED via clean-install test + live HTTP smoke test (login → forced password change succeeded)
+- **Master Register updated:** Yes (KOM-024, KOM-068)
+
+### CC-030 — `database/install.php` rewritten around a defined install sequence
+
+- **Date:** 2026-07-12
+- **Phase:** 3
+- **Finding ID(s) addressed:** KOM-024
+- **Files changed:** `database/install.php`
+- **Reason:** Previously ran `schema.sql` only and told the operator to manually run `migration_v2.sql` via phpMyAdmin afterward — never mentioning phase1/5/6/7/8/9 at all. Following only the installer's own on-screen instructions produced a database with no permission matrix, no branding seed data, no document template library, and no temp-employee/consultant module support. Now runs a single defined `INSTALL_SEQUENCE` in one pass and stops immediately on the first failed step with a clear log.
+- **Tests added/updated:** `database/verify_clean_install.php` (CLI counterpart of this form, for repeatable automated verification)
+- **Regression tests executed:** Full clean-install test (26/26 automated structural/seed checks) + live HTTP smoke test (login, forced password change, 12 critical modules all 200 OK) against a database built only by this installer's logic.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-024)
+
+### CC-031 — New `database/verify_clean_install.php` and `database/sql_split.php`
+
+- **Date:** 2026-07-12
+- **Phase:** 3
+- **Finding ID(s) addressed:** KOM-004, KOM-024 (test infrastructure supporting both)
+- **Files changed:** `database/verify_clean_install.php` (new), `database/sql_split.php` (new)
+- **Reason:** Both `install.php`'s original naive `explode(';', $sql)` statement splitter and a first draft of the rewrite broke on semicolons inside quoted strings (document template HTML bodies contain `style="color:red;margin:4px;"` attributes) and inside explanatory SQL comments. `sql_split.php` is a real tokenizer tracking quote-state and comment-state, shared by both `install.php` and this new verification script so there is exactly one statement-splitting implementation. `verify_clean_install.php` is the CLI-runnable, repeatable counterpart to the web installer, used for Stage 3.8 and safe to re-run at any time.
+- **Tests added/updated:** This IS the new test.
+- **Regression tests executed:** Self-verifying — 26/26 checks pass when run against a freshly built empty database.
+- **Verification result:** VERIFIED — re-run multiple times during Phase 3 with consistent results
+- **Master Register updated:** N/A (test infrastructure, not itself a finding)
+
+### CC-032 — Fixed Activity Log CSV export's reference to a nonexistent `settings` table
+
+- **Date:** 2026-07-12
+- **Phase:** 3
+- **Finding ID(s) addressed:** KOM-070 (new finding this phase, closing the 12th item under KOM-004's scope)
+- **Files changed:** `modules/activity_log/download.php`
+- **Reason:** Discovered while reconciling KOM-004's 12 "undefined tables" — 11 were real, undocumented live tables; the 12th, `settings`, never existed anywhere at all, live or tracked. Every CSV export from this page threw an uncaught `PDOException` in production. Corrected to query `company_settings`, the table that actually holds this value elsewhere in the codebase.
+- **Tests added/updated:** None beyond manual query verification
+- **Regression tests executed:** Query executes without error against the live database
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (new finding KOM-070, immediately marked Fixed)
+
+### CC-033 — Employee portal policy-agreement form: added CSRF protection
+
+- **Date:** 2026-07-12
+- **Phase:** 3
+- **Finding ID(s) addressed:** KOM-069 (new finding this phase)
+- **Files changed:** `employee-portal/policy.php`, `docs/remediation/Testing/phase2-regression-run.sh` (test script updated to fetch and send the new token)
+- **Reason:** Discovered during Phase 3 database-layer work — the POST that records `portal_policy_agreed` had no CSRF token at all, predating and missed by Phase 2's portal-wide CSRF standardization pass. Added `generateCsrfToken()`/`verifyCsrfToken()` matching every other portal mutation's pattern.
+- **Tests added/updated:** `docs/remediation/Testing/phase2-regression-run.sh` — the policy-agreement step now fetches the form first to obtain a real token before posting `agree=1`, since the fix means the old un-tokened POST this script previously sent would now silently fail to record agreement (correct new behavior, but it required updating the script to match).
+- **Regression tests executed:** Full Phase 2 regression suite re-run after this fix — 29/29 passed, including the corrected policy-agreement step and everything downstream of it (Hub request submission, which depends on having passed the policy gate).
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (new finding KOM-069, immediately marked Fixed)
+
+### CC-034 — Master Remediation Register updated for Phase 3
+
+- **Date:** 2026-07-12
+- **Phase:** 3
+- **Finding ID(s) addressed:** KOM-004, KOM-005, KOM-023, KOM-024, KOM-045 (retargeted), KOM-061, KOM-068, KOM-069, KOM-070
+- **Files changed:** `docs/remediation/Findings/08-master-remediation-register.md`
+- **Reason:** Record Phase 3 outcomes per the program's change-control requirement.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (this entry documents that update itself)
+
+### CC-035 — Change Control Log updated for Phase 3
+
+- **Date:** 2026-07-12
+- **Phase:** 3
+- **Finding ID(s) addressed:** N/A (documentation-only)
+- **Files changed:** `docs/remediation/Regression/change-control-template.md`
+- **Reason:** Record this log's own Phase 3 entries (CC-025–CC-035) per the program's change-control requirement.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
+
 ---
 
 ## Change Log for This Document
@@ -339,3 +471,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-11 | Template and rules established for Phase 0 | Remediation Program — Phase 0 |
 | 2026-07-11/12 | 13 entries (CC-001–CC-013) recorded for Phase 1 | Remediation Program — Phase 1 |
 | 2026-07-11/12 | 11 entries (CC-014–CC-024) recorded for Phase 2 | Remediation Program — Phase 2 |
+| 2026-07-12 | 11 entries (CC-025–CC-035) recorded for Phase 3 | Remediation Program — Phase 3 |

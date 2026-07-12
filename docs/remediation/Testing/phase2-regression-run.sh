@@ -62,8 +62,12 @@ SID_AFTER=$(get_sid "$JAR/ep.txt")
 [ "$SID_BEFORE" != "$SID_AFTER" ] && pass "Employee login regenerates session ID (fixation defense)" || fail "Employee session ID unchanged after login"
 
 # Complete the policy-agreement gate so the rest of the portal (hub.php etc.)
-# is actually reachable for the remaining tests in this jar.
-curl -s -b "$JAR/ep.txt" -c "$JAR/ep.txt" -o /dev/null -d "agree=1" "$BASE/employee-portal/policy.php"
+# is actually reachable for the remaining tests in this jar. policy.php now
+# requires a CSRF token (Phase 3 / Stage 3.11 fix — this POST had none
+# before), so fetch the form first to grab it.
+curl -s -b "$JAR/ep.txt" -c "$JAR/ep.txt" "$BASE/employee-portal/policy.php" -o "$JAR/ep_policy.html"
+POLICYCSRF=$(get_csrf "$JAR/ep_policy.html")
+curl -s -b "$JAR/ep.txt" -c "$JAR/ep.txt" -o /dev/null -d "csrf_token=$POLICYCSRF&agree=1" "$BASE/employee-portal/policy.php"
 
 # Brute force: 5 failures then a 6th blocked attempt, against a DIFFERENT employee number
 rm -f "$JAR/ep_bf.txt"

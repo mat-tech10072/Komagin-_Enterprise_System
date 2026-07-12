@@ -1,775 +1,1583 @@
 -- ============================================================
--- KOMAGIN HR MANAGEMENT SYSTEM - DATABASE SCHEMA
+-- KOMAGIN HR MANAGEMENT SYSTEM — CANONICAL DATABASE SCHEMA
+-- ============================================================
+--
+-- Regenerated: Phase 3 — Database Schema Integrity, Migration
+-- Safety & Data-Layer Hardening (2026-07-12)
+--
+-- PROVENANCE: This file was reconstructed from the verified live
+-- development database (a full mysqldump backup taken and validated
+-- immediately before this file was rewritten — see
+-- database/backups/pre_phase3_backup_20260712_082335.sql and
+-- docs/remediation/Database/05-phase3-schema-drift-matrix.md for the
+-- full before/after analysis). It replaces a prior schema.sql that
+-- defined only 32 of the 59 tables the running application actually
+-- depends on -- the other 27 existed only via undocumented manual
+-- changes, one-off fix scripts (database/fix_payslips_columns.php,
+-- now superseded), or migration files that only ever ALTERed a base
+-- definition this file never had in the first place.
+--
+-- STRUCTURE ONLY: This file contains CREATE TABLE statements only —
+-- no data, no default admin account, no permission grants. Baseline
+-- data lives in database/seeds/. This is deliberate: a schema file
+-- should not be the thing that decides what a fresh install's
+-- default password is.
+--
+-- ORDERING: Tables appear in verified topological (dependency-safe)
+-- order — every table referenced by a foreign key is defined before
+-- the table that references it. This order was computed from the
+-- live database's actual `information_schema.KEY_COLUMN_USAGE`
+-- foreign-key graph (see docs/remediation/Database/07-phase3-migration-dependency-report.md),
+-- not assumed or hand-sorted, so importing this file in a single
+-- pass with FOREIGN_KEY_CHECKS left at its default (1/on) succeeds.
+--
+-- FOR A FRESH INSTALL: run this file, then everything under
+-- database/seeds/ in filename order. See database/README.md.
+--
+-- FOR AN EXISTING INSTALLATION (upgrading from before Phase 3): do
+-- NOT re-run this file against a populated database — every
+-- statement uses CREATE TABLE IF NOT EXISTS, so it is safe to do so,
+-- but the correct upgrade path is database/phase11_schema_reconciliation.sql,
+-- which brings an existing "Phase 10" database up to this same
+-- structure without requiring a rebuild. See database/README.md.
+--
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS `komagin_hr` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `komagin_hr`;
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 1;
 
--- ============================================================
--- COMPANY SETTINGS
--- ============================================================
-CREATE TABLE IF NOT EXISTS `company_settings` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `company_name` VARCHAR(255) DEFAULT 'Komagin Limited',
-    `company_logo` VARCHAR(255) NULL,
-    `address` TEXT NULL,
-    `phone` VARCHAR(50) NULL,
-    `email` VARCHAR(100) NULL,
-    `website` VARCHAR(100) NULL,
-    `work_start_time` TIME DEFAULT '08:00:00',
-    `work_end_time` TIME DEFAULT '17:00:00',
-    `grace_period_minutes` INT DEFAULT 15,
-    `break_duration_minutes` INT DEFAULT 60,
-    `standard_work_hours` DECIMAL(4,2) DEFAULT 8.00,
-    `overtime_threshold_hours` DECIMAL(4,2) DEFAULT 8.00,
-    `emp_number_settings` JSON NULL,
-    `leave_settings` JSON NULL,
-    `archive_settings` JSON NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
-INSERT INTO `company_settings` (`company_name`, `work_start_time`, `work_end_time`, `grace_period_minutes`,
-    `break_duration_minutes`, `standard_work_hours`, `overtime_threshold_hours`, `emp_number_settings`)
-VALUES ('Komagin Limited', '08:00:00', '17:00:00', 15, 60, 8.00, 8.00,
-    '{"prefix":"KOM-EMP","year_format":"Y","number_length":4,"starting_number":1}');
-
--- ============================================================
--- DEPARTMENTS
--- ============================================================
+-- ────────────────────────────────────────────────────────────
+-- Table: departments
+-- ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `departments` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `name` VARCHAR(150) NOT NULL,
-    `code` VARCHAR(20) NULL,
-    `description` TEXT NULL,
-    `head_employee_id` INT UNSIGNED NULL,
-    `is_active` TINYINT(1) DEFAULT 1,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY `dept_name_unique` (`name`)
-);
 
-INSERT INTO `departments` (`name`, `code`) VALUES
-('Human Resources', 'HR'),
-('Finance', 'FIN'),
-('Operations', 'OPS'),
-('Engineering', 'ENG'),
-('Workshop', 'WKSP'),
-('Administration', 'ADMIN'),
-('Project Management', 'PM');
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(150) NOT NULL,
+  `code` varchar(20) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `head_employee_id` int(10) unsigned DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `dept_name_unique` (`name`)
 
--- ============================================================
--- POSITIONS
--- ============================================================
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: positions
+-- ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `positions` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `department_id` INT UNSIGNED NULL,
-    `title` VARCHAR(150) NOT NULL,
-    `job_grade` VARCHAR(50) NULL,
-    `description` TEXT NULL,
-    `is_active` TINYINT(1) DEFAULT 1,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`department_id`) REFERENCES `departments`(`id`) ON DELETE SET NULL
-);
 
-INSERT INTO `positions` (`department_id`, `title`, `job_grade`) VALUES
-(1, 'HR Manager', 'M1'),
-(1, 'HR Officer', 'S2'),
-(2, 'Finance Manager', 'M1'),
-(2, 'Finance Officer', 'S2'),
-(3, 'Operations Manager', 'M1'),
-(3, 'Operations Supervisor', 'S1'),
-(4, 'Senior Engineer', 'P2'),
-(4, 'Engineer', 'P1'),
-(5, 'Workshop Supervisor', 'S1'),
-(5, 'Technician', 'T1'),
-(6, 'Administrative Officer', 'S2'),
-(7, 'Project Manager', 'M1');
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `department_id` int(10) unsigned DEFAULT NULL,
+  `title` varchar(150) NOT NULL,
+  `job_grade` varchar(50) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `department_id` (`department_id`),
+  CONSTRAINT `positions_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE SET NULL
 
--- ============================================================
--- EMPLOYEES
--- ============================================================
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: employees
+-- ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `employees` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `employee_number` VARCHAR(30) NOT NULL UNIQUE,
-    `first_name` VARCHAR(100) NOT NULL,
-    `last_name` VARCHAR(100) NOT NULL,
-    `middle_name` VARCHAR(100) NULL,
-    `preferred_name` VARCHAR(100) NULL,
-    `date_of_birth` DATE NULL,
-    `gender` ENUM('male','female','other','prefer_not_to_say') NULL,
-    `marital_status` ENUM('single','married','divorced','widowed','other') NULL,
-    `national_id` VARCHAR(50) NULL,
-    `passport_number` VARCHAR(50) NULL,
-    `nationality` VARCHAR(100) NULL,
-    `photo` VARCHAR(255) NULL,
 
-    -- Contact
-    `email` VARCHAR(150) NULL,
-    `phone` VARCHAR(30) NULL,
-    `phone_alt` VARCHAR(30) NULL,
-    `residential_address` TEXT NULL,
-    `postal_address` TEXT NULL,
-    `city` VARCHAR(100) NULL,
-    `state_province` VARCHAR(100) NULL,
-    `country` VARCHAR(100) DEFAULT 'South Africa',
-    `postal_code` VARCHAR(20) NULL,
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_number` varchar(30) NOT NULL,
+  `first_name` varchar(100) NOT NULL,
+  `last_name` varchar(100) NOT NULL,
+  `middle_name` varchar(100) DEFAULT NULL,
+  `preferred_name` varchar(100) DEFAULT NULL,
+  `date_of_birth` date DEFAULT NULL,
+  `gender` enum('male','female','other','prefer_not_to_say') DEFAULT NULL,
+  `marital_status` enum('single','married','divorced','widowed','other') DEFAULT NULL,
+  `national_id` varchar(50) DEFAULT NULL,
+  `passport_number` varchar(50) DEFAULT NULL,
+  `nationality` varchar(100) DEFAULT NULL,
+  `photo` varchar(255) DEFAULT NULL,
+  `email` varchar(150) DEFAULT NULL,
+  `phone` varchar(30) DEFAULT NULL,
+  `phone_alt` varchar(30) DEFAULT NULL,
+  `residential_address` text DEFAULT NULL,
+  `postal_address` text DEFAULT NULL,
+  `city` varchar(100) DEFAULT NULL,
+  `state_province` varchar(100) DEFAULT NULL,
+  `country` varchar(100) DEFAULT 'Papua New Guinea',
+  `postal_code` varchar(20) DEFAULT NULL,
+  `department_id` int(10) unsigned DEFAULT NULL,
+  `position_id` int(10) unsigned DEFAULT NULL,
+  `supervisor_id` int(10) unsigned DEFAULT NULL,
+  `employment_type` enum('full_time','part_time','contract','casual','intern') DEFAULT 'full_time',
+  `status` enum('active','probation','suspended','on_leave','resigned','terminated','deceased','archived') DEFAULT 'active',
+  `start_date` date DEFAULT NULL,
+  `contract_end_date` date DEFAULT NULL,
+  `probation_start` date DEFAULT NULL,
+  `probation_end` date DEFAULT NULL,
+  `basic_salary` decimal(12,2) DEFAULT NULL,
+  `pay_frequency` enum('weekly','bi_weekly','monthly') DEFAULT 'monthly',
+  `work_location` varchar(150) DEFAULT NULL,
+  `kiosk_pin` varchar(255) DEFAULT NULL,
+  `portal_password` varchar(255) DEFAULT NULL,
+  `portal_policy_agreed` tinyint(1) DEFAULT 0,
+  `portal_policy_agreed_at` datetime DEFAULT NULL,
+  `portal_last_login` datetime DEFAULT NULL,
+  `portal_active` tinyint(1) DEFAULT 1,
+  `bank_name` varchar(100) DEFAULT NULL,
+  `bank_account_number` varchar(50) DEFAULT NULL,
+  `bank_branch_code` varchar(20) DEFAULT NULL,
+  `bank_account_type` varchar(50) DEFAULT NULL,
+  `emergency_contact_name` varchar(150) DEFAULT NULL,
+  `emergency_contact_relation` varchar(100) DEFAULT NULL,
+  `emergency_contact_phone` varchar(30) DEFAULT NULL,
+  `emergency_contact_email` varchar(150) DEFAULT NULL,
+  `nok_name` varchar(150) DEFAULT NULL,
+  `nok_relation` varchar(100) DEFAULT NULL,
+  `nok_phone` varchar(30) DEFAULT NULL,
+  `nok_address` text DEFAULT NULL,
+  `status_reason` text DEFAULT NULL,
+  `exit_date` date DEFAULT NULL,
+  `exit_reason` text DEFAULT NULL,
+  `created_by` int(10) unsigned DEFAULT NULL,
+  `updated_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `employee_number` (`employee_number`),
+  KEY `position_id` (`position_id`),
+  KEY `idx_emp_number` (`employee_number`),
+  KEY `idx_emp_status` (`status`),
+  KEY `idx_emp_dept` (`department_id`),
+  CONSTRAINT `employees_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `employees_ibfk_2` FOREIGN KEY (`position_id`) REFERENCES `positions` (`id`) ON DELETE SET NULL
 
-    -- Employment
-    `department_id` INT UNSIGNED NULL,
-    `position_id` INT UNSIGNED NULL,
-    `supervisor_id` INT UNSIGNED NULL,
-    `employment_type` ENUM('full_time','part_time','contract','casual','intern') DEFAULT 'full_time',
-    `status` ENUM('active','probation','suspended','on_leave','resigned','terminated','deceased','archived') DEFAULT 'active',
-    `start_date` DATE NULL,
-    `contract_end_date` DATE NULL,
-    `probation_start` DATE NULL,
-    `probation_end` DATE NULL,
-    `basic_salary` DECIMAL(12,2) NULL,
-    `pay_frequency` ENUM('weekly','bi_weekly','monthly') DEFAULT 'monthly',
-    `work_location` VARCHAR(150) NULL,
-    `kiosk_pin` VARCHAR(255) NULL,
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-    -- Bank
-    `bank_name` VARCHAR(100) NULL,
-    `bank_account_number` VARCHAR(50) NULL,
-    `bank_branch_code` VARCHAR(20) NULL,
-    `bank_account_type` VARCHAR(50) NULL,
-
-    -- Emergency Contact
-    `emergency_contact_name` VARCHAR(150) NULL,
-    `emergency_contact_relation` VARCHAR(100) NULL,
-    `emergency_contact_phone` VARCHAR(30) NULL,
-    `emergency_contact_email` VARCHAR(150) NULL,
-
-    -- Next of Kin
-    `nok_name` VARCHAR(150) NULL,
-    `nok_relation` VARCHAR(100) NULL,
-    `nok_phone` VARCHAR(30) NULL,
-    `nok_address` TEXT NULL,
-
-    -- Metadata
-    `status_reason` TEXT NULL,
-    `exit_date` DATE NULL,
-    `exit_reason` TEXT NULL,
-    `created_by` INT UNSIGNED NULL,
-    `updated_by` INT UNSIGNED NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (`department_id`) REFERENCES `departments`(`id`) ON DELETE SET NULL,
-    FOREIGN KEY (`position_id`) REFERENCES `positions`(`id`) ON DELETE SET NULL,
-    INDEX `idx_emp_number` (`employee_number`),
-    INDEX `idx_emp_status` (`status`),
-    INDEX `idx_emp_dept` (`department_id`)
-);
-
--- ============================================================
--- EMPLOYEE STATUS HISTORY
--- ============================================================
-CREATE TABLE IF NOT EXISTS `employee_status_history` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `old_status` VARCHAR(50) NULL,
-    `new_status` VARCHAR(50) NOT NULL,
-    `reason` TEXT NULL,
-    `changed_by` INT UNSIGNED NULL,
-    `changed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE
-);
-
--- ============================================================
--- USERS (LOGIN ACCOUNTS)
--- ============================================================
+-- ────────────────────────────────────────────────────────────
+-- Table: users
+-- ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `users` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `employee_id` INT UNSIGNED NULL,
-    `username` VARCHAR(80) NOT NULL UNIQUE,
-    `email` VARCHAR(150) NOT NULL UNIQUE,
-    `password_hash` VARCHAR(255) NOT NULL,
-    `role` ENUM('super_admin','hr_manager','hr_officer','supervisor','employee','finance_viewer','payroll_officer') NOT NULL DEFAULT 'employee',
-    `is_active` TINYINT(1) DEFAULT 1,
-    `must_change_password` TINYINT(1) DEFAULT 0,
-    `last_login` DATETIME NULL,
-    `login_attempts` INT DEFAULT 0,
-    `locked_until` DATETIME NULL,
-    `created_by` INT UNSIGNED NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE SET NULL
-);
 
--- Default Super Admin (password: Admin@123)
-INSERT INTO `users` (`username`, `email`, `password_hash`, `role`, `is_active`)
-VALUES ('superadmin', 'admin@komagin.com',
-        '$2y$10$Ad.cRs9VYqt50aDnlCc5aO7o01ueEOkaS2a6SedC1vzODE1seN83S', 'super_admin', 1);
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned DEFAULT NULL,
+  `username` varchar(80) NOT NULL,
+  `email` varchar(150) NOT NULL,
+  `first_name` varchar(100) DEFAULT NULL,
+  `last_name` varchar(100) DEFAULT NULL,
+  `job_title` varchar(150) DEFAULT NULL,
+  `phone` varchar(30) DEFAULT NULL,
+  `profile_photo` varchar(255) DEFAULT NULL,
+  `bio` text DEFAULT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `role` enum('super_admin','hr_manager','hr_officer','supervisor','employee','finance_viewer','payroll_manager','payroll_officer','recruitment_officer','training_officer','kiosk_terminal') NOT NULL DEFAULT 'employee',
+  `is_active` tinyint(1) DEFAULT 1,
+  `must_change_password` tinyint(1) DEFAULT 0,
+  `last_login` datetime DEFAULT NULL,
+  `login_attempts` int(11) DEFAULT 0,
+  `locked_until` datetime DEFAULT NULL,
+  `created_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `email` (`email`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `users_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE SET NULL
 
--- ============================================================
--- PERMISSIONS
--- ============================================================
-CREATE TABLE IF NOT EXISTS `permissions` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `name` VARCHAR(100) NOT NULL,
-    `slug` VARCHAR(100) NOT NULL UNIQUE,
-    `module` VARCHAR(50) NOT NULL,
-    `description` TEXT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `role_permissions` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `role` VARCHAR(50) NOT NULL,
-    `permission_id` INT UNSIGNED NOT NULL,
-    `can_view` TINYINT(1) DEFAULT 0,
-    `can_create` TINYINT(1) DEFAULT 0,
-    `can_edit` TINYINT(1) DEFAULT 0,
-    `can_delete` TINYINT(1) DEFAULT 0,
-    UNIQUE KEY `role_permission_unique` (`role`, `permission_id`),
-    FOREIGN KEY (`permission_id`) REFERENCES `permissions`(`id`) ON DELETE CASCADE
-);
+-- ────────────────────────────────────────────────────────────
+-- Table: approval_workflows
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `approval_workflows` (
 
-INSERT INTO `permissions` (`name`, `slug`, `module`) VALUES
-('View Employees', 'employees.view', 'employees'),
-('Create Employees', 'employees.create', 'employees'),
-('Edit Employees', 'employees.edit', 'employees'),
-('Delete Employees', 'employees.delete', 'employees'),
-('View Attendance', 'attendance.view', 'attendance'),
-('Edit Attendance', 'attendance.edit', 'attendance'),
-('View Timesheets', 'timesheets.view', 'timesheets'),
-('Edit Timesheets', 'timesheets.edit', 'timesheets'),
-('Approve Timesheets', 'timesheets.approve', 'timesheets'),
-('View Leave', 'leave.view', 'leave'),
-('Approve Leave', 'leave.approve', 'leave'),
-('View Recruitment', 'recruitment.view', 'recruitment'),
-('Manage Recruitment', 'recruitment.manage', 'recruitment'),
-('View Reports', 'reports.view', 'reports'),
-('View Payroll Data', 'payroll.view', 'payroll'),
-('Manage Settings', 'settings.manage', 'settings'),
-('View Audit Logs', 'audit.view', 'audit'),
-('Manage Users', 'users.manage', 'users');
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `workflow_type` enum('leave','payroll_run','promotion','transfer','termination','document','overtime','correction') NOT NULL,
+  `reference_id` int(10) unsigned NOT NULL COMMENT 'ID in the source table',
+  `reference_table` varchar(100) NOT NULL COMMENT 'Source table name',
+  `title` varchar(255) NOT NULL,
+  `initiated_by` int(10) unsigned DEFAULT NULL,
+  `employee_id` int(10) unsigned DEFAULT NULL COMMENT 'Employee the workflow is about',
+  `status` enum('pending','in_review','approved','rejected','cancelled','withdrawn') DEFAULT 'pending',
+  `current_stage` tinyint(4) DEFAULT 1,
+  `total_stages` tinyint(4) DEFAULT 1,
+  `priority` enum('low','normal','high','urgent') DEFAULT 'normal',
+  `due_date` date DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `initiated_by` (`initiated_by`),
+  KEY `employee_id` (`employee_id`),
+  KEY `idx_approval_type` (`workflow_type`),
+  KEY `idx_approval_status` (`status`),
+  KEY `idx_approval_ref` (`workflow_type`,`reference_id`),
+  CONSTRAINT `approval_workflows_ibfk_1` FOREIGN KEY (`initiated_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `approval_workflows_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
 
--- ============================================================
--- ATTENDANCE
--- ============================================================
-CREATE TABLE IF NOT EXISTS `attendance` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `employee_number` VARCHAR(30) NOT NULL,
-    `attendance_date` DATE NOT NULL,
-    `sign_in` TIME NULL,
-    `break_out` TIME NULL,
-    `break_in` TIME NULL,
-    `sign_out` TIME NULL,
-    `break_duration_minutes` INT DEFAULT 0,
-    `total_hours_worked` DECIMAL(5,2) DEFAULT 0.00,
-    `normal_hours` DECIMAL(5,2) DEFAULT 0.00,
-    `overtime_hours` DECIMAL(5,2) DEFAULT 0.00,
-    `is_late` TINYINT(1) DEFAULT 0,
-    `late_minutes` INT DEFAULT 0,
-    `is_early_departure` TINYINT(1) DEFAULT 0,
-    `is_absent` TINYINT(1) DEFAULT 0,
-    `is_on_leave` TINYINT(1) DEFAULT 0,
-    `status` ENUM('present','absent','late','on_leave','half_day','holiday') DEFAULT 'present',
-    `is_manually_adjusted` TINYINT(1) DEFAULT 0,
-    `adjustment_reason` TEXT NULL,
-    `adjusted_by` INT UNSIGNED NULL,
-    `adjusted_at` DATETIME NULL,
-    `hr_remarks` TEXT NULL,
-    `is_approved` TINYINT(1) DEFAULT 0,
-    `approved_by` INT UNSIGNED NULL,
-    `approved_at` DATETIME NULL,
-    `is_locked` TINYINT(1) DEFAULT 0,
-    `device_info` VARCHAR(255) NULL,
-    `ip_address` VARCHAR(45) NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY `attendance_unique` (`employee_id`, `attendance_date`),
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE,
-    INDEX `idx_att_date` (`attendance_date`),
-    INDEX `idx_att_emp` (`employee_id`)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ============================================================
--- TIMESHEET CORRECTION REQUESTS
--- ============================================================
-CREATE TABLE IF NOT EXISTS `correction_requests` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `attendance_id` INT UNSIGNED NULL,
-    `request_date` DATE NOT NULL,
-    `request_type` ENUM('forgot_sign_in','forgot_sign_out','forgot_break_out','forgot_break_in','wrong_time','overtime_not_captured','other') NOT NULL,
-    `description` TEXT NOT NULL,
-    `requested_sign_in` TIME NULL,
-    `requested_sign_out` TIME NULL,
-    `requested_break_out` TIME NULL,
-    `requested_break_in` TIME NULL,
-    `status` ENUM('pending','approved','rejected') DEFAULT 'pending',
-    `hr_remarks` TEXT NULL,
-    `reviewed_by` INT UNSIGNED NULL,
-    `reviewed_at` DATETIME NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`attendance_id`) REFERENCES `attendance`(`id`) ON DELETE SET NULL
-);
+-- ────────────────────────────────────────────────────────────
+-- Table: approval_stages
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `approval_stages` (
 
--- ============================================================
--- OVERTIME RECORDS
--- ============================================================
-CREATE TABLE IF NOT EXISTS `overtime_records` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `attendance_id` INT UNSIGNED NOT NULL,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `overtime_date` DATE NOT NULL,
-    `suggested_hours` DECIMAL(5,2) DEFAULT 0.00,
-    `approved_hours` DECIMAL(5,2) DEFAULT 0.00,
-    `overtime_type` VARCHAR(50) NULL,
-    `reason` TEXT NULL,
-    `status` ENUM('pending','approved','rejected') DEFAULT 'pending',
-    `reviewed_by` INT UNSIGNED NULL,
-    `reviewed_at` DATETIME NULL,
-    `hr_remarks` TEXT NULL,
-    `is_locked` TINYINT(1) DEFAULT 0,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`attendance_id`) REFERENCES `attendance`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE
-);
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `workflow_id` int(10) unsigned NOT NULL,
+  `stage_number` tinyint(4) NOT NULL,
+  `stage_name` varchar(100) NOT NULL,
+  `approver_role` varchar(50) DEFAULT NULL,
+  `approver_user_id` int(10) unsigned DEFAULT NULL,
+  `status` enum('pending','approved','rejected','skipped') DEFAULT 'pending',
+  `action` enum('approve','reject') DEFAULT NULL,
+  `comments` text DEFAULT NULL,
+  `acted_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `workflow_stage_unique` (`workflow_id`,`stage_number`),
+  KEY `approver_user_id` (`approver_user_id`),
+  CONSTRAINT `approval_stages_ibfk_1` FOREIGN KEY (`workflow_id`) REFERENCES `approval_workflows` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `approval_stages_ibfk_2` FOREIGN KEY (`approver_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 
--- ============================================================
--- LEAVE TYPES
--- ============================================================
-CREATE TABLE IF NOT EXISTS `leave_types` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `name` VARCHAR(100) NOT NULL,
-    `code` VARCHAR(20) NULL,
-    `max_days` INT DEFAULT 0,
-    `carry_forward` TINYINT(1) DEFAULT 0,
-    `max_carry_forward_days` INT DEFAULT 0,
-    `requires_document` TINYINT(1) DEFAULT 0,
-    `is_paid` TINYINT(1) DEFAULT 1,
-    `approval_required` TINYINT(1) DEFAULT 1,
-    `gender_specific` ENUM('all','male','female') DEFAULT 'all',
-    `description` TEXT NULL,
-    `is_active` TINYINT(1) DEFAULT 1,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `leave_types` (`name`, `code`, `max_days`, `carry_forward`, `requires_document`, `is_paid`) VALUES
-('Annual Leave', 'AL', 21, 1, 0, 1),
-('Sick Leave', 'SL', 30, 0, 1, 1),
-('Compassionate Leave', 'CL', 5, 0, 1, 1),
-('Maternity Leave', 'ML', 120, 0, 1, 1),
-('Paternity Leave', 'PL', 10, 0, 0, 1),
-('Study Leave', 'STL', 10, 0, 1, 1),
-('Leave Without Pay', 'LWP', 0, 0, 1, 0),
-('Emergency Leave', 'EL', 3, 0, 0, 1);
-
--- ============================================================
--- LEAVE BALANCES
--- ============================================================
-CREATE TABLE IF NOT EXISTS `leave_balances` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `leave_type_id` INT UNSIGNED NOT NULL,
-    `year` YEAR NOT NULL,
-    `entitled_days` DECIMAL(5,1) DEFAULT 0,
-    `used_days` DECIMAL(5,1) DEFAULT 0,
-    `pending_days` DECIMAL(5,1) DEFAULT 0,
-    `carried_forward` DECIMAL(5,1) DEFAULT 0,
-    `remaining_days` DECIMAL(5,1) DEFAULT 0,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY `leave_balance_unique` (`employee_id`, `leave_type_id`, `year`),
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`leave_type_id`) REFERENCES `leave_types`(`id`) ON DELETE CASCADE
-);
-
--- ============================================================
--- LEAVE APPLICATIONS
--- ============================================================
-CREATE TABLE IF NOT EXISTS `leave_applications` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `leave_type_id` INT UNSIGNED NOT NULL,
-    `start_date` DATE NOT NULL,
-    `end_date` DATE NOT NULL,
-    `total_days` DECIMAL(5,1) DEFAULT 0,
-    `reason` TEXT NULL,
-    `supporting_document` VARCHAR(255) NULL,
-    `status` ENUM('pending','approved','rejected','cancelled') DEFAULT 'pending',
-    `supervisor_status` ENUM('pending','approved','rejected') DEFAULT 'pending',
-    `supervisor_id` INT UNSIGNED NULL,
-    `supervisor_reviewed_at` DATETIME NULL,
-    `supervisor_remarks` TEXT NULL,
-    `hr_status` ENUM('pending','approved','rejected') DEFAULT 'pending',
-    `hr_reviewed_by` INT UNSIGNED NULL,
-    `hr_reviewed_at` DATETIME NULL,
-    `hr_remarks` TEXT NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`leave_type_id`) REFERENCES `leave_types`(`id`) ON DELETE CASCADE
-);
-
--- ============================================================
--- RECRUITMENT VACANCIES
--- ============================================================
-CREATE TABLE IF NOT EXISTS `recruitment_vacancies` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `job_title` VARCHAR(150) NOT NULL,
-    `department_id` INT UNSIGNED NULL,
-    `position_id` INT UNSIGNED NULL,
-    `description` TEXT NULL,
-    `requirements` TEXT NULL,
-    `responsibilities` TEXT NULL,
-    `employment_type` ENUM('full_time','part_time','contract','casual','intern') DEFAULT 'full_time',
-    `location` VARCHAR(150) NULL,
-    `salary_range` VARCHAR(100) NULL,
-    `deadline` DATE NULL,
-    `status` ENUM('draft','open','closed','on_hold') DEFAULT 'draft',
-    `positions_available` INT DEFAULT 1,
-    `published_at` DATETIME NULL,
-    `closed_at` DATETIME NULL,
-    `created_by` INT UNSIGNED NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`department_id`) REFERENCES `departments`(`id`) ON DELETE SET NULL
-);
-
--- ============================================================
--- RECRUITMENT APPLICATIONS
--- ============================================================
-CREATE TABLE IF NOT EXISTS `recruitment_applications` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `vacancy_id` INT UNSIGNED NOT NULL,
-    `application_number` VARCHAR(30) NULL,
-    `first_name` VARCHAR(100) NOT NULL,
-    `last_name` VARCHAR(100) NOT NULL,
-    `email` VARCHAR(150) NOT NULL,
-    `phone` VARCHAR(30) NULL,
-    `current_position` VARCHAR(150) NULL,
-    `current_employer` VARCHAR(150) NULL,
-    `years_experience` INT DEFAULT 0,
-    `qualifications` TEXT NULL,
-    `cover_letter` TEXT NULL,
-    `cv_file` VARCHAR(255) NULL,
-    `certificate_file` VARCHAR(255) NULL,
-    `cover_letter_file` VARCHAR(255) NULL,
-    `status` ENUM('submitted','reviewing','shortlisted','interview_scheduled','interviewed','selected','rejected','withdrawn') DEFAULT 'submitted',
-    `interview_date` DATETIME NULL,
-    `interview_notes` TEXT NULL,
-    `hr_remarks` TEXT NULL,
-    `reviewed_by` INT UNSIGNED NULL,
-    `converted_to_employee_id` INT UNSIGNED NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`vacancy_id`) REFERENCES `recruitment_vacancies`(`id`) ON DELETE CASCADE
-);
-
--- ============================================================
--- ONBOARDING
--- ============================================================
-CREATE TABLE IF NOT EXISTS `onboarding_checklists` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `task_name` VARCHAR(200) NOT NULL,
-    `category` VARCHAR(100) NULL,
-    `is_completed` TINYINT(1) DEFAULT 0,
-    `completed_by` INT UNSIGNED NULL,
-    `completed_at` DATETIME NULL,
-    `due_date` DATE NULL,
-    `notes` TEXT NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE
-);
-
--- ============================================================
--- EMPLOYEE DOCUMENTS
--- ============================================================
-CREATE TABLE IF NOT EXISTS `employee_documents` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `category` ENUM('id_document','certificate','contract','medical','warning_letter','promotion_letter','leave_document','resignation','clearance','payslip','bank_document','training_certificate','other') NOT NULL,
-    `document_name` VARCHAR(255) NOT NULL,
-    `file_path` VARCHAR(500) NOT NULL,
-    `file_type` VARCHAR(100) NULL,
-    `file_size` INT NULL,
-    `expiry_date` DATE NULL,
-    `is_verified` TINYINT(1) DEFAULT 0,
-    `verified_by` INT UNSIGNED NULL,
-    `verified_at` DATETIME NULL,
-    `notes` TEXT NULL,
-    `uploaded_by` INT UNSIGNED NULL,
-    `uploaded_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `is_deleted` TINYINT(1) DEFAULT 0,
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE,
-    INDEX `idx_doc_emp` (`employee_id`),
-    INDEX `idx_doc_expiry` (`expiry_date`)
-);
-
--- ============================================================
--- EMPLOYEE PROFILE UPDATE LINKS
--- ============================================================
-CREATE TABLE IF NOT EXISTS `employee_update_links` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `token` VARCHAR(64) NOT NULL UNIQUE,
-    `link_type` ENUM('monthly','quarterly','individual','request_based') DEFAULT 'individual',
-    `scope` ENUM('all','department','individual') DEFAULT 'individual',
-    `department_id` INT UNSIGNED NULL,
-    `employee_id` INT UNSIGNED NULL,
-    `title` VARCHAR(200) NULL,
-    `instructions` TEXT NULL,
-    `expires_at` DATETIME NOT NULL,
-    `is_active` TINYINT(1) DEFAULT 1,
-    `is_revoked` TINYINT(1) DEFAULT 0,
-    `created_by` INT UNSIGNED NOT NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE
-);
-
--- ============================================================
--- EMPLOYEE PENDING UPDATES (awaiting HR approval)
--- ============================================================
-CREATE TABLE IF NOT EXISTS `employee_pending_updates` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `update_link_id` INT UNSIGNED NULL,
-    `field_name` VARCHAR(100) NOT NULL,
-    `field_label` VARCHAR(150) NOT NULL,
-    `old_value` TEXT NULL,
-    `new_value` TEXT NOT NULL,
-    `status` ENUM('pending','approved','rejected') DEFAULT 'pending',
-    `rejection_reason` TEXT NULL,
-    `reviewed_by` INT UNSIGNED NULL,
-    `reviewed_at` DATETIME NULL,
-    `submitted_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE
-);
-
--- ============================================================
--- PERFORMANCE REVIEWS
--- ============================================================
-CREATE TABLE IF NOT EXISTS `performance_reviews` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `reviewer_id` INT UNSIGNED NOT NULL,
-    `review_period` VARCHAR(50) NULL,
-    `review_date` DATE NOT NULL,
-    `overall_score` DECIMAL(5,2) NULL,
-    `self_assessment` TEXT NULL,
-    `supervisor_assessment` TEXT NULL,
-    `strengths` TEXT NULL,
-    `improvements` TEXT NULL,
-    `recommendation` ENUM('promote','salary_review','training','warning','no_action') NULL,
-    `recommendation_notes` TEXT NULL,
-    `status` ENUM('draft','submitted','completed') DEFAULT 'draft',
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE
-);
-
--- ============================================================
--- TRAINING PROGRAMS
--- ============================================================
-CREATE TABLE IF NOT EXISTS `training_programs` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `title` VARCHAR(200) NOT NULL,
-    `provider` VARCHAR(200) NULL,
-    `description` TEXT NULL,
-    `start_date` DATE NULL,
-    `end_date` DATE NULL,
-    `cost` DECIMAL(12,2) NULL,
-    `location` VARCHAR(200) NULL,
-    `status` ENUM('planned','ongoing','completed','cancelled') DEFAULT 'planned',
-    `created_by` INT UNSIGNED NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS `training_attendance` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `training_id` INT UNSIGNED NOT NULL,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `attended` TINYINT(1) DEFAULT 0,
-    `certificate_file` VARCHAR(255) NULL,
-    `certificate_expiry` DATE NULL,
-    `notes` TEXT NULL,
-    UNIQUE KEY `training_emp_unique` (`training_id`, `employee_id`),
-    FOREIGN KEY (`training_id`) REFERENCES `training_programs`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE
-);
-
--- ============================================================
--- DISCIPLINARY RECORDS
--- ============================================================
-CREATE TABLE IF NOT EXISTS `disciplinary_records` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `case_number` VARCHAR(30) NULL,
-    `incident_date` DATE NOT NULL,
-    `incident_description` TEXT NOT NULL,
-    `case_type` ENUM('misconduct','poor_performance','absenteeism','insubordination','harassment','theft','fraud','other') NOT NULL,
-    `action_taken` ENUM('verbal_warning','written_warning','final_warning','suspension','demotion','termination','dismissed','no_action') NULL,
-    `investigation_notes` TEXT NULL,
-    `evidence_file` VARCHAR(255) NULL,
-    `warning_letter_file` VARCHAR(255) NULL,
-    `status` ENUM('open','investigating','closed','appealed') DEFAULT 'open',
-    `hearing_date` DATE NULL,
-    `resolved_at` DATE NULL,
-    `hr_officer_id` INT UNSIGNED NULL,
-    `created_by` INT UNSIGNED NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE
-);
-
--- ============================================================
--- GRIEVANCE RECORDS
--- ============================================================
-CREATE TABLE IF NOT EXISTS `grievance_records` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `case_number` VARCHAR(30) NULL,
-    `filed_date` DATE NOT NULL,
-    `complaint_description` TEXT NOT NULL,
-    `grievance_type` VARCHAR(100) NULL,
-    `assigned_hr_officer` INT UNSIGNED NULL,
-    `investigation_notes` TEXT NULL,
-    `resolution` TEXT NULL,
-    `status` ENUM('open','investigating','resolved','closed') DEFAULT 'open',
-    `resolved_at` DATE NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE
-);
-
--- ============================================================
--- ASSETS
--- ============================================================
-CREATE TABLE IF NOT EXISTS `company_assets` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `asset_code` VARCHAR(30) NULL,
-    `asset_type` ENUM('laptop','phone','vehicle','ppe','tools','id_card','uniform','other') NOT NULL,
-    `description` VARCHAR(255) NOT NULL,
-    `serial_number` VARCHAR(100) NULL,
-    `make_model` VARCHAR(100) NULL,
-    `purchase_date` DATE NULL,
-    `purchase_value` DECIMAL(12,2) NULL,
-    `current_condition` ENUM('excellent','good','fair','poor','damaged','lost') DEFAULT 'good',
-    `image` VARCHAR(255) NULL,
-    `notes` TEXT NULL,
-    `is_available` TINYINT(1) DEFAULT 1,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS `asset_assignments` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `asset_id` INT UNSIGNED NOT NULL,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `issued_date` DATE NOT NULL,
-    `condition_on_issue` ENUM('excellent','good','fair','poor') DEFAULT 'good',
-    `issued_by` INT UNSIGNED NULL,
-    `acknowledgement` TINYINT(1) DEFAULT 0,
-    `acknowledgement_date` DATETIME NULL,
-    `expected_return_date` DATE NULL,
-    `actual_return_date` DATE NULL,
-    `condition_on_return` ENUM('excellent','good','fair','poor','damaged','lost') NULL,
-    `return_remarks` TEXT NULL,
-    `received_by` INT UNSIGNED NULL,
-    `is_returned` TINYINT(1) DEFAULT 0,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`asset_id`) REFERENCES `company_assets`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE
-);
-
--- ============================================================
--- ARCHIVE RECORDS
--- ============================================================
+-- ────────────────────────────────────────────────────────────
+-- Table: archive_records
+-- ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `archive_records` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `archive_type` ENUM('monthly','quarterly','yearly') NOT NULL,
-    `year` YEAR NOT NULL,
-    `month` TINYINT(2) NULL,
-    `quarter` TINYINT(1) NULL,
-    `document_type` ENUM('timesheets','attendance','leave_report','overtime_report','payroll_support','hr_summary','employee_list','recruitment_summary','training_summary','disciplinary_summary','compliance') NOT NULL,
-    `title` VARCHAR(255) NOT NULL,
-    `file_path` VARCHAR(500) NULL,
-    `department_id` INT UNSIGNED NULL,
-    `is_locked` TINYINT(1) DEFAULT 0,
-    `locked_by` INT UNSIGNED NULL,
-    `locked_at` DATETIME NULL,
-    `generated_by` INT UNSIGNED NULL,
-    `generated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `notes` TEXT NULL,
-    INDEX `idx_archive_year_month` (`year`, `month`),
-    INDEX `idx_archive_type` (`archive_type`, `document_type`)
-);
 
--- ============================================================
--- NOTIFICATIONS
--- ============================================================
-CREATE TABLE IF NOT EXISTS `notifications` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `user_id` INT UNSIGNED NOT NULL,
-    `type` ENUM('info','success','warning','danger') DEFAULT 'info',
-    `title` VARCHAR(255) NOT NULL,
-    `message` TEXT NOT NULL,
-    `link` VARCHAR(500) NULL,
-    `is_read` TINYINT(1) DEFAULT 0,
-    `read_at` DATETIME NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-    INDEX `idx_notif_user` (`user_id`, `is_read`)
-);
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `archive_type` enum('monthly','quarterly','yearly') NOT NULL,
+  `year` year(4) NOT NULL,
+  `month` tinyint(2) DEFAULT NULL,
+  `quarter` tinyint(1) DEFAULT NULL,
+  `document_type` enum('timesheets','attendance','leave_report','overtime_report','payroll_support','hr_summary','employee_list','recruitment_summary','training_summary','disciplinary_summary','compliance') NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `file_path` varchar(500) DEFAULT NULL,
+  `department_id` int(10) unsigned DEFAULT NULL,
+  `is_locked` tinyint(1) DEFAULT 0,
+  `locked_by` int(10) unsigned DEFAULT NULL,
+  `locked_at` datetime DEFAULT NULL,
+  `generated_by` int(10) unsigned DEFAULT NULL,
+  `generated_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `notes` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_archive_year_month` (`year`,`month`),
+  KEY `idx_archive_type` (`archive_type`,`document_type`)
 
--- ============================================================
--- AUDIT LOGS
--- ============================================================
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: company_assets
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `company_assets` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `asset_code` varchar(30) DEFAULT NULL,
+  `asset_type` enum('laptop','phone','vehicle','ppe','tools','id_card','uniform','other') NOT NULL,
+  `description` varchar(255) NOT NULL,
+  `serial_number` varchar(100) DEFAULT NULL,
+  `make_model` varchar(100) DEFAULT NULL,
+  `purchase_date` date DEFAULT NULL,
+  `purchase_value` decimal(12,2) DEFAULT NULL,
+  `current_condition` enum('excellent','good','fair','poor','damaged','lost') DEFAULT 'good',
+  `image` varchar(255) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `is_available` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: asset_assignments
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `asset_assignments` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `asset_id` int(10) unsigned NOT NULL,
+  `employee_id` int(10) unsigned NOT NULL,
+  `issued_date` date NOT NULL,
+  `condition_on_issue` enum('excellent','good','fair','poor') DEFAULT 'good',
+  `issued_by` int(10) unsigned DEFAULT NULL,
+  `acknowledgement` tinyint(1) DEFAULT 0,
+  `acknowledgement_date` datetime DEFAULT NULL,
+  `expected_return_date` date DEFAULT NULL,
+  `actual_return_date` date DEFAULT NULL,
+  `condition_on_return` enum('excellent','good','fair','poor','damaged','lost') DEFAULT NULL,
+  `return_remarks` text DEFAULT NULL,
+  `received_by` int(10) unsigned DEFAULT NULL,
+  `is_returned` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `asset_id` (`asset_id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `asset_assignments_ibfk_1` FOREIGN KEY (`asset_id`) REFERENCES `company_assets` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `asset_assignments_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: attendance
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `attendance` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `employee_number` varchar(30) NOT NULL,
+  `attendance_date` date NOT NULL,
+  `sign_in` time DEFAULT NULL,
+  `break_out` time DEFAULT NULL,
+  `break_in` time DEFAULT NULL,
+  `sign_out` time DEFAULT NULL,
+  `break_duration_minutes` int(11) DEFAULT 0,
+  `total_hours_worked` decimal(5,2) DEFAULT 0.00,
+  `normal_hours` decimal(5,2) DEFAULT 0.00,
+  `overtime_hours` decimal(5,2) DEFAULT 0.00,
+  `is_late` tinyint(1) DEFAULT 0,
+  `late_minutes` int(11) DEFAULT 0,
+  `is_early_departure` tinyint(1) DEFAULT 0,
+  `is_absent` tinyint(1) DEFAULT 0,
+  `is_on_leave` tinyint(1) DEFAULT 0,
+  `status` enum('present','absent','late','on_leave','half_day','holiday') DEFAULT 'present',
+  `is_manually_adjusted` tinyint(1) DEFAULT 0,
+  `adjustment_reason` text DEFAULT NULL,
+  `adjusted_by` int(10) unsigned DEFAULT NULL,
+  `adjusted_at` datetime DEFAULT NULL,
+  `hr_remarks` text DEFAULT NULL,
+  `is_approved` tinyint(1) DEFAULT 0,
+  `approved_by` int(10) unsigned DEFAULT NULL,
+  `approved_at` datetime DEFAULT NULL,
+  `is_locked` tinyint(1) DEFAULT 0,
+  `device_info` varchar(255) DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `attendance_unique` (`employee_id`,`attendance_date`),
+  KEY `idx_att_date` (`attendance_date`),
+  KEY `idx_att_emp` (`employee_id`),
+  CONSTRAINT `attendance_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: audit_logs
+-- ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `audit_logs` (
-    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `user_id` INT UNSIGNED NULL,
-    `user_name` VARCHAR(150) NULL,
-    `module` VARCHAR(100) NOT NULL,
-    `action` VARCHAR(100) NOT NULL,
-    `record_id` INT UNSIGNED NULL,
-    `old_value` TEXT NULL,
-    `new_value` TEXT NULL,
-    `reason` TEXT NULL,
-    `ip_address` VARCHAR(45) NULL,
-    `user_agent` TEXT NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX `idx_audit_module` (`module`),
-    INDEX `idx_audit_user` (`user_id`),
-    INDEX `idx_audit_date` (`created_at`)
-);
 
--- ============================================================
--- EMPLOYEE SKILLS
--- ============================================================
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) unsigned DEFAULT NULL,
+  `user_name` varchar(150) DEFAULT NULL,
+  `module` varchar(100) NOT NULL,
+  `action` varchar(100) NOT NULL,
+  `record_id` int(10) unsigned DEFAULT NULL,
+  `old_value` text DEFAULT NULL,
+  `new_value` text DEFAULT NULL,
+  `reason` text DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_audit_module` (`module`),
+  KEY `idx_audit_user` (`user_id`),
+  KEY `idx_audit_date` (`created_at`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: company_letterheads
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `company_letterheads` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(150) NOT NULL,
+  `type` enum('official','contract','payroll','hr_letter','certificate','memo','general') DEFAULT 'official',
+  `image_path` varchar(500) NOT NULL,
+  `header_html` longtext DEFAULT NULL COMMENT 'Optional HTML header alternative to image',
+  `footer_html` longtext DEFAULT NULL COMMENT 'Optional HTML footer',
+  `paper_size` enum('A4','A5','Letter','Legal') DEFAULT 'A4',
+  `orientation` enum('portrait','landscape') DEFAULT 'portrait',
+  `margin_top` smallint(6) DEFAULT 120 COMMENT 'px margin from top to leave space for letterhead',
+  `margin_bottom` smallint(6) DEFAULT 60,
+  `is_default` tinyint(1) DEFAULT 0,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: company_settings
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `company_settings` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `company_name` varchar(255) DEFAULT 'Komagin Limited',
+  `company_logo` varchar(255) DEFAULT NULL,
+  `company_favicon` varchar(255) DEFAULT NULL,
+  `company_footer` varchar(255) DEFAULT NULL,
+  `login_background` varchar(255) DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `phone` varchar(50) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `website` varchar(100) DEFAULT NULL,
+  `work_start_time` time DEFAULT '08:00:00',
+  `work_end_time` time DEFAULT '17:00:00',
+  `grace_period_minutes` int(11) DEFAULT 15,
+  `break_duration_minutes` int(11) DEFAULT 60,
+  `standard_work_hours` decimal(4,2) DEFAULT 8.00,
+  `overtime_threshold_hours` decimal(4,2) DEFAULT 8.00,
+  `emp_number_settings` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`emp_number_settings`)),
+  `leave_settings` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`leave_settings`)),
+  `archive_settings` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`archive_settings`)),
+  `theme_settings` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`theme_settings`)),
+  `email_settings` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`email_settings`)),
+  `doc_number_prefix` varchar(20) DEFAULT 'KHR',
+  `doc_number_counter` int(10) unsigned DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: company_signatures
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `company_signatures` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `signatory_name` varchar(150) NOT NULL,
+  `designation` varchar(150) DEFAULT NULL,
+  `department` varchar(150) DEFAULT NULL,
+  `image_path` varchar(500) NOT NULL COMMENT 'Transparent PNG of signature',
+  `approval_level` tinyint(3) unsigned DEFAULT 1 COMMENT '1=Officer, 2=Manager, 3=Director',
+  `is_active` tinyint(1) DEFAULT 1,
+  `version` tinyint(3) unsigned DEFAULT 1,
+  `notes` text DEFAULT NULL,
+  `created_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: company_stamps
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `company_stamps` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(150) NOT NULL,
+  `image_path` varchar(500) NOT NULL COMMENT 'Transparent PNG of stamp',
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: company_watermarks
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `company_watermarks` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(150) NOT NULL,
+  `type` enum('image','text') DEFAULT 'text',
+  `image_path` varchar(500) DEFAULT NULL,
+  `text` varchar(100) DEFAULT NULL COMMENT 'e.g. CONFIDENTIAL, DRAFT, COPY',
+  `opacity` decimal(3,2) DEFAULT 0.10,
+  `color` varchar(20) DEFAULT '#808080',
+  `font_size` smallint(6) DEFAULT 48,
+  `rotation` smallint(6) DEFAULT -45,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: consultants
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `consultants` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `consultant_number` varchar(30) NOT NULL,
+  `first_name` varchar(100) NOT NULL,
+  `last_name` varchar(100) NOT NULL,
+  `email` varchar(200) DEFAULT NULL,
+  `phone` varchar(30) DEFAULT NULL,
+  `company` varchar(200) DEFAULT NULL,
+  `position_title` varchar(200) DEFAULT NULL,
+  `type` enum('time_based','output_based') NOT NULL DEFAULT 'time_based',
+  `department` varchar(100) DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `status` enum('active','completed','terminated') NOT NULL DEFAULT 'active',
+  `hourly_rate` decimal(10,2) DEFAULT NULL,
+  `daily_rate` decimal(10,2) DEFAULT NULL,
+  `contract_value` decimal(12,2) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `portal_active` tinyint(1) NOT NULL DEFAULT 0,
+  `portal_password` varchar(255) DEFAULT NULL,
+  `portal_last_login` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `consultant_number` (`consultant_number`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: consultant_attendance
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `consultant_attendance` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `consultant_id` int(10) unsigned NOT NULL,
+  `work_date` date NOT NULL,
+  `clock_in` datetime DEFAULT NULL,
+  `break_start` datetime DEFAULT NULL,
+  `break_end` datetime DEFAULT NULL,
+  `clock_out` datetime DEFAULT NULL,
+  `total_hours` decimal(5,2) DEFAULT NULL,
+  `notes` varchar(500) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_consultant_date` (`consultant_id`,`work_date`),
+  CONSTRAINT `consultant_attendance_ibfk_1` FOREIGN KEY (`consultant_id`) REFERENCES `consultants` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: consultant_scopes
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `consultant_scopes` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `consultant_id` int(10) unsigned NOT NULL,
+  `title` varchar(300) NOT NULL,
+  `description` text DEFAULT NULL,
+  `priority` enum('low','normal','high','urgent') NOT NULL DEFAULT 'normal',
+  `due_date` date DEFAULT NULL,
+  `status` enum('pending','in_progress','completed','on_hold') NOT NULL DEFAULT 'pending',
+  `completion_pct` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `hr_notes` text DEFAULT NULL,
+  `consultant_notes` text DEFAULT NULL,
+  `completed_at` datetime DEFAULT NULL,
+  `sort_order` int(10) unsigned NOT NULL DEFAULT 0,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `consultant_id` (`consultant_id`),
+  CONSTRAINT `consultant_scopes_ibfk_1` FOREIGN KEY (`consultant_id`) REFERENCES `consultants` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: correction_requests
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `correction_requests` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `attendance_id` int(10) unsigned DEFAULT NULL,
+  `request_date` date NOT NULL,
+  `request_type` enum('forgot_sign_in','forgot_sign_out','forgot_break_out','forgot_break_in','wrong_time','overtime_not_captured','other') NOT NULL,
+  `description` text NOT NULL,
+  `requested_sign_in` time DEFAULT NULL,
+  `requested_sign_out` time DEFAULT NULL,
+  `requested_break_out` time DEFAULT NULL,
+  `requested_break_in` time DEFAULT NULL,
+  `status` enum('pending','approved','rejected') DEFAULT 'pending',
+  `hr_remarks` text DEFAULT NULL,
+  `reviewed_by` int(10) unsigned DEFAULT NULL,
+  `reviewed_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `employee_id` (`employee_id`),
+  KEY `attendance_id` (`attendance_id`),
+  CONSTRAINT `correction_requests_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `correction_requests_ibfk_2` FOREIGN KEY (`attendance_id`) REFERENCES `attendance` (`id`) ON DELETE SET NULL
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: disciplinary_records
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `disciplinary_records` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `case_number` varchar(30) DEFAULT NULL,
+  `incident_date` date NOT NULL,
+  `incident_description` text NOT NULL,
+  `case_type` enum('misconduct','poor_performance','absenteeism','insubordination','harassment','theft','fraud','other') NOT NULL,
+  `action_taken` enum('verbal_warning','written_warning','final_warning','suspension','demotion','termination','dismissed','no_action') DEFAULT NULL,
+  `investigation_notes` text DEFAULT NULL,
+  `evidence_file` varchar(255) DEFAULT NULL,
+  `warning_letter_file` varchar(255) DEFAULT NULL,
+  `status` enum('open','investigating','closed','appealed') DEFAULT 'open',
+  `hearing_date` date DEFAULT NULL,
+  `resolved_at` date DEFAULT NULL,
+  `hr_officer_id` int(10) unsigned DEFAULT NULL,
+  `created_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `disciplinary_records_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: doc_categories
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `doc_categories` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(150) NOT NULL,
+  `slug` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `icon` varchar(50) DEFAULT 'file-text',
+  `sort_order` int(11) DEFAULT 0,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `slug` (`slug`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: doc_templates
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `doc_templates` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `category_id` int(10) unsigned NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `slug` varchar(150) NOT NULL,
+  `description` text DEFAULT NULL,
+  `body_html` longtext NOT NULL,
+  `variables_used` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'Array of variable names used in this template' CHECK (json_valid(`variables_used`)),
+  `version` tinyint(3) unsigned DEFAULT 1,
+  `is_active` tinyint(1) DEFAULT 1,
+  `requires_approval` tinyint(1) DEFAULT 0,
+  `letterhead_id` int(10) unsigned DEFAULT NULL,
+  `signature_ids` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`signature_ids`)),
+  `stamp_id` int(10) unsigned DEFAULT NULL,
+  `watermark_id` int(10) unsigned DEFAULT NULL,
+  `created_by` int(10) unsigned DEFAULT NULL,
+  `updated_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `show_letterhead` tinyint(1) DEFAULT 0,
+  `show_signature` tinyint(1) DEFAULT 0,
+  `show_stamp` tinyint(1) DEFAULT 0,
+  `show_watermark` tinyint(1) DEFAULT 0,
+  `show_qr_code` tinyint(1) DEFAULT 0,
+  `show_doc_number` tinyint(1) DEFAULT 0,
+  `show_page_number` tinyint(1) DEFAULT 0,
+  `show_header` tinyint(1) DEFAULT 1,
+  `show_footer` tinyint(1) DEFAULT 1,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `slug` (`slug`),
+  KEY `category_id` (`category_id`),
+  CONSTRAINT `doc_templates_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `doc_categories` (`id`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: doc_template_versions
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `doc_template_versions` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `template_id` int(10) unsigned NOT NULL,
+  `version` tinyint(3) unsigned NOT NULL,
+  `body_html` longtext NOT NULL,
+  `changed_by` int(10) unsigned DEFAULT NULL,
+  `changed_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `template_id` (`template_id`),
+  CONSTRAINT `doc_template_versions_ibfk_1` FOREIGN KEY (`template_id`) REFERENCES `doc_templates` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: email_logs
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `email_logs` (
+
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `type` enum('payslip','leave_approval','leave_rejection','document','general','test') DEFAULT 'general',
+  `recipient_name` varchar(200) DEFAULT NULL,
+  `recipient_email` varchar(200) NOT NULL,
+  `subject` varchar(500) NOT NULL,
+  `body_html` longtext DEFAULT NULL,
+  `status` enum('sent','failed','pending','bounced') DEFAULT 'pending',
+  `employee_id` int(10) unsigned DEFAULT NULL,
+  `reference_id` int(10) unsigned DEFAULT NULL COMMENT 'Payslip ID, Leave ID, Document ID, etc',
+  `reference_type` varchar(50) DEFAULT NULL,
+  `failure_reason` text DEFAULT NULL,
+  `retry_count` tinyint(4) DEFAULT 0,
+  `sent_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_email_status` (`status`),
+  KEY `idx_email_type` (`type`),
+  KEY `idx_email_emp` (`employee_id`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: employee_dependents
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `employee_dependents` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `full_name` varchar(150) NOT NULL,
+  `relationship` enum('spouse','child','parent','sibling','other') NOT NULL,
+  `date_of_birth` date DEFAULT NULL,
+  `gender` enum('male','female','other') DEFAULT NULL,
+  `national_id` varchar(50) DEFAULT NULL,
+  `is_beneficiary` tinyint(1) DEFAULT 0,
+  `beneficiary_percentage` decimal(5,2) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `employee_dependents_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: employee_documents
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `employee_documents` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `category` enum('id_document','certificate','contract','medical','warning_letter','promotion_letter','leave_document','resignation','clearance','payslip','bank_document','training_certificate','other') NOT NULL,
+  `document_name` varchar(255) NOT NULL,
+  `file_path` varchar(500) NOT NULL,
+  `file_type` varchar(100) DEFAULT NULL,
+  `file_size` int(11) DEFAULT NULL,
+  `expiry_date` date DEFAULT NULL,
+  `is_verified` tinyint(1) DEFAULT 0,
+  `verified_by` int(10) unsigned DEFAULT NULL,
+  `verified_at` datetime DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `uploaded_by` int(10) unsigned DEFAULT NULL,
+  `uploaded_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `is_deleted` tinyint(1) DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_doc_emp` (`employee_id`),
+  KEY `idx_doc_expiry` (`expiry_date`),
+  CONSTRAINT `employee_documents_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: employee_pending_updates
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `employee_pending_updates` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `update_link_id` int(10) unsigned DEFAULT NULL,
+  `field_name` varchar(100) NOT NULL,
+  `field_label` varchar(150) NOT NULL,
+  `old_value` text DEFAULT NULL,
+  `new_value` text NOT NULL,
+  `status` enum('pending','approved','rejected') DEFAULT 'pending',
+  `rejection_reason` text DEFAULT NULL,
+  `reviewed_by` int(10) unsigned DEFAULT NULL,
+  `reviewed_at` datetime DEFAULT NULL,
+  `submitted_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `employee_pending_updates_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: employee_qualifications
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `employee_qualifications` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `qualification_type` enum('matric','diploma','degree','honours','masters','phd','trade_cert','professional_cert','other') NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `institution` varchar(200) DEFAULT NULL,
+  `field_of_study` varchar(150) DEFAULT NULL,
+  `year_obtained` year(4) DEFAULT NULL,
+  `grade_result` varchar(50) DEFAULT NULL,
+  `certificate_file` varchar(500) DEFAULT NULL,
+  `is_verified` tinyint(1) DEFAULT 0,
+  `verified_by` int(10) unsigned DEFAULT NULL,
+  `verified_at` datetime DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `employee_qualifications_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: employee_requests
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `employee_requests` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `request_type` enum('leave_query','payslip_query','employment_certificate','bank_update','salary_query','training_request','general_query','grievance','payroll_query','document_request') NOT NULL,
+  `subject` varchar(255) NOT NULL,
+  `description` text NOT NULL,
+  `priority` enum('low','normal','high','urgent') DEFAULT 'normal',
+  `status` enum('open','in_progress','resolved','closed','rejected') DEFAULT 'open',
+  `assigned_to` int(10) unsigned DEFAULT NULL,
+  `hr_response` text DEFAULT NULL,
+  `internal_notes` text DEFAULT NULL,
+  `resolved_by` int(10) unsigned DEFAULT NULL,
+  `resolved_at` datetime DEFAULT NULL,
+  `attachment` varchar(500) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `employee_requests_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: employee_savings
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `employee_savings` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `savings_type` enum('pension','provident','medical_aid','funeral','savings','other') NOT NULL,
+  `fund_name` varchar(255) DEFAULT NULL,
+  `target_amount` decimal(14,2) DEFAULT 0.00,
+  `current_balance` decimal(14,2) DEFAULT 0.00,
+  `employee_rate_pct` decimal(5,2) DEFAULT 0.00,
+  `employer_rate_pct` decimal(5,2) DEFAULT 0.00,
+  `monthly_employee_contrib` decimal(12,2) DEFAULT 0.00,
+  `monthly_employer_contrib` decimal(12,2) DEFAULT 0.00,
+  `total_employee_contrib` decimal(14,2) DEFAULT 0.00,
+  `total_employer_contrib` decimal(14,2) DEFAULT 0.00,
+  `start_date` date DEFAULT NULL,
+  `projected_end_date` date DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `employee_savings_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: employee_skills
+-- ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `employee_skills` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `skill_name` VARCHAR(150) NOT NULL,
-    `proficiency` ENUM('beginner','intermediate','advanced','expert') DEFAULT 'intermediate',
-    `certificate_file` VARCHAR(255) NULL,
-    `expiry_date` DATE NULL,
-    `notes` TEXT NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE
-);
 
--- ============================================================
--- PAYSLIPS
--- ============================================================
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `skill_name` varchar(150) NOT NULL,
+  `proficiency` enum('beginner','intermediate','advanced','expert') DEFAULT 'intermediate',
+  `certificate_file` varchar(255) DEFAULT NULL,
+  `expiry_date` date DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `employee_skills_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: employee_status_history
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `employee_status_history` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `old_status` varchar(50) DEFAULT NULL,
+  `new_status` varchar(50) NOT NULL,
+  `reason` text DEFAULT NULL,
+  `changed_by` int(10) unsigned DEFAULT NULL,
+  `changed_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `employee_status_history_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: employee_update_links
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `employee_update_links` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `token` varchar(64) NOT NULL,
+  `link_type` enum('monthly','quarterly','individual','request_based') DEFAULT 'individual',
+  `scope` enum('all','department','individual') DEFAULT 'individual',
+  `department_id` int(10) unsigned DEFAULT NULL,
+  `employee_id` int(10) unsigned DEFAULT NULL,
+  `title` varchar(200) DEFAULT NULL,
+  `instructions` text DEFAULT NULL,
+  `expires_at` datetime NOT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `is_revoked` tinyint(1) DEFAULT 0,
+  `created_by` int(10) unsigned NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `token` (`token`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `employee_update_links_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: employee_work_history
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `employee_work_history` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `employer_name` varchar(200) NOT NULL,
+  `position_held` varchar(150) DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `reason_for_leaving` text DEFAULT NULL,
+  `reference_name` varchar(150) DEFAULT NULL,
+  `reference_phone` varchar(30) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `employee_work_history_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: generated_documents
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `generated_documents` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `template_id` int(10) unsigned NOT NULL,
+  `employee_id` int(10) unsigned NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `body_html` longtext NOT NULL,
+  `status` enum('draft','pending_approval','approved','rejected','issued') DEFAULT 'draft',
+  `approved_by` int(10) unsigned DEFAULT NULL,
+  `approved_at` datetime DEFAULT NULL,
+  `issued_by` int(10) unsigned DEFAULT NULL,
+  `issued_at` datetime DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `generated_by` int(10) unsigned DEFAULT NULL,
+  `generated_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `template_id` (`template_id`),
+  KEY `idx_gendoc_emp` (`employee_id`),
+  KEY `idx_gendoc_status` (`status`),
+  CONSTRAINT `generated_documents_ibfk_1` FOREIGN KEY (`template_id`) REFERENCES `doc_templates` (`id`),
+  CONSTRAINT `generated_documents_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: grievance_records
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `grievance_records` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `case_number` varchar(30) DEFAULT NULL,
+  `filed_date` date NOT NULL,
+  `complaint_description` text NOT NULL,
+  `grievance_type` varchar(100) DEFAULT NULL,
+  `assigned_hr_officer` int(10) unsigned DEFAULT NULL,
+  `investigation_notes` text DEFAULT NULL,
+  `resolution` text DEFAULT NULL,
+  `status` enum('open','investigating','resolved','closed') DEFAULT 'open',
+  `resolved_at` date DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `grievance_records_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: kiosk_audit
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `kiosk_audit` (
+
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `kiosk_session_id` int(10) unsigned DEFAULT NULL,
+  `employee_id` int(10) unsigned DEFAULT NULL,
+  `employee_number` varchar(30) DEFAULT NULL,
+  `action` enum('sign_in','break_out','break_in','sign_out','failed_auth','kiosk_opened','kiosk_closed') NOT NULL,
+  `result` enum('success','error') DEFAULT 'success',
+  `error_message` text DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `recorded_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_kiosk_emp` (`employee_id`),
+  KEY `idx_kiosk_date` (`recorded_at`),
+  CONSTRAINT `kiosk_audit_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE SET NULL
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: kiosk_sessions
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `kiosk_sessions` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `kiosk_token` varchar(32) NOT NULL DEFAULT '',
+  `location_name` varchar(150) NOT NULL DEFAULT 'Main Office',
+  `status` enum('open','closed') NOT NULL DEFAULT 'closed',
+  `opened_by` int(10) unsigned DEFAULT NULL,
+  `opened_at` datetime DEFAULT NULL,
+  `closed_by` int(10) unsigned DEFAULT NULL,
+  `closed_at` datetime DEFAULT NULL,
+  `scheduled_open` time DEFAULT NULL,
+  `scheduled_close` time DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_kiosk_token` (`kiosk_token`),
+  KEY `opened_by` (`opened_by`),
+  KEY `closed_by` (`closed_by`),
+  CONSTRAINT `kiosk_sessions_ibfk_1` FOREIGN KEY (`opened_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `kiosk_sessions_ibfk_2` FOREIGN KEY (`closed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: leave_types
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `leave_types` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `code` varchar(20) DEFAULT NULL,
+  `max_days` int(11) DEFAULT 0,
+  `carry_forward` tinyint(1) DEFAULT 0,
+  `max_carry_forward_days` int(11) DEFAULT 0,
+  `requires_document` tinyint(1) DEFAULT 0,
+  `is_paid` tinyint(1) DEFAULT 1,
+  `approval_required` tinyint(1) DEFAULT 1,
+  `gender_specific` enum('all','male','female') DEFAULT 'all',
+  `description` text DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: leave_applications
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `leave_applications` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `leave_type_id` int(10) unsigned NOT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date NOT NULL,
+  `total_days` decimal(5,1) DEFAULT 0.0,
+  `reason` text DEFAULT NULL,
+  `supporting_document` varchar(255) DEFAULT NULL,
+  `status` enum('pending','approved','rejected','cancelled') DEFAULT 'pending',
+  `supervisor_status` enum('pending','approved','rejected') DEFAULT 'pending',
+  `supervisor_id` int(10) unsigned DEFAULT NULL,
+  `supervisor_reviewed_at` datetime DEFAULT NULL,
+  `supervisor_remarks` text DEFAULT NULL,
+  `hr_status` enum('pending','approved','rejected') DEFAULT 'pending',
+  `hr_reviewed_by` int(10) unsigned DEFAULT NULL,
+  `hr_reviewed_at` datetime DEFAULT NULL,
+  `hr_remarks` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `employee_id` (`employee_id`),
+  KEY `leave_type_id` (`leave_type_id`),
+  CONSTRAINT `leave_applications_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `leave_applications_ibfk_2` FOREIGN KEY (`leave_type_id`) REFERENCES `leave_types` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: leave_balances
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `leave_balances` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `leave_type_id` int(10) unsigned NOT NULL,
+  `year` year(4) NOT NULL,
+  `entitled_days` decimal(5,1) DEFAULT 0.0,
+  `used_days` decimal(5,1) DEFAULT 0.0,
+  `pending_days` decimal(5,1) DEFAULT 0.0,
+  `carried_forward` decimal(5,1) DEFAULT 0.0,
+  `remaining_days` decimal(5,1) DEFAULT 0.0,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `leave_balance_unique` (`employee_id`,`leave_type_id`,`year`),
+  KEY `leave_type_id` (`leave_type_id`),
+  CONSTRAINT `leave_balances_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `leave_balances_ibfk_2` FOREIGN KEY (`leave_type_id`) REFERENCES `leave_types` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: notifications
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `notifications` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) unsigned NOT NULL,
+  `type` enum('info','success','warning','danger') DEFAULT 'info',
+  `title` varchar(255) NOT NULL,
+  `message` text NOT NULL,
+  `link` varchar(500) DEFAULT NULL,
+  `is_read` tinyint(1) DEFAULT 0,
+  `read_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_notif_user` (`user_id`,`is_read`),
+  CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: onboarding_checklists
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `onboarding_checklists` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `task_name` varchar(200) NOT NULL,
+  `category` varchar(100) DEFAULT NULL,
+  `is_completed` tinyint(1) DEFAULT 0,
+  `completed_by` int(10) unsigned DEFAULT NULL,
+  `completed_at` datetime DEFAULT NULL,
+  `due_date` date DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `onboarding_checklists_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: overtime_records
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `overtime_records` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `attendance_id` int(10) unsigned NOT NULL,
+  `employee_id` int(10) unsigned NOT NULL,
+  `overtime_date` date NOT NULL,
+  `suggested_hours` decimal(5,2) DEFAULT 0.00,
+  `approved_hours` decimal(5,2) DEFAULT 0.00,
+  `overtime_type` varchar(50) DEFAULT NULL,
+  `reason` text DEFAULT NULL,
+  `status` enum('pending','approved','rejected') DEFAULT 'pending',
+  `reviewed_by` int(10) unsigned DEFAULT NULL,
+  `reviewed_at` datetime DEFAULT NULL,
+  `hr_remarks` text DEFAULT NULL,
+  `is_locked` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `attendance_id` (`attendance_id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `overtime_records_ibfk_1` FOREIGN KEY (`attendance_id`) REFERENCES `attendance` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `overtime_records_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: payroll_deductions
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `payroll_deductions` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `deduction_type` enum('tax','uif','pension','provident','medical_aid','loan','garnishee','other') NOT NULL,
+  `description` varchar(255) NOT NULL,
+  `is_percentage` tinyint(1) DEFAULT 0,
+  `amount` decimal(12,2) DEFAULT NULL,
+  `percentage` decimal(5,2) DEFAULT NULL,
+  `employer_contribution` decimal(12,2) DEFAULT NULL,
+  `employer_percentage` decimal(5,2) DEFAULT NULL,
+  `is_recurring` tinyint(1) DEFAULT 1,
+  `effective_from` date NOT NULL,
+  `effective_to` date DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `notes` text DEFAULT NULL,
+  `created_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `payroll_deductions_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: payroll_runs
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `payroll_runs` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `period_month` tinyint(2) NOT NULL,
+  `period_year` year(4) NOT NULL,
+  `status` enum('draft','processing','finalized','published') DEFAULT 'draft',
+  `total_gross` decimal(14,2) DEFAULT 0.00,
+  `total_net` decimal(14,2) DEFAULT 0.00,
+  `total_deductions` decimal(14,2) DEFAULT 0.00,
+  `employee_count` int(11) DEFAULT 0,
+  `notes` text DEFAULT NULL,
+  `processed_by` int(10) unsigned DEFAULT NULL,
+  `finalized_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `payroll_run_unique` (`period_month`,`period_year`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: payslips
+-- ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `payslips` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `period_month` TINYINT(2) NOT NULL,
-    `period_year` YEAR NOT NULL,
-    `gross_salary` DECIMAL(12,2) NULL,
-    `deductions` DECIMAL(12,2) NULL,
-    `net_salary` DECIMAL(12,2) NULL,
-    `file_path` VARCHAR(500) NULL,
-    `uploaded_by` INT UNSIGNED NULL,
-    `uploaded_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY `payslip_unique` (`employee_id`, `period_month`, `period_year`),
-    FOREIGN KEY (`employee_id`) REFERENCES `employees`(`id`) ON DELETE CASCADE
-);
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `period_month` tinyint(2) NOT NULL,
+  `period_year` year(4) NOT NULL,
+  `payroll_run_id` int(10) unsigned DEFAULT NULL,
+  `gross_salary` decimal(12,2) DEFAULT NULL,
+  `basic_salary` decimal(12,2) DEFAULT 0.00,
+  `deductions` decimal(12,2) DEFAULT NULL,
+  `net_salary` decimal(12,2) DEFAULT NULL,
+  `total_deductions` decimal(12,2) DEFAULT 0.00,
+  `tax_amount` decimal(12,2) DEFAULT 0.00,
+  `uif_employee` decimal(12,2) DEFAULT 0.00,
+  `uif_employer` decimal(12,2) DEFAULT 0.00,
+  `other_deductions` decimal(12,2) DEFAULT 0.00,
+  `total_employer_cost` decimal(12,2) DEFAULT 0.00,
+  `overtime_hours` decimal(6,2) DEFAULT 0.00,
+  `overtime_amount` decimal(12,2) DEFAULT 0.00,
+  `leave_days_taken` decimal(5,1) DEFAULT 0.0,
+  `notes` text DEFAULT NULL,
+  `status` enum('draft','finalized','sent') DEFAULT 'draft',
+  `file_path` varchar(500) DEFAULT NULL,
+  `uploaded_by` int(10) unsigned DEFAULT NULL,
+  `uploaded_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `payslip_unique` (`employee_id`,`period_month`,`period_year`),
+  CONSTRAINT `payslips_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: payslip_items
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `payslip_items` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `payslip_id` int(10) unsigned NOT NULL,
+  `item_type` enum('earning','deduction','employer_contribution','info') NOT NULL,
+  `description` varchar(255) NOT NULL,
+  `amount` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `sort_order` tinyint(3) unsigned DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `payslip_id` (`payslip_id`),
+  CONSTRAINT `payslip_items_ibfk_1` FOREIGN KEY (`payslip_id`) REFERENCES `payslips` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: performance_reviews
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `performance_reviews` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `reviewer_id` int(10) unsigned NOT NULL,
+  `review_period` varchar(50) DEFAULT NULL,
+  `review_date` date NOT NULL,
+  `overall_score` decimal(5,2) DEFAULT NULL,
+  `self_assessment` text DEFAULT NULL,
+  `supervisor_assessment` text DEFAULT NULL,
+  `strengths` text DEFAULT NULL,
+  `improvements` text DEFAULT NULL,
+  `recommendation` enum('promote','salary_review','training','warning','no_action') DEFAULT NULL,
+  `recommendation_notes` text DEFAULT NULL,
+  `status` enum('draft','submitted','completed') DEFAULT 'draft',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `performance_reviews_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: permissions
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `permissions` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `slug` varchar(100) NOT NULL,
+  `module` varchar(50) NOT NULL,
+  `description` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `slug` (`slug`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: recruitment_vacancies
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `recruitment_vacancies` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `job_title` varchar(150) NOT NULL,
+  `department_id` int(10) unsigned DEFAULT NULL,
+  `position_id` int(10) unsigned DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `requirements` text DEFAULT NULL,
+  `responsibilities` text DEFAULT NULL,
+  `employment_type` enum('full_time','part_time','contract','casual','intern') DEFAULT 'full_time',
+  `location` varchar(150) DEFAULT NULL,
+  `salary_range` varchar(100) DEFAULT NULL,
+  `deadline` date DEFAULT NULL,
+  `status` enum('draft','open','closed','on_hold') DEFAULT 'draft',
+  `positions_available` int(11) DEFAULT 1,
+  `published_at` datetime DEFAULT NULL,
+  `closed_at` datetime DEFAULT NULL,
+  `created_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `department_id` (`department_id`),
+  CONSTRAINT `recruitment_vacancies_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE SET NULL
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: recruitment_applications
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `recruitment_applications` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `vacancy_id` int(10) unsigned NOT NULL,
+  `application_number` varchar(30) DEFAULT NULL,
+  `first_name` varchar(100) NOT NULL,
+  `last_name` varchar(100) NOT NULL,
+  `email` varchar(150) NOT NULL,
+  `phone` varchar(30) DEFAULT NULL,
+  `current_position` varchar(150) DEFAULT NULL,
+  `current_employer` varchar(150) DEFAULT NULL,
+  `years_experience` int(11) DEFAULT 0,
+  `qualifications` text DEFAULT NULL,
+  `cover_letter` text DEFAULT NULL,
+  `cv_file` varchar(255) DEFAULT NULL,
+  `certificate_file` varchar(255) DEFAULT NULL,
+  `cover_letter_file` varchar(255) DEFAULT NULL,
+  `status` enum('submitted','reviewing','shortlisted','interview_scheduled','interviewed','selected','rejected','withdrawn') DEFAULT 'submitted',
+  `interview_date` datetime DEFAULT NULL,
+  `interview_notes` text DEFAULT NULL,
+  `hr_remarks` text DEFAULT NULL,
+  `reviewed_by` int(10) unsigned DEFAULT NULL,
+  `converted_to_employee_id` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `vacancy_id` (`vacancy_id`),
+  CONSTRAINT `recruitment_applications_ibfk_1` FOREIGN KEY (`vacancy_id`) REFERENCES `recruitment_vacancies` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: role_permissions
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `role_permissions` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `role` varchar(50) NOT NULL,
+  `permission_id` int(10) unsigned NOT NULL,
+  `can_view` tinyint(1) DEFAULT 0,
+  `can_create` tinyint(1) DEFAULT 0,
+  `can_edit` tinyint(1) DEFAULT 0,
+  `can_delete` tinyint(1) DEFAULT 0,
+  `can_approve` tinyint(1) DEFAULT 0,
+  `can_export` tinyint(1) DEFAULT 0,
+  `can_publish` tinyint(1) DEFAULT 0,
+  `can_share` tinyint(1) DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `role_permission_unique` (`role`,`permission_id`),
+  KEY `permission_id` (`permission_id`),
+  CONSTRAINT `role_permissions_ibfk_1` FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: temp_projects
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `temp_projects` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(200) NOT NULL,
+  `code` varchar(30) NOT NULL,
+  `client` varchar(200) DEFAULT NULL,
+  `location` varchar(200) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `status` enum('active','on_hold','completed') NOT NULL DEFAULT 'active',
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `code` (`code`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: temp_sites
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `temp_sites` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `project_id` int(10) unsigned NOT NULL,
+  `name` varchar(200) NOT NULL,
+  `location` varchar(200) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `status` enum('active','inactive') NOT NULL DEFAULT 'active',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `project_id` (`project_id`),
+  CONSTRAINT `temp_sites_ibfk_1` FOREIGN KEY (`project_id`) REFERENCES `temp_projects` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: temp_employees
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `temp_employees` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_number` varchar(30) NOT NULL,
+  `first_name` varchar(100) NOT NULL,
+  `last_name` varchar(100) NOT NULL,
+  `phone` varchar(30) DEFAULT NULL,
+  `email` varchar(200) DEFAULT NULL,
+  `position_title` varchar(200) DEFAULT NULL,
+  `project_id` int(10) unsigned DEFAULT NULL,
+  `site_id` int(10) unsigned DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `status` enum('active','completed','terminated') NOT NULL DEFAULT 'active',
+  `daily_rate` decimal(10,2) DEFAULT NULL,
+  `rate_type` enum('daily','hourly') NOT NULL DEFAULT 'daily',
+  `notes` text DEFAULT NULL,
+  `portal_active` tinyint(1) NOT NULL DEFAULT 0,
+  `attendance_method` enum('kiosk','timesheet','both') NOT NULL DEFAULT 'kiosk',
+  `portal_password` varchar(255) DEFAULT NULL,
+  `portal_last_login` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `employee_number` (`employee_number`),
+  KEY `project_id` (`project_id`),
+  KEY `site_id` (`site_id`),
+  CONSTRAINT `temp_employees_ibfk_1` FOREIGN KEY (`project_id`) REFERENCES `temp_projects` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `temp_employees_ibfk_2` FOREIGN KEY (`site_id`) REFERENCES `temp_sites` (`id`) ON DELETE SET NULL
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: training_programs
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `training_programs` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `title` varchar(200) NOT NULL,
+  `provider` varchar(200) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `cost` decimal(12,2) DEFAULT NULL,
+  `location` varchar(200) DEFAULT NULL,
+  `status` enum('planned','ongoing','completed','cancelled') DEFAULT 'planned',
+  `created_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: training_attendance
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `training_attendance` (
+
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `training_id` int(10) unsigned NOT NULL,
+  `employee_id` int(10) unsigned NOT NULL,
+  `attended` tinyint(1) DEFAULT 0,
+  `certificate_file` varchar(255) DEFAULT NULL,
+  `certificate_expiry` date DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `training_emp_unique` (`training_id`,`employee_id`),
+  KEY `employee_id` (`employee_id`),
+  CONSTRAINT `training_attendance_ibfk_1` FOREIGN KEY (`training_id`) REFERENCES `training_programs` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `training_attendance_ibfk_2` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: schema_migrations
+-- New in Phase 3 — tracks which migration files have been applied to
+-- this database, so the migration runner (database/migrate.php) never
+-- re-runs a completed migration and can report pending/applied state
+-- accurately. See docs/remediation/Database/06-phase3-canonical-database-model.md.
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `schema_migrations` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `migration_name` varchar(150) NOT NULL,
+  `checksum` char(64) DEFAULT NULL COMMENT 'sha256 of the migration file at the time it was applied',
+  `executed_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `execution_time_ms` int(10) unsigned DEFAULT NULL,
+  `status` enum('success','failed') NOT NULL DEFAULT 'success',
+  `error_summary` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `migration_name` (`migration_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -81,8 +81,15 @@ INSERT IGNORE INTO role_permissions (role, permission_id, can_view, can_create, 
 SELECT 'hr_manager', id, 1,1,1,0,1,1,0,0 FROM permissions WHERE slug IN
     ('consultants.view','consultants.create','consultants.edit','consultants.delete');
 
+-- Phase 3 fix: this was seeded as 'hrofficer' (no underscore), which does not
+-- match the canonical role ENUM value 'hr_officer' used everywhere else in
+-- the system — a fresh install using the original version of this file would
+-- have silently denied every hr_officer user access to this module, exactly
+-- as happened on the live database until Phase 1's phase10 migration patched
+-- the existing rows. This is the source-file fix so a NEW install never
+-- reintroduces that bug (see docs/remediation/Database/08-phase3-seed-integrity-report.md).
 INSERT IGNORE INTO role_permissions (role, permission_id, can_view, can_create, can_edit, can_delete, can_approve, can_export, can_publish, can_share)
-SELECT 'hrofficer', id, 1,0,0,0,0,1,0,0 FROM permissions WHERE slug IN
+SELECT 'hr_officer', id, 1,0,0,0,0,1,0,0 FROM permissions WHERE slug IN
     ('consultants.view','consultants.create','consultants.edit','consultants.delete');
 
 -- ── 6. Seed: Consultants ────────────────────────────────────

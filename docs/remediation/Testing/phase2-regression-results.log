@@ -1,12 +1,8 @@
-Phase 2 Regression Run — Sat Jul 11 23:34:34 WPST 2026
+Phase 2 Regression Run — Sun Jul 12 09:40:09 WPST 2026
 ======================================
 PASS | Admin login succeeds
 PASS | Admin login regenerates session ID (fixation defense)
-FAIL | Consultants delete.php did not remove the test record
-
 PASS | Admin dashboard reachable post-login
-======================================
-TOTAL: 28 passed, 1 failed
 PASS | Admin logout expires the cookie client-side
 PASS | Admin session cannot be reused after logout
 PASS | Employee login WITHOUT csrf_token is rejected (re-renders form, not redirected)

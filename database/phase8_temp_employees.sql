@@ -31,6 +31,13 @@ CREATE TABLE IF NOT EXISTS temp_sites (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ── 3. Temporary Employees ──────────────────────────────────
+-- Phase 3 fix: `rate_type` and `attendance_method` were missing from this
+-- CREATE TABLE even though modules/temp_employees/{add,edit}.php write to
+-- both on every save, and index.php/view.php read attendance_method
+-- throughout the UI. The live database had them added by an undocumented,
+-- untracked manual change -- a fresh install using the original version of
+-- this file would fail on the very first Add/Edit submission. See
+-- docs/remediation/Database/08-phase3-seed-integrity-report.md.
 CREATE TABLE IF NOT EXISTS temp_employees (
     id                INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     employee_number   VARCHAR(30)  NOT NULL UNIQUE,
@@ -45,8 +52,10 @@ CREATE TABLE IF NOT EXISTS temp_employees (
     end_date          DATE         DEFAULT NULL,
     status            ENUM('active','completed','terminated') NOT NULL DEFAULT 'active',
     daily_rate        DECIMAL(10,2) DEFAULT NULL,
+    rate_type         ENUM('daily','hourly') NOT NULL DEFAULT 'daily',
     notes             TEXT         DEFAULT NULL,
     portal_active     TINYINT(1)   NOT NULL DEFAULT 0,
+    attendance_method ENUM('kiosk','timesheet','both') NOT NULL DEFAULT 'kiosk',
     portal_password   VARCHAR(255) DEFAULT NULL,
     portal_last_login DATETIME     DEFAULT NULL,
     created_at        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -75,9 +84,13 @@ SELECT 'hr_manager', id, 1,1,1,0,1,1,0,0 FROM permissions WHERE slug IN (
     'temp_employees.view','temp_employees.create','temp_employees.edit','temp_employees.delete'
 );
 
--- hrofficer: view + export only
+-- hr_officer: view + export only
+-- Phase 3 fix: previously seeded as 'hrofficer' (no underscore) — did not
+-- match the canonical role ENUM value 'hr_officer', silently denying every
+-- real HR Officer account access to this module on a fresh install. See
+-- docs/remediation/Database/08-phase3-seed-integrity-report.md.
 INSERT IGNORE INTO role_permissions (role, permission_id, can_view, can_create, can_edit, can_delete, can_approve, can_export, can_publish, can_share)
-SELECT 'hrofficer', id, 1,0,0,0,0,1,0,0 FROM permissions WHERE slug IN (
+SELECT 'hr_officer', id, 1,0,0,0,0,1,0,0 FROM permissions WHERE slug IN (
     'temp_employees.view','temp_employees.create','temp_employees.edit','temp_employees.delete'
 );
 
