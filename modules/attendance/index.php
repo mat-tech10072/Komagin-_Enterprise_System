@@ -48,6 +48,19 @@ $sumStmt = db()->prepare("SELECT
     COUNT(CASE WHEN a.sign_in IS NOT NULL AND a.sign_out IS NULL THEN 1 END) as still_in
     FROM attendance a JOIN employees e ON a.employee_id=e.id WHERE a.attendance_date=?");
 $sumStmt->execute([$viewDate]); $daySum = $sumStmt->fetch();
+
+// KOM-098: is_absent defaults to 0 and is never written anywhere (a row
+// only ever gets created on kiosk sign-in), so SUM(is_absent) above is
+// structurally guaranteed to be 0 for every day. Recomputed as
+// active/probation employees (respecting the same department filter as
+// the rest of this page) who have no attendance row at all for this date.
+$absentWhere = ["e.status IN ('active','probation')"];
+if ($deptId) { $absentWhere[] = 'e.department_id = ?'; }
+$absentStmt = db()->prepare("SELECT COUNT(*) FROM employees e
+    WHERE " . implode(' AND ', $absentWhere) . "
+    AND NOT EXISTS (SELECT 1 FROM attendance a WHERE a.employee_id = e.id AND a.attendance_date = ?)");
+$absentStmt->execute($deptId ? [$deptId, $viewDate] : [$viewDate]);
+$daySum['absent'] = (int)$absentStmt->fetchColumn();
 ?>
 <?php include dirname(dirname(__DIR__)) . '/includes/header.php'; ?>
 

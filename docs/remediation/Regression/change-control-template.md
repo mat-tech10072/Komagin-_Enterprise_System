@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; **6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12 — more to follow as each subsequent workflow group completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; **4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13 — more to follow as each subsequent workflow group completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -1218,6 +1218,54 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** N/A
 - **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
 
+### CC-099 — Fixed dead attendance.is_absent column for daily figures; documented monthly figures (KOM-098)
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-098
+- **Files changed:** `dashboard.php`, `modules/attendance/index.php`
+- **Reason:** `attendance.is_absent` defaults to 0 and is never written by any code path in the codebase (a row only ever gets created on kiosk sign-in), so every `WHERE is_absent=1`/`SUM(is_absent)` across 6 files was structurally guaranteed to return 0, permanently. Live-verified: with 13 active employees and 0 clocked in, "Absent Today" showed 0.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** With 13 active/0 clocked in, Dashboard and Attendance-module day view both correctly showed 13 absent; inserted one disposable test attendance row, both correctly dropped to 12; removed it, both correctly returned to 13.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-098, new, added to HIGH section, partially fixed — monthly/period instances in modules/reports/*.php documented, not fixed, pending a working-day calendar that doesn't exist in this codebase)
+
+### CC-100 — Fixed Dashboard Pending Approvals header total (KOM-099)
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-099
+- **Files changed:** `dashboard.php`
+- **Reason:** `$totalPending` summed only 4 of the 5 categories the "Pending Approvals" card displays, omitting recruitment applications from the header badge despite showing them as the card's 5th row.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Confirmed live counts (3 leave + 1 correction + 0 updates + 0 overtime + 1 recruitment): header showed "4 pending" before the fix, "5 pending" after — now matching the sum of all 5 visible rows.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-099, new, added to LOW section, Fixed)
+
+### CC-101 — Master Remediation Register updated for Phase 4 Workflow Group 13
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-098, KOM-099
+- **Files changed:** `docs/remediation/Findings/08-master-remediation-register.md`
+- **Reason:** Record this workflow group's outcomes per the program's change-control requirement.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (this entry documents that update itself)
+
+### CC-102 — Change Control Log updated for Phase 4 Workflow Group 13
+
+- **Date:** 2026-07-13
+- **Phase:** 4
+- **Finding ID(s) addressed:** N/A (documentation-only)
+- **Files changed:** `docs/remediation/Regression/change-control-template.md`
+- **Reason:** Record this log's own Phase 4 Workflow Group 13 entries (CC-099–CC-102).
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
+
 ---
 
 ## Change Log for This Document
@@ -1241,3 +1289,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-13 | 6 entries (CC-082–CC-087) recorded for Phase 4, Workflow Group 10 (Temporary Employee Module) | Remediation Program — Phase 4 |
 | 2026-07-13 | 5 entries (CC-088–CC-092) recorded for Phase 4, Workflow Group 11 (Notifications) | Remediation Program — Phase 4 |
 | 2026-07-13 | 6 entries (CC-093–CC-098) recorded for Phase 4, Workflow Group 12 (Documents Generation Lifecycle) | Remediation Program — Phase 4 |
+| 2026-07-13 | 4 entries (CC-099–CC-102) recorded for Phase 4, Workflow Group 13 (Reports & Dashboards Consistency) | Remediation Program — Phase 4 |

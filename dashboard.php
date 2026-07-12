@@ -25,7 +25,15 @@ try {
     // Today attendance
     $clockedIn    = db()->query("SELECT COUNT(*) FROM attendance WHERE attendance_date = '$today' AND sign_in IS NOT NULL AND sign_out IS NULL")->fetchColumn();
     $lateToday    = db()->query("SELECT COUNT(*) FROM attendance WHERE attendance_date = '$today' AND is_late = 1")->fetchColumn();
-    $absentToday  = db()->query("SELECT COUNT(*) FROM attendance WHERE attendance_date = '$today' AND is_absent = 1")->fetchColumn();
+    // KOM-098: attendance.is_absent defaults to 0 and is never written by any
+    // code path (a row only ever gets created on kiosk sign-in) — so "WHERE
+    // is_absent=1" was structurally guaranteed to return 0 every single day,
+    // permanently. "Absent Today" now means what its own sub-label ("Not
+    // clocked in") already said: active/probation employees with no
+    // attendance row at all today.
+    $absentToday  = db()->query("SELECT COUNT(*) FROM employees e
+                                 WHERE e.status IN ('active','probation')
+                                 AND NOT EXISTS (SELECT 1 FROM attendance a WHERE a.employee_id = e.id AND a.attendance_date = '$today')")->fetchColumn();
 
     // Pending approvals
     $pendingLeave   = db()->query("SELECT COUNT(*) FROM leave_applications WHERE status = 'pending'")->fetchColumn();
@@ -34,7 +42,12 @@ try {
     $pendingOT      = db()->query("SELECT COUNT(*) FROM overtime_records WHERE status = 'pending'")->fetchColumn();
     $pendingRecruitment = db()->query("SELECT COUNT(*) FROM recruitment_applications WHERE status = 'submitted'")->fetchColumn();
 
-    $totalPending = $pendingLeave + $pendingCorrect + $pendingUpdates + $pendingOT;
+    // KOM-099: the "Pending Approvals" card lists 5 rows (Leave, Timesheet
+    // Corrections, Overtime, Profile Updates, New Applications) but this
+    // total previously summed only 4 of them, omitting $pendingRecruitment —
+    // the header badge and the card's own visible rows disagreed with each
+    // other (e.g. "4 pending" header over 5 rows that actually summed to 5).
+    $totalPending = $pendingLeave + $pendingCorrect + $pendingUpdates + $pendingOT + $pendingRecruitment;
 
     // Monthly summary
     $monthlyOT = db()->query("SELECT COALESCE(SUM(approved_hours),0) FROM overtime_records WHERE DATE_FORMAT(overtime_date,'%Y-%m') = '$thisMonth' AND status = 'approved'")->fetchColumn();
@@ -43,17 +56,23 @@ try {
     $openVacancies = db()->query("SELECT COUNT(*) FROM recruitment_vacancies WHERE status = 'open'")->fetchColumn();
 
     // Monthly attendance trend (last 7 days)
+    // KOM-098: "absent" previously filtered on the dead is_absent column
+    // (always 0 — see the Absent Today fix above) and was therefore always
+    // 0 for every day of this chart. "present" here means "has an
+    // attendance row" (the is_absent=0 filter it used to carry was always
+    // true anyway, so dropping it changes nothing); "absent" is now the
+    // same active/probation-minus-present logic used for Absent Today.
+    $activeForTrend = (int)db()->query("SELECT COUNT(*) FROM employees WHERE status IN ('active','probation')")->fetchColumn();
     $trendData = [];
     for ($i = 6; $i >= 0; $i--) {
         $d = date('Y-m-d', strtotime("-$i days"));
-        $present = db()->prepare("SELECT COUNT(*) FROM attendance WHERE attendance_date = ? AND is_absent = 0");
+        $present = db()->prepare("SELECT COUNT(*) FROM attendance WHERE attendance_date = ?");
         $present->execute([$d]);
-        $absent = db()->prepare("SELECT COUNT(*) FROM attendance WHERE attendance_date = ? AND is_absent = 1");
-        $absent->execute([$d]);
+        $presentCount = (int)$present->fetchColumn();
         $trendData[] = [
             'date'    => date('D d', strtotime($d)),
-            'present' => (int)$present->fetchColumn(),
-            'absent'  => (int)$absent->fetchColumn(),
+            'present' => $presentCount,
+            'absent'  => max(0, $activeForTrend - $presentCount),
         ];
     }
 
