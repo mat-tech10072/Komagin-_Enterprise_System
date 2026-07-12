@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; **3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6 — more to follow as each subsequent workflow group completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; **4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7 — more to follow as each subsequent workflow group completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -882,6 +882,54 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** N/A
 - **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
 
+### CC-071 — New "Add Application" entry point for recruitment (KOM-087)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-087
+- **Files changed:** `modules/recruitment/index.php`, new `modules/recruitment/application_save.php`
+- **Reason:** No code anywhere created a `recruitment_applications` row except demo seed data — the recruitment pipeline's first step had no working entry point. Added a new "Add Application" button/modal and handler mirroring the existing "Post Vacancy" pattern already in the same module.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Submitted a new application against a real open vacancy (visible immediately in the Applications tab); duplicate submission (same email + same vacancy) correctly rejected; same email against a different vacancy correctly succeeded (per-vacancy duplicate scoping, not global).
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-087)
+
+### CC-072 — Documented missing employee-conversion step, not built (KOM-088)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-088 (new)
+- **Files changed:** None (documentation only, pending decision)
+- **Reason:** `recruitment_applications.converted_to_employee_id` exists in the schema but is never read or written by any code — a real conversion feature (pre-populate Add Employee, write back the link, decide cross-system duplicate detection) is a feature build, not a bug fix, and was flagged rather than built unilaterally, consistent with KOM-072/083/085's handling this phase.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (KOM-088, new, Open)
+
+### CC-073 — Master Remediation Register updated for Phase 4 Workflow Group 7
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-087, KOM-088 (new)
+- **Files changed:** `docs/remediation/Findings/08-master-remediation-register.md`
+- **Reason:** Record this workflow group's outcomes per the program's change-control requirement.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (this entry documents that update itself)
+
+### CC-074 — Change Control Log updated for Phase 4 Workflow Group 7
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** N/A (documentation-only)
+- **Files changed:** `docs/remediation/Regression/change-control-template.md`
+- **Reason:** Record this log's own Phase 4 Workflow Group 7 entries (CC-071–CC-074).
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
+
 ---
 
 ## Change Log for This Document
@@ -899,3 +947,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-12 | 5 entries (CC-062–CC-066) recorded for Phase 4, Workflow Group 5 (Payroll) | Remediation Program — Phase 4 |
 | 2026-07-12 | 1 entry (CC-067) recording KOM-085/KOM-086 user decisions | Remediation Program — Phase 4 |
 | 2026-07-12 | 3 entries (CC-068–CC-070) recorded for Phase 4, Workflow Group 6 (Performance Management) | Remediation Program — Phase 4 |
+| 2026-07-12 | 4 entries (CC-071–CC-074) recorded for Phase 4, Workflow Group 7 (Recruitment) | Remediation Program — Phase 4 |

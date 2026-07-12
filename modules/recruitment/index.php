@@ -52,6 +52,7 @@ if ($activeTab === 'vacancies') {
     $applications = $stmt->fetchAll();
 }
 
+$openVacancies = db()->query("SELECT id, job_title FROM recruitment_vacancies WHERE status='open' ORDER BY job_title")->fetchAll();
 $vacStats = db()->query("SELECT status, COUNT(*) as cnt FROM recruitment_vacancies GROUP BY status")->fetchAll(PDO::FETCH_KEY_PAIR);
 $appStats = db()->query("SELECT status, COUNT(*) as cnt FROM recruitment_applications GROUP BY status")->fetchAll(PDO::FETCH_KEY_PAIR);
 
@@ -67,6 +68,7 @@ $csrf = generateCsrfToken();
         <p class="page-subtitle">Manage vacancies and applicants</p>
     </div>
     <div class="page-actions">
+        <button class="btn btn-secondary btn-sm" data-modal-open="addApplicationModal">Add Application</button>
         <button class="btn btn-primary btn-sm" data-modal-open="addVacancyModal">Post Vacancy</button>
     </div>
 </div>
@@ -212,6 +214,83 @@ $csrf = generateCsrfToken();
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
                 <button type="submit" class="btn btn-primary">Post Vacancy</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Application Modal -->
+<div class="modal-overlay" id="addApplicationModal">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h5 class="modal-title">Add Application</h5>
+            <button class="modal-close" data-modal-close>&times;</button>
+        </div>
+        <form method="POST" action="<?= APP_URL ?>/modules/recruitment/application_save.php" enctype="multipart/form-data" data-validate>
+            <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Vacancy <span class="required">*</span></label>
+                    <select class="form-select" name="vacancy_id" required>
+                        <option value="">Select vacancy</option>
+                        <?php foreach ($openVacancies as $ov): ?>
+                            <option value="<?= $ov['id'] ?>"><?= e($ov['job_title']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if (empty($openVacancies)): ?>
+                    <div class="form-hint">No open vacancies — post one first.</div>
+                    <?php endif; ?>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">First Name <span class="required">*</span></label>
+                        <input type="text" class="form-control" name="first_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Last Name <span class="required">*</span></label>
+                        <input type="text" class="form-control" name="last_name" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Email <span class="required">*</span></label>
+                        <input type="email" class="form-control" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Phone</label>
+                        <input type="tel" class="form-control" name="phone">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Current Position</label>
+                        <input type="text" class="form-control" name="current_position">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Current Employer</label>
+                        <input type="text" class="form-control" name="current_employer">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Years of Experience</label>
+                    <input type="number" class="form-control" name="years_experience" min="0" style="max-width:140px;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Qualifications</label>
+                    <textarea class="form-control" name="qualifications" rows="2"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Cover Letter</label>
+                    <textarea class="form-control" name="cover_letter" rows="3"></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">CV / Resume</label>
+                    <input type="file" class="form-control" name="cv_file" accept=".pdf,.doc,.docx">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Application</button>
             </div>
         </form>
     </div>
