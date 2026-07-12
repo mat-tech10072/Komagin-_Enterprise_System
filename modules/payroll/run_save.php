@@ -28,9 +28,25 @@ $totals = db()->prepare("SELECT COUNT(*) as cnt, SUM(gross_salary) as gross,
 $totals->execute([$month,$year]);
 $t = $totals->fetch(PDO::FETCH_ASSOC);
 
-db()->prepare("INSERT INTO payroll_runs (period_month,period_year,status,total_gross,total_net,total_deductions,employee_count,processed_by)
-    VALUES (?,?,'draft',?,?,?,?,?)")
-    ->execute([$month,$year,$t['gross']??0,$t['net']??0,$t['ded']??0,$t['cnt']??0,$_SESSION['user_id']]);
+// KOM-030: the exists-check above and this INSERT are two separate
+// statements — two concurrent "Create Payroll Run" submissions for the
+// same period could both pass the check before either commits. The
+// table's own UNIQUE KEY (period_month, period_year) already prevents an
+// actual duplicate row from existing, but without this try/catch the
+// losing request hit that constraint as an uncaught PDOException and
+// crashed with a raw fatal-error page instead of a clean "already exists"
+// message.
+try {
+    db()->prepare("INSERT INTO payroll_runs (period_month,period_year,status,total_gross,total_net,total_deductions,employee_count,processed_by)
+        VALUES (?,?,'draft',?,?,?,?,?)")
+        ->execute([$month,$year,$t['gross']??0,$t['net']??0,$t['ded']??0,$t['cnt']??0,$_SESSION['user_id']]);
+} catch (PDOException $e) {
+    if ($e->getCode() === '23000') { // duplicate key — lost the race, not a real error
+        header('Location: ' . APP_URL . '/modules/payroll/index.php?month='.$month.'&year='.$year.'&err=run_exists');
+        exit;
+    }
+    throw $e;
+}
 
 auditLog('payroll_runs','create',(int)db()->lastInsertId(),null,null,"Created payroll run {$month}/{$year}");
 header('Location: ' . APP_URL . '/modules/payroll/index.php?month='.$month.'&year='.$year.'&success=run_created');

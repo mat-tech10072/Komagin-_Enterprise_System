@@ -27,9 +27,17 @@ $totals = db()->prepare("SELECT COUNT(*) as cnt, SUM(gross_salary) as gross,
 $totals->execute([$run['period_month'],$run['period_year']]);
 $t = $totals->fetch(PDO::FETCH_ASSOC);
 
-db()->prepare("UPDATE payroll_runs SET status='finalized',total_gross=?,total_net=?,
-    total_deductions=?,employee_count=?,finalized_at=NOW() WHERE id=?")
-    ->execute([$t['gross']??0,$t['net']??0,$t['ded']??0,$t['cnt']??0,$runId]);
+// KOM-030: same check-then-act race as run_publish.php — make the status
+// transition itself the atomic guard against a concurrent finalize request
+// recalculating and overwriting totals from a second, possibly different
+// snapshot.
+$claimed = db()->prepare("UPDATE payroll_runs SET status='finalized',total_gross=?,total_net=?,
+    total_deductions=?,employee_count=?,finalized_at=NOW() WHERE id=? AND status IN ('draft','processing')");
+$claimed->execute([$t['gross']??0,$t['net']??0,$t['ded']??0,$t['cnt']??0,$runId]);
+if ($claimed->rowCount() === 0) {
+    header('Location: ' . APP_URL . '/modules/payroll/index.php?month='.$run['period_month'].'&year='.$run['period_year'].'&success=finalized');
+    exit;
+}
 
 // Mark all draft payslips in this period as finalized
 db()->prepare("UPDATE payslips SET status='finalized' WHERE period_month=? AND period_year=? AND status='draft'")

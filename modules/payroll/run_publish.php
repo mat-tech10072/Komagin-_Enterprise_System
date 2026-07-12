@@ -20,7 +20,24 @@ if (!$run || $run['status'] !== 'finalized') {
     exit;
 }
 
-db()->prepare("UPDATE payroll_runs SET status='published' WHERE id=?")->execute([$runId]);
+// KOM-030: the SELECT check above and this UPDATE were two separate
+// statements with no lock between them — two concurrent publish requests
+// (double-click, two admin tabs) could both pass the check before either
+// commits, then both proceed to the email-sending block below and send
+// every employee's payslip twice. Making the status transition itself the
+// atomic guard (UPDATE ... WHERE status='finalized', check rowCount) means
+// only the request that actually wins the race proceeds past this point;
+// MySQL/InnoDB guarantees this single-row UPDATE is atomic against
+// concurrent transactions without needing an explicit lock or transaction
+// block.
+$claimed = db()->prepare("UPDATE payroll_runs SET status='published' WHERE id=? AND status='finalized'");
+$claimed->execute([$runId]);
+if ($claimed->rowCount() === 0) {
+    // Another concurrent request already published this run — do not
+    // resend emails or duplicate the audit trail.
+    header('Location: ' . APP_URL . '/modules/payroll/index.php?month='.$run['period_month'].'&year='.$run['period_year'].'&success=published');
+    exit;
+}
 
 // Mark payslips as sent so employees can see them
 db()->prepare("UPDATE payslips SET status='sent' WHERE period_month=? AND period_year=? AND status='finalized'")

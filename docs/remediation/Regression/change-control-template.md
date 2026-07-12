@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; **4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4 — more to follow as each subsequent workflow group completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; **5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5 — more to follow as each subsequent workflow group completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -774,6 +774,66 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** N/A
 - **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
 
+### CC-062 — Fixed payroll run create/finalize/publish race condition (KOM-030, closing a pre-existing finding)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-030
+- **Files changed:** `modules/payroll/run_save.php`, `modules/payroll/run_finalize.php`, `modules/payroll/run_publish.php`
+- **Reason:** KOM-030 has been open since Phase 0 — correctly out of scope for Phase 3 (database schema, not business workflow), squarely in scope for Phase 4. All three payroll actions did a `SELECT` status check followed by a separate `UPDATE`/`INSERT` with no atomicity; a concurrent request could pass the same check twice, most seriously in `run_publish.php` where it would send every employee's payslip email a second time.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** A genuine 5-way simultaneous `POST` request test against `run_publish.php` for the same run — exactly 1 `audit_logs` publish entry resulted (down from the 5 that a naive check-then-act implementation would risk). Sequential create-duplicate and re-finalize attempts also confirmed clean (no crash, no duplicate row, no duplicate recalculation).
+- **Verification result:** VERIFIED live with genuine concurrency, not just sequential retries
+- **Master Register updated:** Yes (KOM-030, closed)
+
+### CC-063 — Documented deductions/savings not reflected in payslip totals (KOM-085)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-085 (new)
+- **Files changed:** None (documentation only, pending decision)
+- **Reason:** `payslips.php` computes totals from only 3 manually-entered fields, never reading `payroll_deductions` or `employee_savings`; neither of those modules writes back either. This directly affects real employees' calculated net pay — the highest-stakes kind of change in the system — so it was documented and flagged rather than changed unilaterally.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (KOM-085, new, Open)
+
+### CC-064 — Documented orphaned `payroll_deductions` rows, no deletion applied (KOM-086)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-086 (new)
+- **Files changed:** None (documentation only, pending decision)
+- **Reason:** 32 of 67 `payroll_deductions` rows reference `employee_id` values that don't exist, despite an `ON DELETE CASCADE` FK. Consistent with this program's established practice (Phase 3, Stage 3.10), a data-integrity finding involving deletion of existing rows is documented with a recommendation, not acted on automatically.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (KOM-086, new, Open)
+
+### CC-065 — Master Remediation Register updated for Phase 4 Workflow Group 5
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-085, KOM-086 (new), KOM-030 (closed)
+- **Files changed:** `docs/remediation/Findings/08-master-remediation-register.md`
+- **Reason:** Record this workflow group's outcomes per the program's change-control requirement.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (this entry documents that update itself)
+
+### CC-066 — Change Control Log updated for Phase 4 Workflow Group 5
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** N/A (documentation-only)
+- **Files changed:** `docs/remediation/Regression/change-control-template.md`
+- **Reason:** Record this log's own Phase 4 Workflow Group 5 entries (CC-062–CC-066).
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
+
 ---
 
 ## Change Log for This Document
@@ -788,3 +848,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-12 | 5 entries (CC-046–CC-050) recorded for Phase 4, Workflow Group 2 (Department & Position Management) | Remediation Program — Phase 4 |
 | 2026-07-12 | 7 entries (CC-051–CC-057) recorded for Phase 4, Workflow Group 3 (Leave Management) | Remediation Program — Phase 4 |
 | 2026-07-12 | 4 entries (CC-058–CC-061) recorded for Phase 4, Workflow Group 4 (Attendance & Timesheets) | Remediation Program — Phase 4 |
+| 2026-07-12 | 5 entries (CC-062–CC-066) recorded for Phase 4, Workflow Group 5 (Payroll) | Remediation Program — Phase 4 |
