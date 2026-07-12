@@ -14,11 +14,17 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !verifyCsrfToken($_POST['csrf_token
 $title = trim($_POST['title'] ?? '');
 if (!$title) { setFlash('error','Title required.'); header('Location: ' . APP_URL . '/modules/training/index.php'); exit; }
 
-db()->prepare("INSERT INTO training_programs (title, training_type, trainer_name, venue, start_date, end_date, description, created_by)
-    VALUES (?,?,?,?,?,?,?,?)")
+// KOM-008 (continued): this was the third fatal crash found in the
+// Training module — training_programs has no training_type column, and
+// the real names for the form's "Trainer/Provider" and "Venue" fields are
+// provider and location, not trainer_name/venue. The form's training_type
+// select has no corresponding column to persist to; left unmapped rather
+// than guessed into an unrelated column (status is a workflow state, not
+// a training-type category).
+db()->prepare("INSERT INTO training_programs (title, provider, location, start_date, end_date, description, created_by)
+    VALUES (?,?,?,?,?,?,?)")
     ->execute([
         $title,
-        $_POST['training_type'] ?? 'internal',
         trim($_POST['trainer_name'] ?? '') ?: null,
         trim($_POST['venue'] ?? '') ?: null,
         $_POST['start_date'] ?: null,

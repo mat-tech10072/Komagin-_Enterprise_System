@@ -30,11 +30,17 @@ if ($activeTab === 'programs') {
     $countStmt = db()->query("SELECT COUNT(*) FROM training_attendance ta JOIN employees e ON ta.employee_id=e.id");
     $total = (int)$countStmt->fetchColumn();
     $pagination = paginate($total,$perPage,$page);
+    // KOM-008 (continued): training_attendance has no created_at column at
+    // all — this ORDER BY threw an uncaught PDOException on every visit to
+    // this tab, independent of the enrol.php bug fixed above. The whole
+    // Attendance tab (reading, not just writing) has never worked. Ordering
+    // by id DESC is the closest available proxy for "most recently
+    // enrolled" since there's no timestamp column to order by.
     $stmt = db()->query("SELECT ta.*, e.first_name, e.last_name, e.employee_number, tp.title as program_title
         FROM training_attendance ta
         JOIN employees e ON ta.employee_id=e.id
         JOIN training_programs tp ON ta.training_id=tp.id
-        ORDER BY ta.created_at DESC LIMIT $perPage OFFSET {$pagination['offset']}");
+        ORDER BY ta.id DESC LIMIT $perPage OFFSET {$pagination['offset']}");
     $attendance = $stmt->fetchAll();
 }
 
@@ -73,19 +79,24 @@ $csrf = generateCsrfToken();
         <?php if (empty($programs)): ?>
         <div class="empty-state"><div class="empty-state-title">No training programs yet</div><div class="empty-state-desc">Add your first training program to get started.</div></div>
         <?php else: ?>
+        <!-- KOM-008 (continued): previously read $p['training_type'] and
+             $p['trainer_name'], neither of which exist in training_programs
+             (real columns: provider, location) -- silently blank on every
+             row rather than crashing, since PHP treats a missing array key
+             as null. -->
         <table class="table">
-            <thead><tr><th>Title</th><th>Type</th><th>Trainer</th><th>Start Date</th><th>End Date</th><th>Enrolments</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Title</th><th>Provider</th><th>Location</th><th>Start Date</th><th>End Date</th><th>Enrolments</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
             <?php foreach ($programs as $p): ?>
             <tr>
                 <td style="font-weight:600;"><?= e($p['title']) ?></td>
-                <td style="font-size:0.72rem;"><?= ucwords(str_replace('_',' ',$p['training_type'] ?? '')) ?></td>
-                <td style="font-size:0.75rem;"><?= e($p['trainer_name'] ?? '—') ?></td>
+                <td style="font-size:0.75rem;"><?= e($p['provider'] ?? '—') ?></td>
+                <td style="font-size:0.75rem;"><?= e($p['location'] ?? '—') ?></td>
                 <td style="font-size:0.75rem;"><?= $p['start_date'] ? formatDate($p['start_date']) : '—' ?></td>
                 <td style="font-size:0.75rem;"><?= $p['end_date'] ? formatDate($p['end_date']) : '—' ?></td>
                 <td><span class="badge badge-info"><?= $p['attendees'] ?></span></td>
                 <td>
-                    <?php $sc=['planned'=>'badge-secondary','active'=>'badge-success','completed'=>'badge-info','cancelled'=>'badge-danger'];?>
+                    <?php $sc=['planned'=>'badge-secondary','ongoing'=>'badge-success','completed'=>'badge-info','cancelled'=>'badge-danger'];?>
                     <span class="badge <?= $sc[$p['status']] ?? 'badge-secondary' ?>"><?= ucfirst($p['status']) ?></span>
                 </td>
                 <td>
@@ -101,8 +112,18 @@ $csrf = generateCsrfToken();
         <?php if (empty($attendance)): ?>
         <div class="empty-state"><div class="empty-state-title">No enrolments yet</div></div>
         <?php else: ?>
+        <!-- KOM-008 (continued): this table previously read $a['created_at'],
+             $a['status'], and $a['score'] -- none of which exist in
+             training_attendance (the real columns are attended,
+             certificate_file, certificate_expiry, notes). Since PHP treats
+             an undefined array key as null rather than fatally erroring,
+             this rendered silently blank/wrong values on every row rather
+             than crashing outright. Corrected to the real columns, and
+             added the "Mark Attended" action this tab never had -- with no
+             way to record completion, every enrolment was permanently
+             stuck at "not attended" regardless of what actually happened. -->
         <table class="table">
-            <thead><tr><th>Employee</th><th>Program</th><th>Enrolled</th><th>Status</th><th>Score</th></tr></thead>
+            <thead><tr><th>Employee</th><th>Program</th><th>Attended</th><th>Certificate</th><th>Actions</th></tr></thead>
             <tbody>
             <?php foreach ($attendance as $a): ?>
             <tr>
@@ -113,12 +134,19 @@ $csrf = generateCsrfToken();
                     <div class="emp-num"><?= e($a['employee_number']) ?></div>
                 </td>
                 <td style="font-size:0.75rem;"><?= e($a['program_title']) ?></td>
-                <td style="font-size:0.72rem;"><?= formatDate($a['created_at']) ?></td>
                 <td>
-                    <?php $sc=['enrolled'=>'badge-info','in_progress'=>'badge-warning','completed'=>'badge-success','failed'=>'badge-danger','withdrawn'=>'badge-secondary'];?>
-                    <span class="badge <?= $sc[$a['status']] ?? 'badge-secondary' ?>"><?= ucfirst(str_replace('_',' ',$a['status'])) ?></span>
+                    <span class="badge <?= $a['attended'] ? 'badge-success' : 'badge-secondary' ?>"><?= $a['attended'] ? 'Yes' : 'No' ?></span>
                 </td>
-                <td style="font-size:0.75rem;"><?= $a['score'] !== null ? $a['score'].'%' : '—' ?></td>
+                <td style="font-size:0.72rem;"><?= $a['certificate_file'] ? '✓ On file' . ($a['certificate_expiry'] ? ' (exp. '.formatDate($a['certificate_expiry']).')' : '') : '—' ?></td>
+                <td>
+                    <?php if (!$a['attended'] && canEdit('training.manage')): ?>
+                    <form method="POST" action="<?= APP_URL ?>/modules/training/attendance_update.php" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+                        <input type="hidden" name="id" value="<?= $a['id'] ?>">
+                        <button type="submit" class="btn btn-ghost btn-sm">Mark Attended</button>
+                    </form>
+                    <?php endif; ?>
+                </td>
             </tr>
             <?php endforeach; ?>
             </tbody>
@@ -138,20 +166,9 @@ $csrf = generateCsrfToken();
         <form method="POST" action="<?= APP_URL ?>/modules/training/save.php" data-validate>
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
             <div class="modal-body">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Title <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="title" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Type</label>
-                        <select class="form-select" name="training_type">
-                            <option value="internal">Internal</option>
-                            <option value="external">External</option>
-                            <option value="online">Online</option>
-                            <option value="on_the_job">On the Job</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">Title <span class="required">*</span></label>
+                    <input type="text" class="form-control" name="title" required>
                 </div>
                 <div class="form-row">
                     <div class="form-group">

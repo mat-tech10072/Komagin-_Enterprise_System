@@ -16,12 +16,16 @@ $empId     = (int)($_POST['employee_id'] ?? 0);
 
 if (!$programId || !$empId) { setFlash('error','Program and employee are required.'); header('Location: ' . APP_URL . '/modules/training/index.php'); exit; }
 
-$existing = db()->prepare("SELECT id FROM training_attendance WHERE program_id=? AND employee_id=?");
+// KOM-008: training_attendance's real FK column is training_id, not
+// program_id, and it has no created_by column at all — this duplicate
+// check (and the INSERT below) threw an uncaught PDOException on every
+// single enrolment attempt, before ever reaching the actual insert.
+$existing = db()->prepare("SELECT id FROM training_attendance WHERE training_id=? AND employee_id=?");
 $existing->execute([$programId, $empId]);
 if ($existing->fetch()) { setFlash('warning','Employee already enrolled in this program.'); header('Location: ' . APP_URL . '/modules/training/index.php'); exit; }
 
-db()->prepare("INSERT INTO training_attendance (program_id, employee_id, created_by) VALUES (?,?,?)")
-    ->execute([$programId, $empId, $_SESSION['user_id']]);
+db()->prepare("INSERT INTO training_attendance (training_id, employee_id) VALUES (?,?)")
+    ->execute([$programId, $empId]);
 
 auditLog('training','enrol',null,null,json_encode(['program'=>$programId,'employee'=>$empId]));
 setFlash('success','Employee enrolled successfully.');
