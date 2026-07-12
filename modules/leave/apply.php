@@ -123,8 +123,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 error_log('Leave workflow creation failed: '.$wfEx->getMessage());
             }
 
-            // Notify HR managers
-            notifyRole(['hr_manager','super_admin'],'New leave application requires approval.','leave',APP_URL.'/modules/leave/index.php');
+            // Notify HR managers. KOM-007: this previously passed an array
+            // as the $role argument (string-typed, no coercion possible)
+            // with the remaining arguments shifted out of order — every
+            // submission threw an uncaught TypeError at this line, after
+            // the application record and balance reservation had already
+            // committed successfully. notifyRole() takes one role at a
+            // time, so call it once per role.
+            $applicantName = ($empForWf['first_name'] ?? '') . ' ' . ($empForWf['last_name'] ?? '');
+            foreach (['hr_manager','super_admin'] as $notifyRoleName) {
+                notifyRole($notifyRoleName, 'warning', 'New Leave Application',
+                    trim($applicantName) . " submitted a {$days}-day leave application requiring approval.",
+                    APP_URL . '/modules/leave/index.php');
+            }
 
             setFlash('success','Leave application submitted successfully.');
             header('Location: ' . APP_URL . '/modules/leave/index.php');

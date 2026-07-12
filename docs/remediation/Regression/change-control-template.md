@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; **5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2 — more to follow as each subsequent workflow group completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; **7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3 — more to follow as each subsequent workflow group completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -642,6 +642,90 @@ Copy this block for every change and append it to the log below.
 - **Verification result:** N/A
 - **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
 
+### CC-051 — Fixed rejected leave never restoring `remaining_days` (KOM-081)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-081
+- **Files changed:** `modules/leave/approve.php`
+- **Reason:** The reject branch only ever reversed `pending_days`, never crediting `remaining_days` back — every rejected leave application permanently shrank the employee's real balance by the rejected amount. Directly contradicts the Phase 4 charter's explicit requirement.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** A 2-day request reserved a balance down to 7.0; after rejection, both `pending_days` and `remaining_days` now correctly return to their pre-application values (was: only `pending_days` restored).
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-081)
+
+### CC-052 — Fixed `notifyRole()` crash on every leave submission (KOM-007, closing a pre-existing finding)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-007
+- **Files changed:** `modules/leave/apply.php`
+- **Reason:** KOM-007 has been open since Phase 0 — correctly out of scope for Phases 1–3 (authorization, authentication, database), squarely in scope for Phase 4. `notifyRole()` was called with an array where a string role is required and the remaining arguments shifted out of order, throwing a fatal `TypeError` after the application record and balance reservation had already committed.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Leave submission now returns a clean redirect; `hr_manager`/`super_admin` both receive a correctly-populated notification.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-007, closed)
+
+### CC-053 — Corrected `notifications.type` ENUM misuse (self-correction of Workflow Group 1's own new code)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** N/A (pre-release self-correction, not a separately registered finding — caught before Group 1's code had been exercised with this exact input)
+- **Files changed:** `modules/employees/status.php`, `modules/employees/edit.php`
+- **Reason:** While fixing KOM-007, discovered `notifications.type` is a 4-value ENUM (`info`/`success`/`warning`/`danger`), not a free-text category — an invalid value is silently stored as an empty string rather than erroring. The three "awaiting approval" notifications added in Workflow Group 1 (termination, transfer, promotion) had used `'approval'`, an invalid value. Standardized all four (including the leave one) to `'warning'`.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Confirmed notification rows now populate a valid, non-blank `type`.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** N/A (correction to already-Fixed KOM-072 findings, no register status change)
+
+### CC-054 — Synced `approval_workflows`/`approval_stages` with real leave decisions (KOM-082)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-082
+- **Files changed:** `modules/leave/approve.php`
+- **Reason:** `approve.php` decides the real outcome of a leave application directly against `leave_applications`, but never called `ApprovalEngine::act()` — the linked `approval_workflows` row stayed `pending` forever after a real decision was made, so the Approvals module would show it as permanently awaiting action.
+- **Tests added/updated:** None beyond live functional re-testing
+- **Regression tests executed:** Approving a leave application now correctly resolves both stages (`Supervisor Review`, `HR Approval`) and the parent workflow to `approved` in one action.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes (KOM-082)
+
+### CC-055 — Documented leave's single-stage-in-practice approval gap (KOM-083)
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-083 (new)
+- **Files changed:** None (documentation only, pending decision)
+- **Reason:** `approve.php` never actually enforces the two-stage (Supervisor Review, HR Approval) flow the schema models — a single `leave.approve` holder resolves everything. Flagged for a product decision (mirrors KOM-072's handling) rather than built unilaterally.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (KOM-083, new, Open)
+
+### CC-056 — Master Remediation Register updated for Phase 4 Workflow Group 3
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** KOM-081, KOM-082, KOM-083 (new), KOM-007 (closed)
+- **Files changed:** `docs/remediation/Findings/08-master-remediation-register.md`
+- **Reason:** Record this workflow group's outcomes per the program's change-control requirement.
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** Yes (this entry documents that update itself)
+
+### CC-057 — Change Control Log updated for Phase 4 Workflow Group 3
+
+- **Date:** 2026-07-12
+- **Phase:** 4
+- **Finding ID(s) addressed:** N/A (documentation-only)
+- **Files changed:** `docs/remediation/Regression/change-control-template.md`
+- **Reason:** Record this log's own Phase 4 Workflow Group 3 entries (CC-051–CC-057).
+- **Tests added/updated:** N/A
+- **Regression tests executed:** N/A
+- **Verification result:** N/A
+- **Master Register updated:** N/A (this entry documents the change-control log itself, not the register)
+
 ---
 
 ## Change Log for This Document
@@ -654,3 +738,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-12 | 11 entries (CC-025–CC-035) recorded for Phase 3 | Remediation Program — Phase 3 |
 | 2026-07-12 | 10 entries (CC-036–CC-045) recorded for Phase 4, Workflow Group 1 (Employee Management) | Remediation Program — Phase 4 |
 | 2026-07-12 | 5 entries (CC-046–CC-050) recorded for Phase 4, Workflow Group 2 (Department & Position Management) | Remediation Program — Phase 4 |
+| 2026-07-12 | 7 entries (CC-051–CC-057) recorded for Phase 4, Workflow Group 3 (Leave Management) | Remediation Program — Phase 4 |

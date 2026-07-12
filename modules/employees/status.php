@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     json_encode(['requested_status'=>'terminated','reason'=>$reason]),
                     $reason);
 
-                notifyRole('hr_manager', 'approval', 'Termination Request Awaiting Approval',
+                notifyRole('hr_manager', 'warning', 'Termination Request Awaiting Approval',
                     "{$emp['first_name']} {$emp['last_name']} ({$emp['employee_number']}) has a pending termination request.",
                     APP_URL . '/modules/approvals/index.php');
 

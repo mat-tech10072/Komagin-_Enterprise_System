@@ -150,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $title = "Transfer Request: {$firstName} {$lastName} ({$emp['employee_number']})";
                     $wfEngine->create('transfer', $id, 'employees', $title, $_SESSION['user_id'], $id, 'normal', null,
                         json_encode(['department_id'=>$deptId,'supervisor_id'=>$supId,'reason'=>$editReason]));
-                    notifyRole('hr_manager', 'approval', 'Transfer Request Awaiting Approval',
+                    notifyRole('hr_manager', 'warning', 'Transfer Request Awaiting Approval',
                         "{$firstName} {$lastName} ({$emp['employee_number']}) has a pending transfer request.",
                         APP_URL . '/modules/approvals/index.php');
                     $pendingNotices[] = 'transfer (department/supervisor change)';
@@ -161,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $title = "Promotion Request: {$firstName} {$lastName} ({$emp['employee_number']})";
                     $wfEngine->create('promotion', $id, 'employees', $title, $_SESSION['user_id'], $id, 'normal', null,
                         json_encode(['position_id'=>$posId,'basic_salary'=>$newSalary,'reason'=>$editReason]));
-                    notifyRole('hr_manager', 'approval', 'Promotion Request Awaiting Approval',
+                    notifyRole('hr_manager', 'warning', 'Promotion Request Awaiting Approval',
                         "{$firstName} {$lastName} ({$emp['employee_number']}) has a pending promotion request.",
                         APP_URL . '/modules/approvals/index.php');
                     $pendingNotices[] = 'promotion (position/salary change)';

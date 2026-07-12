@@ -84,10 +84,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             } else {
-                // Rejected — remove pending from balance
-                db()->prepare("UPDATE leave_balances SET pending_days = GREATEST(0, pending_days - ?)
+                // Rejected — release the reservation apply.php made (both
+                // pending_days AND remaining_days; apply.php debits
+                // remaining_days at submission time, so rejecting without
+                // crediting it back permanently shrinks the employee's
+                // balance by the rejected amount, every time).
+                db()->prepare("UPDATE leave_balances SET
+                    pending_days = GREATEST(0, pending_days - ?),
+                    remaining_days = LEAST(entitled_days, remaining_days + ?)
                     WHERE employee_id=? AND leave_type_id=? AND year=YEAR(?)")
-                    ->execute([$la['total_days'], $la['employee_id'], $la['leave_type_id'], $la['start_date']]);
+                    ->execute([$la['total_days'], $la['total_days'], $la['employee_id'], $la['leave_type_id'], $la['start_date']]);
+            }
+
+            // This page is the actual leave decision (apply.php's
+            // ApprovalEngine::create() call only ever records the request —
+            // nothing here previously called ApprovalEngine::act(), so the
+            // approval_workflows/approval_stages rows stayed 'pending'
+            // forever even after a real decision was made here, making the
+            // Approvals module show a permanently-stale entry for every
+            // leave application ever processed). Resolve the matching
+            // workflow/stage directly so both surfaces agree.
+            $wf = db()->prepare("SELECT id, current_stage FROM approval_workflows
+                WHERE workflow_type='leave' AND reference_table='leave_applications' AND reference_id=? AND status IN ('pending','in_review')");
+            $wf->execute([$id]);
+            if ($wfRow = $wf->fetch()) {
+                db()->prepare("UPDATE approval_workflows SET status=?, updated_at=NOW() WHERE id=?")
+                    ->execute([$newStatus, $wfRow['id']]);
+                // Resolve every still-pending stage, not just the current
+                // one — this page finalizes the decision outright rather
+                // than progressing through the engine's normal per-stage
+                // flow, so no stage should be left dangling at 'pending'.
+                db()->prepare("UPDATE approval_stages SET status=?, action=?, approver_user_id=?, comments=?, acted_at=NOW()
+                    WHERE workflow_id=? AND status='pending'")
+                    ->execute([$newStatus, $action, $_SESSION['user_id'], $remarks ?: null, $wfRow['id']]);
             }
 
             // Find employee's user account to notify
