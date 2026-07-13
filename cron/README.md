@@ -17,7 +17,7 @@ Phase 5, Stage 5.4. This directory runs recurring background tasks (token expiry
 2. Find your PHP CLI binary path. This varies by host and PHP version — check under cPanel → **Select PHP Version**, or ask your host's support; a common pattern is `/usr/local/bin/php` or `/usr/local/bin/ea-php82`. **Do not guess** — an incorrect path silently does nothing.
 3. Add a new cron job:
    - **Command**: `/usr/local/bin/php /home/CPANEL_USERNAME/public_html/cron/run.php` (replace both the PHP path and the site path with your actual values)
-   - **Schedule**: every 15–30 minutes is a reasonable starting point for this application's task set (nothing here is latency-sensitive to the minute). Adjust once Stage 5.6's reminder logic is live if a specific reminder needs tighter timing.
+   - **Schedule**: every 15–30 minutes is a reasonable starting point for this application's task set (nothing here is latency-sensitive to the minute). `send_reminders.php` (Stage 5.6) is safe at this cadence — its threshold checks are deduplicated per calendar day via `reminder_notifications_log`, so running the scheduler more often never produces duplicate reminder notifications.
 4. Save. cPanel runs the command on schedule; there's no need to keep a terminal session open (unlike a VPS `screen`/`tmux`-based worker).
 
 ## Checking it's working

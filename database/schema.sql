@@ -1674,3 +1674,20 @@ CREATE TABLE IF NOT EXISTS `password_reset_tokens` (
   KEY `idx_password_reset_tokens_user` (`user_id`),
   CONSTRAINT `password_reset_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: reminder_notifications_log
+-- New in Phase 5, Stage 5.6 — deferred notification workflows.
+-- Ensures each threshold-based reminder (cron/tasks/send_reminders.php)
+-- fires at most once per calendar day per underlying event, regardless
+-- of how frequently the scheduler itself runs (cron/README.md
+-- recommends 15-30 minutes for the other tasks).
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `reminder_notifications_log` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `reminder_key` varchar(150) NOT NULL COMMENT 'e.g. contract_expiry:employees:23',
+  `reminder_date` date NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_reminder_once_per_day` (`reminder_key`, `reminder_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

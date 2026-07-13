@@ -14,4 +14,13 @@ $stmt = db()->prepare("DELETE FROM employee_update_links
     WHERE (is_active = 0 OR is_revoked = 1 OR expires_at < NOW())
     AND created_at < DATE_SUB(NOW(), INTERVAL 180 DAY)");
 $stmt->execute();
-return $stmt->rowCount();
+$itemsProcessed = $stmt->rowCount();
+
+// Phase 5, Stage 5.6: reminder_notifications_log is a pure per-day dedup
+// marker (send_reminders.php) with no evidentiary/audit value of its own
+// — safe to prune well past any reminder's relevance window.
+$stmt2 = db()->prepare("DELETE FROM reminder_notifications_log WHERE reminder_date < DATE_SUB(CURDATE(), INTERVAL 90 DAY)");
+$stmt2->execute();
+$itemsProcessed += $stmt2->rowCount();
+
+return $itemsProcessed;

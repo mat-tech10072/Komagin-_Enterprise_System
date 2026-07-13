@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; 4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13; 1 more (CC-103) recording the KOM-045 close-out decision — all 13 Phase 4 workflow groups complete, see the Phase 4 Completion Report; 2 more (CC-104–CC-105) recorded for Phase 5, Stage 5.1; 1 more (CC-106) recorded for Phase 5, Stage 5.2; 1 more (CC-107) recorded for Phase 5, Stage 5.3; 1 more (CC-108) recorded for Phase 5, Stage 5.4; **2 more (CC-109–CC-110) recorded for Phase 5, Stage 5.5 — more to follow as each subsequent stage completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; 4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13; 1 more (CC-103) recording the KOM-045 close-out decision — all 13 Phase 4 workflow groups complete, see the Phase 4 Completion Report; 2 more (CC-104–CC-105) recorded for Phase 5, Stage 5.1; 1 more (CC-106) recorded for Phase 5, Stage 5.2; 1 more (CC-107) recorded for Phase 5, Stage 5.3; 1 more (CC-108) recorded for Phase 5, Stage 5.4; 2 more (CC-109–CC-110) recorded for Phase 5, Stage 5.5; **2 more (CC-111–CC-112) recorded for Phase 5, Stage 5.6 — more to follow as each subsequent stage completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -1368,6 +1368,34 @@ Copy this block for every change and append it to the log below.
 
 ---
 
+### CC-111 — Deferred notification workflows built (Stage 5.6)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** None directly — completes a completeness gap documented informationally in Phase 4 Workflow Group 11, same treatment as CC-108 (Stage 5.4)
+- **Files changed:** `cron/tasks/send_reminders.php` (replaces the Stage 5.4 no-op placeholder with 9 reminder categories)
+- **Reason:** Phase 4 Workflow Group 11 documented, but did not build, Training/Recruitment/scheduled-reminder notifications, since no scheduler existed at that point. Stage 5.4 built the scheduler; this fills in the real logic: employee contract expiry, probation ending, temp employee/consultant contract ending, employee document expiry, training starting soon, recruitment interview tomorrow, leave approval sitting unactioned (using the Stage 5.3 working-day calendar), and payroll run finalized-but-unpublished (also working-day-based). Each notifies `hr_manager` (or `payroll_manager` for the payroll category) via the existing `notifyRole()` convention.
+- **Tests added/updated:** None beyond live functional re-testing (see CC-112 for the dedup mechanism this depends on; both verified together).
+- **Regression tests executed:** Full 9-category live test using disposable `P5TEST`-prefixed rows dated to land exactly on each threshold (working-day thresholds computed via the app's own `countWorkingDays()`, not guessed). First run: `itemsProcessed=9`, 8 real notifications delivered to the one seeded `hr_manager` account (the 9th targets `payroll_manager`, no seeded active user, correctly a no-op recipient-wise while still counted as fired). Full scheduler run (`php cron/run.php`) against real production data: all 4 tasks `OK`, `send_reminders` correctly processes 0 items (no real data currently matches a threshold). Phase 1 regression 20/20, Phase 2 regression 29/29. All test data removed after verification.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** N/A (no specific finding; recorded here for full traceability)
+
+---
+
+### CC-112 — Per-day reminder dedup added (Stage 5.6 correction)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** None — a design gap in CC-111's own same-stage work, caught and fixed before commit
+- **Files changed:** `database/phase13_workflow_completeness_automation.sql` (extended — `reminder_notifications_log`), `database/schema.sql` (extended), `cron/tasks/send_reminders.php` (`fireOnce()` helper wraps every notification), `cron/tasks/cleanup_safe_temp_files.php` (90-day retention prune for the new log table), `cron/README.md` (cadence note updated)
+- **Reason:** `send_reminders.php`'s original design used only an exact-day threshold match as its safeguard against repeats, implicitly assuming a once-daily cron run. `cron/README.md` (written in Stage 5.4) actually recommends running the scheduler every 15-30 minutes — at that cadence every matching reminder would have re-fired on every invocation within its matching day. Caught during live testing by re-reading the scheduler's own setup instructions, not by external report. Fixed with `reminder_notifications_log` (`reminder_key` + `reminder_date`, `UNIQUE KEY` on the pair) and a `fireOnce()` helper: a UNIQUE-constraint failure on insert means "already sent today," and the notification is skipped. Retention cleanup added to the existing `cleanup_safe_temp_files.php` task, consistent with that task's existing scope (disposable, non-evidentiary data).
+- **Tests added/updated:** None beyond live functional re-testing.
+- **Regression tests executed:** Second run of `send_reminders.php` (fresh CLI process, same calendar day, immediately after CC-111's first run) — `itemsProcessed=0`, notification delta `0`, confirming no duplicate fires. Phase 1/Phase 2 regression suites re-run as part of CC-111's verification pass (20/20, 29/29) — this change does not affect either suite's code paths.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** N/A (no specific finding; folded into CC-111's traceability)
+
+---
+
 ## Change Log for This Document
 
 | Date | Change | Author |
@@ -1396,3 +1424,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-13 | 1 entry (CC-107) recorded for Phase 5, Stage 5.3 (Working-Day & Holiday Calendar) | Remediation Program — Phase 5 |
 | 2026-07-13 | 1 entry (CC-108) recorded for Phase 5, Stage 5.4 (Scheduled Task Infrastructure) | Remediation Program — Phase 5 |
 | 2026-07-13 | 2 entries (CC-109–CC-110) recorded for Phase 5, Stage 5.5 (Self-Service Password Recovery, Admin Surface Only) | Remediation Program — Phase 5 |
+| 2026-07-13 | 2 entries (CC-111–CC-112) recorded for Phase 5, Stage 5.6 (Deferred Notification Workflows) | Remediation Program — Phase 5 |

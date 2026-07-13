@@ -116,3 +116,21 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 -- the enum, consistent with how every other email flow (payslip,
 -- leave_approval, etc.) has its own type value.
 ALTER TABLE email_logs MODIFY COLUMN type enum('payslip','leave_approval','leave_rejection','document','general','test','password_reset') DEFAULT 'general';
+
+-- ── Stage 5.6: Deferred notification workflows ─────────────────────────
+-- cron/README.md (Stage 5.4) recommends running the scheduler every
+-- 15-30 minutes for the tasks that existed at that time (token expiry,
+-- temp-file cleanup — both safely idempotent no matter how often they
+-- run). send_reminders.php's reminders are threshold-based ("contract
+-- expires in exactly 7 days") and would otherwise re-fire on every
+-- single invocation within the same day at that cadence. This table
+-- makes each reminder fire at most once per calendar day per
+-- underlying event, regardless of how often the scheduler itself runs.
+CREATE TABLE IF NOT EXISTS reminder_notifications_log (
+  id int(10) unsigned NOT NULL AUTO_INCREMENT,
+  reminder_key varchar(150) NOT NULL COMMENT 'e.g. contract_expiry:employees:23',
+  reminder_date date NOT NULL,
+  created_at timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_reminder_once_per_day (reminder_key, reminder_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
