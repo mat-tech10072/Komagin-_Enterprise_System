@@ -1,0 +1,71 @@
+# Komagin HR — Phase 6: Production Readiness Baseline
+
+**Document type:** Phase 6 Deliverable — Required Baseline Review (charter §4)
+**Status:** Complete.
+**Date compiled:** 2026-07-13
+**Branch:** `phase-6-production-readiness-certification` (from Phase 5's final commit `f93170b`)
+**Backups taken before this review:** `database/backups/pre_phase6_backup_20260713_174730.sql` (full `mysqldump`), `database/backups/pre_phase6_files_backup_20260713_174730.tar.gz` (`uploads/` + `logs/`, the two runtime directories excluded from git).
+
+---
+
+## 0. Program Context Reviewed
+
+Phases 0–5 completion reports, the Master Remediation Register (99 findings, 0 Open as of Phase 5's close), the Change Control Log (136 entries), the existing Deployment inventory report, `cron/` infrastructure, database migration scripts, current `.htaccess` files, SMTP configuration, the Phase 5 security review, and all regression reports — reviewed in full ahead of this document, per charter §4.
+
+**One correction carried forward from that review**: `docs/remediation/Deployment/07-deployment-inventory-report.md` (Phase 0, dated 2026-07-11) is now partially stale on two points it could not have known about at the time — it documents `APP_ENV` defaulting to `'development'` (fixed in Phase 5 Stage 5.10, KOM-053) and states no cron/scheduler mechanism exists (built in Phase 5 Stage 5.4). This baseline supersedes those two specific points; the rest of that inventory remains accurate and is not repeated here.
+
+## 1. Production Configuration Review (charter §5)
+
+| Item | Current State | Verdict |
+|---|---|---|
+| `APP_URL` | Hardcoded string literal `'http://localhost/HR_Komagin'` (`config/config.php:9`) — not derived from `$_SERVER`, not environment-driven | **Gap.** Every deployment requires manually editing this constant. A real production blocker: without a fix, the app will generate broken links (password reset emails, notification links, redirects) pointing at `localhost` from a live server. |
+| `APP_ENV` | `getenv('APP_ENV') ?: 'production'` (`config/config.php:63`) — fail-closed default, fixed in Phase 5 | **Correct as-is.** No change needed. |
+| `DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASS` | Hardcoded constants (`config/config.php:12-15`); `DB_PASS` is blank (matches local XAMPP root/no-password convention) | **Gap for deployment, not a defect in this environment.** Needs to become environment-driven so credentials aren't hardcoded/committed for a real host, and the blank password must never reach production (KOM-054, still open). |
+| `.env.example` | Documents `APP_ENV`/`APP_URL`/`DB_*`/`SESSION_LIFETIME`/`APP_TIMEZONE` etc., but **nothing in the codebase actually loads a `.env` file** — only `APP_ENV` is read via `getenv()` | **Gap.** The file is aspirational, not a live mechanism, and is itself inconsistent with actual behavior (`APP_TIMEZONE=Africa/Johannesburg` in the example vs. `Pacific/Port_Moresby` hardcoded in `config.php`). |
+| Timezone | Hardcoded `date_default_timezone_set('Pacific/Port_Moresby')` (`config/config.php:49`) | **Acceptable as-is** — matches the business's actual timezone (already used meaningfully throughout Phase 5's working-calendar feature); not a portability concern the way `APP_URL`/DB credentials are. |
+| Mail/SMTP | 100% database-driven (`company_settings.email_settings` JSON column), zero hardcoded credentials anywhere in code | **Correct as-is.** One hardening note: `sendEmail()`'s SMTP client disables TLS certificate verification (`config/functions.php:477`, `verify_peer=>false`) — worth revisiting once a real SMTP provider with a verifiable certificate is configured for the droplet (whatever mail service is chosen — the app itself is provider-agnostic, only reads whatever host/port/credentials are entered in Settings). |
+| Sessions/cookies | `httponly`, `samesite=Strict`, `use_strict_mode=1` all hardcoded on; `secure` flag conditional on live HTTPS **or** `APP_ENV==='production'` | **Real sequencing risk, not a code defect.** Since `APP_ENV` now defaults to `production`, `cookie_secure` will be `true` before HTTPS is confirmed working on the new domain. If Let's Encrypt/Certbot's certificate isn't active yet at first cutover, secure-flagged cookies won't be sent over plain HTTP and login will silently fail. Must be an explicit, ordered step in the deployment guide: HTTPS live *before* first production login. |
+| Security headers | `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` set unconditionally in root `.htaccess`. **No CSP, no HSTS, no forced-HTTPS redirect anywhere** | **Gap — this is KOM-054, open since Phase 0/4 and never closed.** In scope for this phase. |
+| `logs/.htaccess` | Contains a UTF-8 BOM (`EF BB BF`) before `Deny from all` — confirmed via hex dump | **Real defect**, not cosmetic. A BOM before the first directive can cause some Apache/`mod_access_compat` combinations to silently skip the rule, making `logs/php_errors.log` web-accessible. Must be fixed. |
+| `.htaccess` files (10 total) | Provide 3 distinct protections: (1) block PHP execution in `uploads/` and its 4 asset subfolders, (2) `Deny from all` on `config/`, `database/`, `cron/`, `logs/`, (3) security headers + cache-control on the root | **Critical gap on the new platform, not a syntax nitpick.** Nginx does not read `.htaccess` files at all by default (`AllowOverride` has no Nginx equivalent) — **every one of these 10 files becomes silently inert the moment the app runs behind Nginx**, unless every rule is translated into Nginx `server`/`location` block directives. This is materially more serious than the cPanel-era "legacy Apache 2.2 syntax" question this baseline originally raised — that concern (`Deny from all` vs `Require all denied`) is now moot, replaced by a full rewrite requirement. Addressed as an explicit, checked-line-by-line task in the deployment guide (Stage 6.2) — the uploads/PHP-execution block in particular is a real security control, not paperwork. |
+| PHP version/extensions | No `composer.json`, no formal manifest anywhere. Minimum version is implicitly PHP 8.0 (via `match()` usage in `config/functions.php:476`). Required extensions in active use: `pdo_mysql`, `mbstring`, `fileinfo`, `openssl`. **Not required**: `gd`, `curl`, `ZipArchive` (confirmed absent from the codebase — simplifies the hosting checklist). | **Gap.** Nothing currently states this anywhere; needs to become an explicit checklist item. |
+| Folder permissions | `uploads/` subfolders created at runtime via `mkdir(..., 0755, true)`; `logs/` written to only in production mode; no folder-permission guidance exists beyond one line in `.env.example` | **Gap.** On a droplet, PHP-FPM runs as a specific configured user (e.g. `www-data`) — ownership (`chown -R www-data:www-data`) matters as much as the octal mode, unlike a cPanel account where the web server and the account's own file ownership are typically already aligned. Needs explicit `chown`/`chmod` commands in the deployment guide, not just a permissions number. |
+| Debug hygiene | Zero `TODO`/`FIXME`/`XXX`/`var_dump`/`print_r` anywhere in `.php` files | **Clean, no action needed.** |
+
+## 2. DigitalOcean Droplet Deployment Certification (charter §6, retargeted)
+
+**Platform decision (superseding the charter's cPanel/Namecheap framing):** the user has chosen a DigitalOcean Droplet — a self-managed Ubuntu VPS with root/SSH access — rather than cPanel shared hosting. This is a materially different deployment model: no cPanel UI, no AutoSSL, no MultiPHP Manager, no shared-hosting resource caps — but also no managed backups, no managed mail, and no hand-holding for any misconfiguration. Every item below is written for a fresh Ubuntu LTS droplet running **Nginx + PHP-FPM** (user-confirmed stack choice) + MariaDB/MySQL.
+
+`cron/README.md` is currently written entirely in cPanel terms (Cron Jobs UI, `ea-phpXX` binaries) and needs a droplet-equivalent section — **not a gap to build from scratch, an addition to an already-solid file**:
+
+1. **Cron output/email spam**: `cron/run.php` writes a start line, a per-task summary, and a finish line to `STDOUT` on every run, success or failure. Standard Linux `cron` behavior mails the crontab owner (via the local MTA) the full output of every invocation unless explicitly suppressed. At a 15–30 minute cadence, that's up to ~96 local mail deliveries/day, indefinitely, unless the crontab entry redirects output (`>> logfile 2>&1` or `>/dev/null 2>&1`). Needs to be explicit in the droplet crontab entry from day one — a droplet's local mail delivery isn't even configured by default, so unsuppressed cron output there typically just silently fails to send rather than annoying anyone, but it's still worth getting right rather than relying on that accident.
+2. **PHP CLI vs. PHP-FPM version alignment**: on a droplet, both the web-facing PHP-FPM pool and the CLI binary come from the same explicitly-chosen Ubuntu/PHP package (e.g. `php8.2-fpm` + `php8.2-cli` installed together via `ppa:ondrej/php`), so the cPanel-specific "silent version mismatch" risk doesn't apply the same way — but the exact install/verification commands still need documenting.
+3. **No failure-alerting path**: a failed scheduled task is only visible by manually querying `scheduled_task_runs` — nothing routes a failure to an actual notification. Same gap regardless of hosting platform.
+4. **Droplet-specific setup not yet documented**: Nginx server block (PHP-FPM `fastcgi_pass`, upload size, execution time, `try_files` for the app's routing), PHP-FPM pool tuning (`pm.max_children` etc. — meaningfully sizeable now that resources aren't shared-hosting-capped, but also not unlimited on a modest droplet size), MariaDB installation and `mysql_secure_installation`, Let's Encrypt/Certbot for SSL (droplet equivalent of cPanel's AutoSSL), `ufw` firewall rules, and SSH key-based access hardening (disable root password login). All addressed in the new deployment guide (Stage 6.2).
+
+## 3. Database Certification (charter §7)
+
+- **`schema.sql`** is a clean, structure-only, fresh-install-ready file (confirmed 0 `INSERT` statements) and is current — it already contains every table Phase 5 added.
+- **`database/install.php`**'s `INSTALL_SEQUENCE` constant is a real, working, ordered fresh-install sequence (schema → seeds → phase1/5/6/8/9/10 permission/content files) — **but it does not include `phase11_schema_reconciliation.sql` or `phase13_workflow_completeness_automation.sql`**, both of which carry data-bearing `INSERT` statements not present in `schema.sql`. Concretely: `phase13`'s `INSERT INTO work_calendar_settings (id, working_weekdays, timezone) SELECT 1, ... WHERE NOT EXISTS (...)` — the single default calendar row every "Absent Today" calculation across Dashboard/Reports/Attendance depends on — is never inserted by a fresh install today. **Confirmed by direct inspection**: this is a real gap, not a documentation nitpick.
+- **`database/README.md` is referenced by `install.php`'s own docblock but does not exist.**
+- **No automated backup mechanism exists in the application** (confirmed: no `mysqldump`/`exec`/`shell_exec`/`proc_open` calls anywhere in PHP code). `database/backups/` currently holds only the manual snapshots taken for this phase's own starting instructions.
+- Rollback/restore, large-dataset behavior, orphan/duplicate detection, and slow-query analysis have not yet been exercised this phase — planned as part of §7's certification work below.
+
+## 4. Existing Documentation Inventory (relevant to Phase 6 scope)
+
+No deployment guide, backup procedure, disaster-recovery procedure, or administrator guide exists anywhere in the repository today — confirmed by a full filename and section-header search across `docs/remediation/` and the repo root. Two repo-root files (`PRODUCTION_READINESS_REPORT.md`, `PHASE_12_DOCUMENTATION.md`) are pre-existing artifacts from an **earlier, superseded** hardening program (different phase-numbering scheme, dated 2026-06-25, before the current Phase 0–5 program began) — not deployment guides, and not something this phase needs to reconcile with beyond being aware they exist and predate the current program.
+
+**This means Phase 6 has a clean slate for its documentation deliverables** — no duplication risk, only one stale inventory doc (§0) to be aware of.
+
+## 5. Findings Carried Directly Into Phase 6
+
+- **KOM-054** (Master Remediation Register): "Standing deployment hardening items unaddressed — blank root DB password, default admin password, no HTTPS redirect, no CSP header." Open since Phase 0, nominally targeted at Phase 4, never actually closed. This is squarely Phase 6's to close — it names three of the four concrete gaps this baseline independently re-confirmed (§1).
+
+## 6. Decisions Resolved (User-Confirmed, 2026-07-13)
+
+Per charter §21, this document is the audit — it stops short of any code change or configuration decision. Two questions were presented and resolved before any implementation began:
+
+1. **Deployment target and cutover scope**: no DigitalOcean Droplet is provisioned yet. Phase 6 produces deployment-ready certification and documentation — written specifically for an Ubuntu droplet running **Nginx + PHP-FPM** — and executes everything genuinely testable in this local environment (config hardening, backup/restore drills, security re-testing, scaled load testing). **No live deployment happens this phase.**
+2. **Load-testing scope**: scaled, locally-meaningful concurrency tiers via Apache Bench (available in this environment), not the charter's literal 1000-concurrent-user figure — results explicitly labeled as local dev-machine capacity, with a note on what to re-verify once the droplet exists.
+
+Proceeding with the concrete code/config fixes this baseline identified as genuine production blockers (`APP_URL` hardcoding, `logs/.htaccess` BOM, `install.php`'s missing migration files, CSP/HSTS/HTTPS-redirect headers, `.env`-driven configuration, and — newly identified after the platform decision — translating every `.htaccess` protection into Nginx directives) as in-scope for this phase, consistent with charter §1's "only fix genuine production blockers discovered during certification."
