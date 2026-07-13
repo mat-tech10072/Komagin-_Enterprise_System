@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; 4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13; 1 more (CC-103) recording the KOM-045 close-out decision — all 13 Phase 4 workflow groups complete, see the Phase 4 Completion Report; 2 more (CC-104–CC-105) recorded for Phase 5, Stage 5.1; 1 more (CC-106) recorded for Phase 5, Stage 5.2; 1 more (CC-107) recorded for Phase 5, Stage 5.3; 1 more (CC-108) recorded for Phase 5, Stage 5.4; 2 more (CC-109–CC-110) recorded for Phase 5, Stage 5.5; 2 more (CC-111–CC-112) recorded for Phase 5, Stage 5.6; 1 more (CC-113) recorded for Phase 5, Stage 5.7; 1 more (CC-114) recorded for Phase 5, Stage 5.8; 1 more (CC-115) recorded for Phase 5, Stage 5.9; **17 more (CC-116–CC-132) recorded for Phase 5, Stage 5.10 — more to follow as each subsequent stage completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; 4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13; 1 more (CC-103) recording the KOM-045 close-out decision — all 13 Phase 4 workflow groups complete, see the Phase 4 Completion Report; 2 more (CC-104–CC-105) recorded for Phase 5, Stage 5.1; 1 more (CC-106) recorded for Phase 5, Stage 5.2; 1 more (CC-107) recorded for Phase 5, Stage 5.3; 1 more (CC-108) recorded for Phase 5, Stage 5.4; 2 more (CC-109–CC-110) recorded for Phase 5, Stage 5.5; 2 more (CC-111–CC-112) recorded for Phase 5, Stage 5.6; 1 more (CC-113) recorded for Phase 5, Stage 5.7; 1 more (CC-114) recorded for Phase 5, Stage 5.8; 1 more (CC-115) recorded for Phase 5, Stage 5.9; 17 more (CC-116–CC-132) recorded for Phase 5, Stage 5.10; **2 more (CC-133–CC-134) recorded for Phase 5, Stage 5.11 — more to follow as each subsequent stage completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -1676,6 +1676,34 @@ Copy this block for every change and append it to the log below.
 
 ---
 
+### CC-133 — KOM-045 re-confirmed, KOM-064 resolved (Stage 5.11)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-045, KOM-064
+- **Files changed:** None.
+- **Reason:** Re-verified KOM-045's previously-accepted 26-slug unused-permission list fresh against the post-Stage-5.10 codebase (rather than assume it still holds) — all 26 remain unwired, none of Stage 5.1–5.10's changes accidentally wired up or orphaned any of them, no new slugs created anywhere in Phase 5. Phase 4's "reviewed and accepted, no changes" status stands. Separately, re-verified KOM-064 (`requireRole()` dead code) and found it no longer exists anywhere in the codebase — already removed, most likely during Phase 1's authorization framework build.
+- **Tests added/updated:** None.
+- **Regression tests executed:** N/A — no code change made. Full-codebase searches performed for both findings.
+- **Verification result:** VERIFIED (code review)
+- **Master Register updated:** Yes — KOM-045 re-confirmed unchanged, KOM-064 marked Resolved.
+
+---
+
+### CC-134 — KOM-065 corrected and accepted as designed (Stage 5.11)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-065
+- **Files changed:** None (register text corrected only).
+- **Reason:** Re-verification found the finding's original "never used" characterization stale: `employee_skills` is queried by `modules/employees/view.php` and rendered as a full "Skills" tab (empty-state message, row-rendering loop), and included in `delete.php`'s cascade-delete preview. What's actually missing is any `INSERT`/`UPDATE` path anywhere — the tab is permanently empty with no way to populate it. Not a security issue or blocked workflow. `employee_qualifications`/`employee_work_history` already cover the substantive need this table appears to have been an earlier, superseded attempt at. Building a full Skills CRUD is new feature scope, not a reconciliation-stage fix — documented as an honest (not misleading) completeness gap rather than built.
+- **Tests added/updated:** None.
+- **Regression tests executed:** N/A — no code change made. Confirmed the read/render path exists and no write path exists anywhere via full-codebase search.
+- **Verification result:** VERIFIED (code review)
+- **Master Register updated:** Yes — KOM-065 corrected and marked Accepted as designed.
+
+---
+
 ## Change Log for This Document
 
 | Date | Change | Author |
@@ -1709,3 +1737,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-13 | 1 entry (CC-114) recorded for Phase 5, Stage 5.8 (Temporary Employee Attendance Capture) | Remediation Program — Phase 5 |
 | 2026-07-13 | 1 entry (CC-115) recorded for Phase 5, Stage 5.9 (Document QR Verification — Disabled) | Remediation Program — Phase 5 |
 | 2026-07-13 | 17 entries (CC-116–CC-132) recorded for Phase 5, Stage 5.10 (Remaining Open Findings Closure — 20 findings) | Remediation Program — Phase 5 |
+| 2026-07-13 | 2 entries (CC-133–CC-134) recorded for Phase 5, Stage 5.11 (Permissions, Configuration & Dead-Code Reconciliation) | Remediation Program — Phase 5 |
