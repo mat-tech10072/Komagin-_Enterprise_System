@@ -30,8 +30,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'Current password is incorrect.';
             } else {
                 $hash = password_hash($new, PASSWORD_BCRYPT, ['cost' => 12]);
-                db()->prepare("UPDATE users SET password_hash=?, must_change_password=0 WHERE id=?")
+                db()->prepare("UPDATE users SET password_hash=?, password_changed_at=NOW(), must_change_password=0 WHERE id=?")
                     ->execute([$hash, $_SESSION['user_id']]);
+                // Phase 5, Stage 5.5: password_changed_at forces every
+                // OTHER active session on this account to re-login on its
+                // next request (auth/session.php compares it against each
+                // session's own login_time) — but this session already
+                // just re-proved identity via the correct current_password
+                // above, so bump its own login_time past the new
+                // password_changed_at rather than also logging itself out.
+                $_SESSION['login_time'] = time();
                 auditLog('auth', 'password_change', $_SESSION['user_id']);
                 header('Location: ' . APP_URL . '/dashboard.php?msg=password_changed');
                 exit;

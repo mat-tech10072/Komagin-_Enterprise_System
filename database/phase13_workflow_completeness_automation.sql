@@ -85,3 +85,34 @@ CREATE TABLE IF NOT EXISTS scheduled_task_runs (
   KEY idx_scheduled_task_runs_name (task_name),
   KEY idx_scheduled_task_runs_started (started_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── Stage 5.5: Self-service password recovery (Admin surface only) ────
+-- KOM-041: no self-service password reset flow existed on any of the 4
+-- authentication surfaces. User decision: build it for the Admin
+-- surface only (guaranteed to have a real, verified email on file);
+-- Employee/Consultant/Temp Portal keep the current admin-assisted-only
+-- model.
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at datetime DEFAULT NULL
+  COMMENT 'Phase 5, Stage 5.5: compared against a session''s login_time to force re-login on other sessions after a password change/reset' AFTER password_hash;
+
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id int(10) unsigned NOT NULL AUTO_INCREMENT,
+  user_id int(10) unsigned NOT NULL,
+  token_hash char(64) NOT NULL COMMENT 'sha256 of the raw token emailed to the user; the raw token itself is never stored',
+  expires_at datetime NOT NULL,
+  used_at datetime DEFAULT NULL,
+  requested_ip varchar(45) DEFAULT NULL,
+  created_at timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_password_reset_tokens_hash (token_hash),
+  KEY idx_password_reset_tokens_user (user_id),
+  CONSTRAINT password_reset_tokens_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- sendEmail()'s existing email_logs.type enum had no value for this new
+-- flow; passing 'password_reset' to it was silently coerced to '' by
+-- MariaDB's non-strict SQL mode rather than raising an error. Extending
+-- the enum, consistent with how every other email flow (payslip,
+-- leave_approval, etc.) has its own type value.
+ALTER TABLE email_logs MODIFY COLUMN type enum('payslip','leave_approval','leave_rejection','document','general','test','password_reset') DEFAULT 'general';

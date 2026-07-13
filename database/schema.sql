@@ -175,6 +175,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `profile_photo` varchar(255) DEFAULT NULL,
   `bio` text DEFAULT NULL,
   `password_hash` varchar(255) NOT NULL,
+  `password_changed_at` datetime DEFAULT NULL COMMENT 'Phase 5, Stage 5.5: compared against a session login_time to force re-login on other sessions after a password change/reset',
   `role` enum('super_admin','hr_manager','hr_officer','supervisor','employee','finance_viewer','payroll_manager','payroll_officer','recruitment_officer','training_officer','kiosk_terminal') NOT NULL DEFAULT 'employee',
   `is_active` tinyint(1) DEFAULT 1,
   `must_change_password` tinyint(1) DEFAULT 0,
@@ -721,7 +722,7 @@ CREATE TABLE IF NOT EXISTS `doc_template_versions` (
 CREATE TABLE IF NOT EXISTS `email_logs` (
 
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `type` enum('payslip','leave_approval','leave_rejection','document','general','test') DEFAULT 'general',
+  `type` enum('payslip','leave_approval','leave_rejection','document','general','test','password_reset') DEFAULT 'general',
   `recipient_name` varchar(200) DEFAULT NULL,
   `recipient_email` varchar(200) NOT NULL,
   `subject` varchar(500) NOT NULL,
@@ -1652,4 +1653,24 @@ CREATE TABLE IF NOT EXISTS `scheduled_task_runs` (
   PRIMARY KEY (`id`),
   KEY `idx_scheduled_task_runs_name` (`task_name`),
   KEY `idx_scheduled_task_runs_started` (`started_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: password_reset_tokens
+-- New in Phase 5, Stage 5.5 — self-service password recovery, Admin
+-- surface only (KOM-041, user decision). Only a sha256 hash of the raw
+-- token is ever stored.
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `password_reset_tokens` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) unsigned NOT NULL,
+  `token_hash` char(64) NOT NULL COMMENT 'sha256 of the raw token emailed to the user; the raw token itself is never stored',
+  `expires_at` datetime NOT NULL,
+  `used_at` datetime DEFAULT NULL,
+  `requested_ip` varchar(45) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_password_reset_tokens_hash` (`token_hash`),
+  KEY `idx_password_reset_tokens_user` (`user_id`),
+  CONSTRAINT `password_reset_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

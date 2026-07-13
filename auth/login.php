@@ -50,6 +50,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['user_email'] = $user['email'];
                         $_SESSION['employee_id'] = $user['employee_id'];
                         $_SESSION['last_activity'] = time();
+                        // Phase 5, Stage 5.5: lets auth/session.php detect a
+                        // password change that happened after this session
+                        // was established (e.g. via a self-service reset)
+                        // and force re-login — the effective equivalent of
+                        // "invalidate other sessions" without needing a
+                        // full session registry, which doesn't exist in
+                        // this codebase's default file-based session setup.
+                        $_SESSION['login_time'] = time();
 
                         // Reset login attempts
                         db()->prepare("UPDATE users SET login_attempts=0, locked_until=NULL, last_login=NOW() WHERE id=?")->execute([$user['id']]);
@@ -292,6 +300,9 @@ $loginTheme    = json_decode($loginSettings['theme_settings'] ?? '{}', true) ?: 
             <?php if ($reason === 'logout'): ?>
                 <div class="alert-info">You have been logged out successfully.</div>
             <?php endif; ?>
+            <?php if ($reason === 'password_changed'): ?>
+                <div class="alert-info">Your password was changed. Please sign in again.</div>
+            <?php endif; ?>
             <?php if ($error): ?>
                 <div class="alert-error"><?= htmlspecialchars($error) ?></div>
             <?php endif; ?>
@@ -314,6 +325,9 @@ $loginTheme    = json_decode($loginSettings['theme_settings'] ?? '{}', true) ?: 
                         <button type="button" class="toggle-password" onclick="togglePassword()">
                             <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                         </button>
+                    </div>
+                    <div style="text-align:right;margin-top:6px;">
+                        <a href="<?= APP_URL ?>/auth/forgot_password.php" style="font-size:0.78rem;color:#023852;text-decoration:none;">Forgot password?</a>
                     </div>
                 </div>
 

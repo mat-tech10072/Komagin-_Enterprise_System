@@ -79,7 +79,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
         if ($targetRole) { $targetRole->execute([$uid]); $targetRole = $targetRole->fetchColumn(); }
         if ($uid && strlen($newpass) >= 6 && $targetRole && isValidAssignableRole($targetRole)) {
             $hash = password_hash($newpass, PASSWORD_BCRYPT, ['cost'=>12]);
-            db()->prepare("UPDATE users SET password_hash=?, must_change_password=1 WHERE id=?")->execute([$hash,$uid]);
+            // Phase 5, Stage 5.5: password_changed_at also covers an
+            // admin-initiated reset, not just self-service — any other
+            // active session on this account is forced to re-login.
+            db()->prepare("UPDATE users SET password_hash=?, password_changed_at=NOW(), must_change_password=1 WHERE id=?")->execute([$hash,$uid]);
             auditLog('users','reset_password',$uid,null,null,'Admin reset password');
             setFlash('success','Password reset. User must change on next login.');
         }

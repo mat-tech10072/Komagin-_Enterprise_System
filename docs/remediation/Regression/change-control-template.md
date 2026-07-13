@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; 4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13; 1 more (CC-103) recording the KOM-045 close-out decision — all 13 Phase 4 workflow groups complete, see the Phase 4 Completion Report; 2 more (CC-104–CC-105) recorded for Phase 5, Stage 5.1; 1 more (CC-106) recorded for Phase 5, Stage 5.2; 1 more (CC-107) recorded for Phase 5, Stage 5.3; **1 more (CC-108) recorded for Phase 5, Stage 5.4 — more to follow as each subsequent stage completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; 4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13; 1 more (CC-103) recording the KOM-045 close-out decision — all 13 Phase 4 workflow groups complete, see the Phase 4 Completion Report; 2 more (CC-104–CC-105) recorded for Phase 5, Stage 5.1; 1 more (CC-106) recorded for Phase 5, Stage 5.2; 1 more (CC-107) recorded for Phase 5, Stage 5.3; 1 more (CC-108) recorded for Phase 5, Stage 5.4; **2 more (CC-109–CC-110) recorded for Phase 5, Stage 5.5 — more to follow as each subsequent stage completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -1340,6 +1340,34 @@ Copy this block for every change and append it to the log below.
 
 ---
 
+### CC-109 — Self-service password recovery, Admin surface only (Stage 5.5)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-041
+- **Files changed:** `database/phase13_workflow_completeness_automation.sql` (extended), `database/schema.sql` (extended — `users.password_changed_at`, `password_reset_tokens`), `auth/forgot_password.php` (new), `auth/reset_password.php` (new), `auth/login.php` (sets `login_time`, adds "Forgot password?" link, adds `password_changed` alert), `auth/session.php` (adds the `password_changed_at`-vs-`login_time` invalidation check), `auth/change_password.php` (sets `password_changed_at`, refreshes own `login_time`), `modules/users/index.php` (admin-initiated reset now also sets `password_changed_at`), `cron/tasks/expire_tokens.php` (extended to also expire stale `password_reset_tokens`)
+- **Reason:** KOM-041 — no self-service password-reset flow existed on any of the 4 authentication surfaces; the only recovery path was an already-authenticated admin manually resetting another user's password. Per the Stage 5.5 decision matrix (user sign-off, `Phase5/01-phase5-open-findings-scope.md` §6), scoped to the Admin surface only — the one surface guaranteed to have a real, verified email on file. Built an enumeration-resistant, rate-limited, single-use, sha256-hashed-at-rest token flow, plus a session-invalidation mechanism (`login_time` vs. `password_changed_at`) that is this codebase's practical substitute for "invalidate other active sessions," since the default file-based PHP session setup has no central session registry to selectively destroy other sessions by.
+- **Tests added/updated:** No dedicated automated suite (live HTTP/DB verification below covers every safety property); live testing used disposable data (`p5testuser`, id 54), fully removed afterward.
+- **Regression tests executed:** Full forgot-password → email-logged token → reset → login → token-reuse-rejected cycle. Enumeration resistance: identical generic response for an existing vs. nonexistent identifier. Self-service change does not self-logout: performed a change, immediately reloaded a protected page in the same session — 200 OK. **Full two-session invalidation test**: Session A logged in and confirmed reachable (200 OK on `dashboard.php`); a second, independent, never-before-authenticated session then completed a fresh reset for the same account; Session A's next request to `dashboard.php` correctly received a 302 to `login.php?reason=password_changed`, followed the redirect and confirmed the message renders, and confirmed the session stays logged out on a further request. Phase 1 regression 20/20, Phase 2 regression 29/29. All test data removed after verification.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes — KOM-041 row updated to Fixed with full verification detail.
+
+---
+
+### CC-110 — `email_logs.type` enum extended for `password_reset` (Stage 5.5 follow-up)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** None directly — a self-introduced defect caught and fixed within the same stage as CC-109, not a pre-existing register finding
+- **Files changed:** `database/phase13_workflow_completeness_automation.sql` (extended), `database/schema.sql` (extended — `email_logs.type` enum)
+- **Reason:** `auth/forgot_password.php` (built in CC-109) calls `sendEmail(..., 'password_reset', ...)`, but the pre-existing `email_logs.type` enum had no `'password_reset'` value. Under this MariaDB instance's non-strict SQL mode, the `INSERT` did not fail — it silently coerced the value to `''`. Caught during live testing when inspecting logged test rows and finding `type` blank instead of the expected value. Impact was cosmetic/categorization only (the email itself was logged and sent correctly; no security property was affected) — fixed by extending the enum, consistent with how every other email flow already has its own type value.
+- **Tests added/updated:** None — verified directly via the `password_reset_tokens`/`email_logs` rows produced by CC-109's own live test.
+- **Regression tests executed:** Confirmed `DESCRIBE email_logs` shows the extended enum; confirmed a fresh `forgot_password.php` request now logs `type='password_reset'` correctly; the two pre-existing mis-typed test rows were corrected before test-data cleanup. Phase 1/Phase 2 regression suites re-run as part of CC-109's verification pass (20/20, 29/29) — this change does not affect either suite's code paths.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** No — not a distinct register finding; disclosed in `Phase5/06-password-recovery-report.md` §5 and folded into KOM-041's Stage 5.5 update.
+
+---
+
 ## Change Log for This Document
 
 | Date | Change | Author |
@@ -1367,3 +1395,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-13 | 1 entry (CC-106) recorded for Phase 5, Stage 5.2 (ApprovalEngine Dormant Workflow Types) | Remediation Program — Phase 5 |
 | 2026-07-13 | 1 entry (CC-107) recorded for Phase 5, Stage 5.3 (Working-Day & Holiday Calendar) | Remediation Program — Phase 5 |
 | 2026-07-13 | 1 entry (CC-108) recorded for Phase 5, Stage 5.4 (Scheduled Task Infrastructure) | Remediation Program — Phase 5 |
+| 2026-07-13 | 2 entries (CC-109–CC-110) recorded for Phase 5, Stage 5.5 (Self-Service Password Recovery, Admin Surface Only) | Remediation Program — Phase 5 |

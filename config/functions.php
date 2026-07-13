@@ -351,6 +351,28 @@ function recordPortalLoginFailure(string $module, string $identifier): void {
     auditLog($module, 'failed_login', null, null, null, "identifier=$identifier");
 }
 
+// Phase 5, Stage 5.5: same IP-based rate-limit pattern as
+// portalLoginBlocked() above, reusing audit_logs rather than a new
+// table — a password-reset *request* flood (someone spamming the
+// forgot-password form) is a different abuse vector from a failed
+// login, so it gets its own action name and a tighter default window.
+function passwordResetRequestBlocked(int $maxAttempts = 5, int $windowMinutes = 15): bool {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    if ($ip === '') return false;
+    $stmt = db()->prepare(
+        "SELECT COUNT(*) FROM audit_logs
+         WHERE module = 'auth' AND action = 'password_reset_requested' AND ip_address = ?
+           AND created_at > (NOW() - INTERVAL ? MINUTE)"
+    );
+    $stmt->execute([$ip, $windowMinutes]);
+    return (int)$stmt->fetchColumn() >= $maxAttempts;
+}
+
+function recordPasswordResetRequest(string $identifier, bool $accountFound): void {
+    auditLog('auth', 'password_reset_requested', null, null, null,
+        "identifier=$identifier;account_found=" . ($accountFound ? '1' : '0'));
+}
+
 // ============================================================
 // NOTIFICATIONS
 // ============================================================
