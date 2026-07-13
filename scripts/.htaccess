@@ -1,0 +1,10 @@
+# Phase 6, Stage 6.6: scripts/ (backup.sh, restore.sh) is invoked by
+# cron/CLI only, never over the web — no reason it should be
+# reachable by HTTP at all, matching config/, database/, logs/, and
+# cron/'s existing "Deny from all" pattern.
+<IfModule mod_access_compat.c>
+    Deny from all
+</IfModule>
+<IfModule !mod_access_compat.c>
+    Require all denied
+</IfModule>

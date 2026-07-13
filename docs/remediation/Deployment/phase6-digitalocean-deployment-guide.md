@@ -221,7 +221,7 @@ server {
     # tests/ is included as defense-in-depth (Phase 6, Stage 6.5,
     # KOM-100) even though §5 already removes it entirely with `rm -rf
     # tests/` after cloning — don't rely on this rule alone.
-    location ~ ^/(config|database|logs|cron|tests)/ {
+    location ~ ^/(config|database|logs|cron|tests|scripts)/ {
         deny all;
         return 403;
     }
@@ -381,22 +381,62 @@ sudo -u www-data php /var/www/komagin-hr/cron/run.php   # should print "Schedule
 curl -I https://hr.yourdomain.com/cron/run.php            # expect 403
 ```
 
+## 10.5 Backup Scheduling
+
+Phase 6, Stage 6.6 adds `scripts/backup.sh` and `scripts/restore.sh` (repo root) — see the `Disaster Recovery Guide` (`docs/remediation/Phase6/07-disaster-recovery-guide.md`) for the full backup/restore procedures, RPO/RTO targets, and a live-tested restore drill. This section only covers wiring the backup script into cron on the droplet.
+
+Runs as the `deploy` user (not `www-data` — it needs no special privilege beyond reading `uploads/` and the database credentials, and keeping backup automation off the same account that serves web requests is good separation):
+
+```bash
+sudo crontab -u deploy -e
+```
+
+Add:
+
+```cron
+# Daily at 02:00, weekly on Sunday at 02:30, monthly on the 1st at 03:00 —
+# staggered so they never overlap each other or the app's own */15 scheduler.
+0  2  *  *  *  DB_USER=komagin_app DB_PASS='<SAME_PASSWORD_AS_%4>' /var/www/komagin-hr/scripts/backup.sh daily   >> /var/www/komagin-hr/logs/backup.log 2>&1
+30 2  *  *  0  DB_USER=komagin_app DB_PASS='<SAME_PASSWORD_AS_%4>' /var/www/komagin-hr/scripts/backup.sh weekly  >> /var/www/komagin-hr/logs/backup.log 2>&1
+0  3  1  *  *  DB_USER=komagin_app DB_PASS='<SAME_PASSWORD_AS_%4>' /var/www/komagin-hr/scripts/backup.sh monthly >> /var/www/komagin-hr/logs/backup.log 2>&1
+```
+
+By default `scripts/backup.sh` writes to `database/backups/` inside the app directory — for a real production droplet, override `BACKUP_ROOT` to a path **outside** `/var/www/komagin-hr` (ideally on a separate volume or synced off-box — see the Disaster Recovery Guide §2 on the "backups on the same disk as the data" risk) by exporting it in the same crontab line, e.g. `BACKUP_ROOT=/var/backups/komagin-hr`.
+
+Add log rotation for `logs/backup.log`, same pattern as §10's cron log:
+
+```bash
+sudo nano /etc/logrotate.d/komagin-backup
+```
+
+```
+/var/www/komagin-hr/logs/backup.log {
+    weekly
+    rotate 8
+    compress
+    missingok
+    notifempty
+}
+```
+
 ## 11. Post-Deployment Checklist
 
 Run through this in order, every deployment:
 
-- [ ] `config/`, `database/`, `logs/`, `cron/` all return 403 over HTTP/HTTPS (§7 verification)
+- [ ] `config/`, `database/`, `logs/`, `cron/`, `tests/` all return 403 over HTTP/HTTPS (§7 verification); `tests/` also removed outright (§5)
+- [ ] `.git/`, and any other dotfile/dot-directory, returns 403 over HTTP/HTTPS
 - [ ] `uploads/**/*.php`-style paths return 403
 - [ ] `database/install.php` deleted (§9)
 - [ ] `superadmin`/`Admin@123` password changed
 - [ ] SSL certificate valid, HTTP→HTTPS redirect confirmed working (`curl -I http://...` returns a `301` to `https://...`)
 - [ ] `php-fpm` pool `env[]` values all correct (`APP_ENV=production`, `APP_URL` matches the real domain, DB credentials point at the dedicated `komagin_app` user, not root)
 - [ ] Cron entry installed under `www-data`, output redirected to a log file, log rotation configured
+- [ ] Backup cron entries installed under `deploy` (§10.5), `BACKUP_ROOT` pointed outside the app directory, and a manual test run confirmed non-empty backup files were produced
 - [ ] `uploads/` and `logs/` owned by `www-data`, mode 770; everything else owned by `deploy:www-data`, mode 750
 - [ ] `ufw` firewall active, only SSH/HTTP/HTTPS open
 - [ ] Root SSH login and password auth disabled (§2)
 - [ ] Company settings (name, logo, SMTP) configured via the app's own Settings pages — not this guide's scope, but don't go live without them
-- [ ] A full backup taken immediately after go-live (see `Phase6/06-backup-disaster-recovery-guide.md`)
+- [ ] A full backup taken immediately after go-live (see `Phase6/07-disaster-recovery-guide.md`), and a restore drill performed at least once against a scratch database before relying on this pipeline
 
 ## 12. Rollback Procedure
 
