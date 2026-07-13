@@ -1,0 +1,74 @@
+Phase 5 Regression Run — Mon Jul 13 15:28:39 WPST 2026
+======================================
+--- Logging in test accounts ---
+
+--- Group 1: Leave (Stage 5.1) — single-stage HR-only approval ---
+PASS | leave workflowConfig no longer has a Supervisor Review stage
+PASS | leave workflow has exactly 1 stage
+
+--- Group 2: ApprovalEngine (Stage 5.2) — dormant types removed ---
+PASS | ApprovalEngine workflowConfig no longer defines 'overtime'
+PASS | ApprovalEngine workflowConfig no longer defines 'correction'
+PASS | ApprovalEngine workflowConfig no longer defines 'payroll_run'
+PASS | ApprovalEngine workflowConfig no longer defines 'document'
+PASS | ApprovalEngine::cancel() no longer has the +-vs-concatenation bug
+
+--- Group 3: Working-Day Calendar (Stage 5.3) ---
+PASS | calendar unit tests: 17 passed, 0 failed
+PASS | Working Calendar admin page reachable | expected=200 got=200
+
+--- Group 4: Scheduler (Stage 5.4) ---
+PASS | cron/run.php blocked over HTTP (403)
+PASS | cron/run.php completes successfully via CLI
+PASS | cron/run.php CLI run: all tasks OK
+
+--- Group 5: Self-Service Password Recovery (Stage 5.5) ---
+PASS | session A authenticated and reaches dashboard.php
+PASS | forgot_password.php returns identical response for real vs nonexistent identifier
+PASS | reset token accepted, reset form rendered
+PASS | password reset completed successfully
+PASS | consumed reset token correctly rejected on reuse
+PASS | session A correctly invalidated after password reset (302)
+
+--- Group 6: Deferred Notifications (Stage 5.6) ---
+PASS | send_reminders.php processed at least 1 reminder (contract expiring test employee)
+PASS | hr_manager received a new notification
+PASS | second same-day run produced 0 duplicate notifications (dedup working)
+
+--- Group 7: Recruitment-to-Employee Conversion (Stage 5.7) ---
+PASS | guided conversion pre-fills applicant name from application
+
+--- Group 8: Temporary Employee Attendance (Stage 5.8) ---
+PASS | Attendance Entry page reachable | expected=200 got=200
+PASS | temp_attendance table exists
+
+--- Group 9: Document QR Verification — Disabled (Stage 5.9) ---
+PASS | QR Code toggle absent from template editor UI
+PASS | DocumentEngine.php no longer calls the external QR API or checks show_qr_code
+
+--- Group 10: Spot checks, Stage 5.10 fixes ---
+PASS | Reports Hub CSV export reachable | expected=200 got=200
+PASS | smtp_pass not emitted with a cleartext value anywhere
+PASS | Audit/Activity Log merge: View by User link present
+
+--- Group 11: Full Phase 1 + Phase 2 re-run ---
+Phase 1: TOTAL: 20 passed, 0 failed
+PASS | Phase 1 regression: TOTAL: 20 passed, 0 failed
+Phase 2: TOTAL: 29 passed, 0 failed
+PASS | Phase 2 regression: TOTAL: 29 passed, 0 failed
+
+--- Group 12: Repo-wide PHP syntax scan ---
+PASS | repo-wide php -l scan: 0 syntax errors across all .php files
+
+--- Group 13: Migration verification ---
+PASS | phase13_workflow_completeness_automation.sql re-applies cleanly (idempotent, 0 errors)
+PASS | table 'work_calendar_settings' exists in live database
+PASS | table 'work_calendar_holidays' exists in live database
+PASS | table 'scheduled_task_locks' exists in live database
+PASS | table 'scheduled_task_runs' exists in live database
+PASS | table 'password_reset_tokens' exists in live database
+PASS | table 'reminder_notifications_log' exists in live database
+PASS | table 'temp_attendance' exists in live database
+
+======================================
+TOTAL: 40 passed, 0 failed
