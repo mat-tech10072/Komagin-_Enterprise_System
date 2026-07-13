@@ -1,0 +1,16 @@
+# Phase 6, Stage 6.5 (KOM-100): the tests/ QA toolkit (Playwright
+# audit scripts, ~300 screenshots covering every module under every
+# role, JSON audit reports) sits inside the web-served root and was
+# found fully downloadable by filename — one script,
+# full-audit-2026.js, contains the default admin password in plain
+# text, confirmed live to still be the actual current password on
+# this environment's admin accounts. This directory should not be
+# deployed to production at all (see the deployment guide's
+# exclusion note); this deny rule is defense-in-depth for this dev
+# environment specifically.
+<IfModule mod_access_compat.c>
+    Deny from all
+</IfModule>
+<IfModule !mod_access_compat.c>
+    Require all denied
+</IfModule>

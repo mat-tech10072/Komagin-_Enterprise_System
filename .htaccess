@@ -1,5 +1,32 @@
 Options -Indexes
 
+# ── Deny access to dotfiles AND dot-directories (.git, .env, etc.) ──
+# Phase 6, Stage 6.5: found live that .git/config, .git/HEAD, and
+# .git/logs/HEAD were all served (HTTP 200) — a full source-history
+# dump was possible via any git-dumper tool. This app has no public/-
+# style document root separating code from the web root, so anything
+# not explicitly denied is servable. <FilesMatch> alone only matches
+# the leaf filename, not a path segment like ".git/", so a request
+# for .git/config (leaf name "config") would slip past it — this
+# needs mod_rewrite to match the full request path instead.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} (^|/)\.
+    RewriteRule .* - [F]
+</IfModule>
+<IfModule !mod_rewrite.c>
+    <IfModule mod_access_compat.c>
+        <FilesMatch "^\.">
+            Deny from all
+        </FilesMatch>
+    </IfModule>
+    <IfModule !mod_access_compat.c>
+        <FilesMatch "^\.">
+            Require all denied
+        </FilesMatch>
+    </IfModule>
+</IfModule>
+
 # ── Browser caching for static assets ──────────────────────────
 <IfModule mod_expires.c>
     ExpiresActive On

@@ -124,6 +124,16 @@ cd /var/www/komagin-hr
 git clone <YOUR_REPOSITORY_URL> .
 git checkout main   # or whichever branch is your production branch
 
+# Phase 6, Stage 6.5 (KOM-100): remove the tests/ QA toolkit after
+# cloning — it is dev/QA tooling only (Playwright scripts, ~300
+# screenshots, JSON audit reports) and must never exist on a
+# production server. One of its scripts contains the default admin
+# password in plain text. The Nginx server block below (§7) also
+# denies tests/ as defense-in-depth, but removing it outright is the
+# real fix — don't rely on a web-server rule alone to hide something
+# that shouldn't be deployed at all.
+rm -rf tests/
+
 # Folder ownership: PHP-FPM runs as www-data by default on Ubuntu.
 # The app writes to uploads/ and logs/ at runtime — those need
 # www-data ownership; the rest of the codebase does not need to be
@@ -208,7 +218,10 @@ server {
     # ── Deny access entirely to non-web-facing directories ──────────
     # Translates config/.htaccess, database/.htaccess, cron/.htaccess,
     # logs/.htaccess (all "Deny from all") into Nginx equivalents.
-    location ~ ^/(config|database|logs|cron)/ {
+    # tests/ is included as defense-in-depth (Phase 6, Stage 6.5,
+    # KOM-100) even though §5 already removes it entirely with `rm -rf
+    # tests/` after cloning — don't rely on this rule alone.
+    location ~ ^/(config|database|logs|cron|tests)/ {
         deny all;
         return 403;
     }
