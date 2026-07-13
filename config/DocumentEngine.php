@@ -23,8 +23,11 @@ class DocumentEngine
     {
         $vars = array_merge($this->buildVariables(), $extra);
         foreach ($vars as $key => $value) {
-            // HTML variables (signature, stamp, letterhead, QR) must NOT be escaped
-            $htmlVars = ['signature','stamp','letterhead','watermark','qr_code'];
+            // HTML variables (signature, stamp, letterhead) must NOT be escaped.
+            // 'qr_code' removed here in Phase 5, Stage 5.9 (KOM-097) — it was
+            // never actually a key buildVariables()/$extra produced, just a
+            // vestigial entry alongside the (now-disabled) QR feature.
+            $htmlVars = ['signature','stamp','letterhead','watermark'];
             $isHtml = in_array($key, $htmlVars) || str_starts_with($key, 'signature.') || str_starts_with($key, 'stamp.');
             $rendered = $isHtml ? (string)$value : htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
             $html = str_replace('{{' . $key . '}}', $rendered, $html);
@@ -53,13 +56,16 @@ class DocumentEngine
             } catch (Exception $e) {}
         }
 
-        // QR Code (simple URL-based, no library required)
+        // Phase 5, Stage 5.9 (KOM-097): QR code generation is disabled,
+        // deliberately, regardless of the stored show_qr_code value —
+        // this template.show_qr_code check is no longer honored. The
+        // feature linked to /verify-doc.php, a public verification page
+        // that was never built, and generated the QR image via an
+        // unauthorized outbound call to a third-party API
+        // (api.qrserver.com). $qrHtml is kept as an always-empty string
+        // so the header-layout logic below doesn't need its own
+        // special-casing.
         $qrHtml = '';
-        if (!empty($tpl['show_qr_code']) && $docNum) {
-            $verifyUrl = $appUrl . '/verify-doc.php?ref=' . urlencode($docNum);
-            $qrApiUrl  = 'https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=' . urlencode($verifyUrl);
-            $qrHtml    = '<div style="text-align:right;margin-top:8px;"><img src="' . $qrApiUrl . '" width="70" height="70" alt="QR"><div style="font-size:8px;color:#666;margin-top:2px;">' . htmlspecialchars($docNum) . '</div></div>';
-        }
 
         // Letterhead image
         $letterheadHtml = '';

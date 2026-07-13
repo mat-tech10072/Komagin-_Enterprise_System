@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; 4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13; 1 more (CC-103) recording the KOM-045 close-out decision — all 13 Phase 4 workflow groups complete, see the Phase 4 Completion Report; 2 more (CC-104–CC-105) recorded for Phase 5, Stage 5.1; 1 more (CC-106) recorded for Phase 5, Stage 5.2; 1 more (CC-107) recorded for Phase 5, Stage 5.3; 1 more (CC-108) recorded for Phase 5, Stage 5.4; 2 more (CC-109–CC-110) recorded for Phase 5, Stage 5.5; 2 more (CC-111–CC-112) recorded for Phase 5, Stage 5.6; 1 more (CC-113) recorded for Phase 5, Stage 5.7; **1 more (CC-114) recorded for Phase 5, Stage 5.8 — more to follow as each subsequent stage completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; 4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13; 1 more (CC-103) recording the KOM-045 close-out decision — all 13 Phase 4 workflow groups complete, see the Phase 4 Completion Report; 2 more (CC-104–CC-105) recorded for Phase 5, Stage 5.1; 1 more (CC-106) recorded for Phase 5, Stage 5.2; 1 more (CC-107) recorded for Phase 5, Stage 5.3; 1 more (CC-108) recorded for Phase 5, Stage 5.4; 2 more (CC-109–CC-110) recorded for Phase 5, Stage 5.5; 2 more (CC-111–CC-112) recorded for Phase 5, Stage 5.6; 1 more (CC-113) recorded for Phase 5, Stage 5.7; 1 more (CC-114) recorded for Phase 5, Stage 5.8; **1 more (CC-115) recorded for Phase 5, Stage 5.9 — more to follow as each subsequent stage completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -1424,6 +1424,20 @@ Copy this block for every change and append it to the log below.
 
 ---
 
+### CC-115 — Document QR verification disabled (Stage 5.9)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-097
+- **Files changed:** `modules/documents/templates.php` (QR toggle removed from UI; server-side flag hardcoded to 0), `config/DocumentEngine.php` (QR-rendering block removed; vestigial `'qr_code'` HTML-escaping entry removed)
+- **Reason:** The "Show QR Code" template option linked to `/verify-doc.php`, a public verification page that never existed anywhere in the repository, and generated the QR image via an outbound call to a third-party API (`api.qrserver.com`) — an unauthorized external dependency. 0 of 47 live templates had it enabled. Per user decision, the feature is disabled rather than completed (building a real public, unauthenticated verification endpoint is a genuine feature requiring its own scope/security decisions, not a byproduct of closing this finding). The `show_qr_code` column is left in the schema (not dropped), per the decision hierarchy's guidance against removing data structures without migration/rollback planning — this is a UI/rendering-level deactivation.
+- **Tests added/updated:** None beyond live functional re-testing.
+- **Regression tests executed:** Confirmed the QR Code toggle no longer renders in the template editor. Submitted a crafted `POST` directly to `templates.php` with `show_qr_code=1` included — confirmed the saved row's value is `0` regardless. Manually forced a disposable test template's `show_qr_code` to `1` directly in the database (simulating a stale/pre-existing row) and generated a real document preview from it — confirmed zero references to `qrserver`, `verify-doc`, or a QR image in the output, proving the rendering path itself no longer honors the flag at all. Confirmed existing document-generation features (letterhead/signature/stamp/watermark/doc-number), none of which were touched, continue to render correctly. Phase 1 regression 20/20, Phase 2 regression 29/29. Disposable test template removed after verification.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes — KOM-097 row updated to Fixed with full verification detail.
+
+---
+
 ## Change Log for This Document
 
 | Date | Change | Author |
@@ -1455,3 +1469,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-13 | 2 entries (CC-111–CC-112) recorded for Phase 5, Stage 5.6 (Deferred Notification Workflows) | Remediation Program — Phase 5 |
 | 2026-07-13 | 1 entry (CC-113) recorded for Phase 5, Stage 5.7 (Recruitment-to-Employee Conversion) | Remediation Program — Phase 5 |
 | 2026-07-13 | 1 entry (CC-114) recorded for Phase 5, Stage 5.8 (Temporary Employee Attendance Capture) | Remediation Program — Phase 5 |
+| 2026-07-13 | 1 entry (CC-115) recorded for Phase 5, Stage 5.9 (Document QR Verification — Disabled) | Remediation Program — Phase 5 |

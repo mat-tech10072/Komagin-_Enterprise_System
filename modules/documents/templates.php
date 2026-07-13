@@ -36,7 +36,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
         $showSig    = isset($_POST['show_signature'])   ? 1 : 0;
         $showSt     = isset($_POST['show_stamp'])       ? 1 : 0;
         $showWM     = isset($_POST['show_watermark'])   ? 1 : 0;
-        $showQR     = isset($_POST['show_qr_code'])     ? 1 : 0;
+        // Phase 5, Stage 5.9 (KOM-097): always 0, not just absent-from-form —
+        // hardcoded rather than trusting $_POST, so a crafted request can't
+        // re-enable a feature this stage deliberately removed the toggle for.
+        $showQR     = 0;
         $showDN     = isset($_POST['show_doc_number'])  ? 1 : 0;
         $showPN     = isset($_POST['show_page_number']) ? 1 : 0;
         $showHdr    = isset($_POST['show_header'])      ? 1 : 0;
@@ -261,8 +264,16 @@ $csrf      = generateCsrfToken();
 
                 <!-- Toggle options -->
                 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
-                    <?php $toggles = [
-                        ['show_qr_code',    'QR Code',     $editTemplate['show_qr_code']    ?? 0],
+                    <?php // Phase 5, Stage 5.9 (KOM-097): the QR Code toggle is removed here
+                    // per user decision — it linked to /verify-doc.php, a public
+                    // verification page that was never built, and generated the
+                    // QR image via an external third-party API (api.qrserver.com),
+                    // an unauthorized outbound dependency for this application. 0
+                    // of 47 live templates had it enabled at the time of removal;
+                    // the show_qr_code column and its saved value are left alone
+                    // (not dropped) but are no longer settable from this UI and are
+                    // no longer rendered — see config/DocumentEngine.php.
+                    $toggles = [
                         ['show_doc_number', 'Doc Number',  $editTemplate['show_doc_number']  ?? 0],
                         ['show_page_number','Page Number', $editTemplate['show_page_number'] ?? 0],
                         ['show_header',     'Header',      $editTemplate['show_header']      ?? 1],
