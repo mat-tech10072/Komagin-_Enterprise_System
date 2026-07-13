@@ -18,7 +18,21 @@ define('APP_VERSION', '1.0.0');
 define('APP_URL', getenv('APP_URL') ?: 'http://localhost/HR_Komagin');
 
 // Database Configuration
-define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+// Phase 6, Stage 6.4: default fallback is '127.0.0.1', not 'localhost'.
+// Found via load testing: on this Windows/XAMPP dev environment,
+// resolving the hostname "localhost" for the PDO/MySQL TCP connection
+// took ~2.0-2.6 seconds per connection (an IPv6-then-IPv4-fallback
+// pattern), versus ~0.02s connecting to 127.0.0.1 directly — a ~100x
+// difference, adding roughly 2 seconds to every single request that
+// touches the database (i.e. nearly every request). '127.0.0.1'
+// unambiguously means "local TCP/IP loopback" on every platform,
+// avoiding hostname-resolution behavior that varies by OS/network
+// config — a safer default regardless of deployment target, not just
+// a workaround for this one environment. Still fully overridable via
+// the DB_HOST environment variable (e.g. a deployment that
+// specifically wants MySQL's Unix-socket-on-"localhost" behavior on
+// Linux can still set DB_HOST=localhost explicitly).
+define('DB_HOST', getenv('DB_HOST') ?: '127.0.0.1');
 define('DB_NAME', getenv('DB_NAME') ?: 'komagin_hr');
 define('DB_USER', getenv('DB_USER') ?: 'root');
 define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : '');
