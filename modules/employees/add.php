@@ -13,6 +13,27 @@ $activeMenu = 'employees';
 $errors  = [];
 $data    = [];
 
+// Phase 5, Stage 5.7 (KOM-088): guided recruitment-to-employee
+// conversion. A "Convert to Employee" link on a selected application
+// pre-fills this same Add Employee form rather than duplicating it as
+// a separate flow. Only honored when the application is actually
+// convertible (status='selected', not already converted) and the
+// current user also holds recruitment.review — otherwise this falls
+// through to a normal blank Add Employee form.
+$fromApplication = null;
+$fromApplicationId = (int)($_GET['from_application'] ?? $_POST['from_application'] ?? 0);
+if ($fromApplicationId && canApprove('recruitment.review')) {
+    $appStmt = db()->prepare("SELECT * FROM recruitment_applications WHERE id = ? AND status = 'selected' AND converted_to_employee_id IS NULL");
+    $appStmt->execute([$fromApplicationId]);
+    $fromApplication = $appStmt->fetch();
+    if ($fromApplication && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+        $data['first_name'] = $fromApplication['first_name'];
+        $data['last_name']  = $fromApplication['last_name'];
+        $data['email']      = $fromApplication['email'];
+        $data['phone']      = $fromApplication['phone'];
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
         $errors[] = 'Invalid request. Please try again.';
@@ -138,7 +159,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     null, json_encode(['name' => $data['first_name'].' '.$data['last_name'], 'number' => $empNumber]),
                     'New employee registration');
 
-                setFlash('success', "Employee {$empNumber} - {$data['first_name']} {$data['last_name']} added successfully. Kiosk PIN: {$pin}");
+                // Phase 5, Stage 5.7 (KOM-088): complete the guided conversion.
+                // Re-checks the same convertible-state condition as the GET
+                // pre-fill (status='selected', not already converted) so a
+                // stale/tampered form value can't double-convert or link an
+                // application that moved on to a different pipeline stage
+                // in the meantime.
+                $conversionMsg = '';
+                if ($fromApplication) {
+                    $linked = db()->prepare("UPDATE recruitment_applications SET converted_to_employee_id = ? WHERE id = ? AND status = 'selected' AND converted_to_employee_id IS NULL");
+                    $linked->execute([$newId, $fromApplication['id']]);
+                    if ($linked->rowCount() > 0) {
+                        auditLog('recruitment', 'convert_to_employee', (int)$fromApplication['id'],
+                            null, json_encode(['employee_id' => $newId, 'employee_number' => $empNumber]),
+                            "Converted application to employee {$empNumber}");
+                        $conversionMsg = " Linked to recruitment application #{$fromApplication['id']}.";
+                    }
+                }
+
+                setFlash('success', "Employee {$empNumber} - {$data['first_name']} {$data['last_name']} added successfully. Kiosk PIN: {$pin}." . $conversionMsg);
                 header('Location: ' . APP_URL . '/modules/employees/view.php?id=' . $newId);
                 exit;
             }
@@ -166,6 +205,12 @@ $csrf = generateCsrfToken();
     </div>
 </div>
 
+<?php if ($fromApplication): ?>
+<div class="alert alert-info">
+    Converting recruitment application #<?= $fromApplication['id'] ?> (<?= e($fromApplication['first_name'].' '.$fromApplication['last_name']) ?>) to an employee record. Name, email, and phone have been pre-filled from the application — review and complete the remaining employment details below.
+</div>
+<?php endif; ?>
+
 <?php if (!empty($errors)): ?>
 <div class="alert alert-danger">
     <strong>Please fix the following errors:</strong>
@@ -179,6 +224,9 @@ $csrf = generateCsrfToken();
 
 <form method="POST" enctype="multipart/form-data" data-validate>
     <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+    <?php if ($fromApplication): ?>
+    <input type="hidden" name="from_application" value="<?= $fromApplication['id'] ?>">
+    <?php endif; ?>
 
     <div style="display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:start;">
 

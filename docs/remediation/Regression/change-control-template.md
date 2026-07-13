@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; 4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13; 1 more (CC-103) recording the KOM-045 close-out decision — all 13 Phase 4 workflow groups complete, see the Phase 4 Completion Report; 2 more (CC-104–CC-105) recorded for Phase 5, Stage 5.1; 1 more (CC-106) recorded for Phase 5, Stage 5.2; 1 more (CC-107) recorded for Phase 5, Stage 5.3; 1 more (CC-108) recorded for Phase 5, Stage 5.4; 2 more (CC-109–CC-110) recorded for Phase 5, Stage 5.5; **2 more (CC-111–CC-112) recorded for Phase 5, Stage 5.6 — more to follow as each subsequent stage completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; 4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13; 1 more (CC-103) recording the KOM-045 close-out decision — all 13 Phase 4 workflow groups complete, see the Phase 4 Completion Report; 2 more (CC-104–CC-105) recorded for Phase 5, Stage 5.1; 1 more (CC-106) recorded for Phase 5, Stage 5.2; 1 more (CC-107) recorded for Phase 5, Stage 5.3; 1 more (CC-108) recorded for Phase 5, Stage 5.4; 2 more (CC-109–CC-110) recorded for Phase 5, Stage 5.5; 2 more (CC-111–CC-112) recorded for Phase 5, Stage 5.6; **1 more (CC-113) recorded for Phase 5, Stage 5.7 — more to follow as each subsequent stage completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -1396,6 +1396,20 @@ Copy this block for every change and append it to the log below.
 
 ---
 
+### CC-113 — Guided recruitment-to-employee conversion (Stage 5.7)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-088
+- **Files changed:** `modules/recruitment/index.php` (Convert to Employee / View Employee action), `modules/employees/add.php` (`?from_application=<id>` pre-fill + POST-time linking)
+- **Reason:** `recruitment_applications.converted_to_employee_id` existed in the schema with no code anywhere reading or writing it — HR had to manually re-key a selected candidate's details into a disconnected Add Employee form. Per user decision, built a guided conversion rather than a separate parallel system: the existing, already-tested Add Employee form pre-fills from the application (name/email/phone) when reached via the new action, and links the two records on save. The convertible-state condition (`status='selected'`, not already converted) and the `recruitment.review` permission check are both re-verified at POST time, not just at the initial GET, so a stale form submission (two tabs, a status change in the interim) cannot double-convert or overwrite an existing link.
+- **Tests added/updated:** None beyond live functional re-testing.
+- **Regression tests executed:** Full live cycle using a disposable application: pre-fill confirmed on GET (`first_name`/`last_name`/`phone`/`email` values present, hidden `from_application` field present); POST completed the conversion (new employee created, `converted_to_employee_id` set, audit log entry recorded); re-request after conversion correctly fell through to a blank form (no re-linking); Recruitment applications list confirmed to show "View Employee" in place of the action post-conversion; baseline Add Employee page (no `from_application` parameter) confirmed rendering identically to before (200 OK, no conversion banner). Phase 1 regression 20/20, Phase 2 regression 29/29. All test data removed after verification.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes — KOM-088 row updated to Fixed with full verification detail.
+
+---
+
 ## Change Log for This Document
 
 | Date | Change | Author |
@@ -1425,3 +1439,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-13 | 1 entry (CC-108) recorded for Phase 5, Stage 5.4 (Scheduled Task Infrastructure) | Remediation Program — Phase 5 |
 | 2026-07-13 | 2 entries (CC-109–CC-110) recorded for Phase 5, Stage 5.5 (Self-Service Password Recovery, Admin Surface Only) | Remediation Program — Phase 5 |
 | 2026-07-13 | 2 entries (CC-111–CC-112) recorded for Phase 5, Stage 5.6 (Deferred Notification Workflows) | Remediation Program — Phase 5 |
+| 2026-07-13 | 1 entry (CC-113) recorded for Phase 5, Stage 5.7 (Recruitment-to-Employee Conversion) | Remediation Program — Phase 5 |

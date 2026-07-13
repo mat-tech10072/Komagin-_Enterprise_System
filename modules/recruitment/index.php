@@ -151,6 +151,11 @@ $csrf = generateCsrfToken();
                         <?php if (canApprove('recruitment.review')): ?>
                         <button class="btn btn-primary btn-sm" style="font-size:0.68rem;" onclick="updateApp(<?= $a['id'] ?>, '<?= e($a['first_name'].' '.$a['last_name']) ?>', '<?= $a['status'] ?>')">Update</button>
                         <?php endif; ?>
+                        <?php if ($a['converted_to_employee_id']): ?>
+                            <a href="<?= APP_URL ?>/modules/employees/view.php?id=<?= $a['converted_to_employee_id'] ?>" class="btn btn-secondary btn-sm" style="font-size:0.68rem;">View Employee</a>
+                        <?php elseif ($a['status'] === 'selected' && canApprove('recruitment.review') && canCreate('employees.create')): ?>
+                            <a href="<?= APP_URL ?>/modules/employees/add.php?from_application=<?= $a['id'] ?>" class="btn btn-success btn-sm" style="font-size:0.68rem;">Convert to Employee</a>
+                        <?php endif; ?>
                     </div>
                 </td>
             </tr>
