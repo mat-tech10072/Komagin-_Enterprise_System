@@ -246,6 +246,13 @@ require_once dirname(dirname(dirname(__FILE__))) . '/includes/header.php';
                 Timesheet
             </a>
             <?php endif; ?>
+            <?php if (canEdit('temp_employees.edit')): ?>
+            <a href="<?= APP_URL ?>/modules/temp_employees/attendance_entry.php<?= $projectId ? '?project=' . $projectId . ($siteId ? '&site=' . $siteId : '') : '' ?>"
+               class="btn btn-primary btn-sm" title="Enter attendance digitally">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Enter Attendance
+            </a>
+            <?php endif; ?>
             <?php if (canCreate('temp_employees.create')): ?>
             <a href="<?= APP_URL ?>/modules/temp_employees/add.php" class="btn btn-primary btn-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>

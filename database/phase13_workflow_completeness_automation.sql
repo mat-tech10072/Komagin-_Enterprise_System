@@ -134,3 +134,31 @@ CREATE TABLE IF NOT EXISTS reminder_notifications_log (
   PRIMARY KEY (id),
   UNIQUE KEY uk_reminder_once_per_day (reminder_key, reminder_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── Stage 5.8: Temporary employee attendance capture ────────────────────
+-- KOM-090/KOM-058: the "Kiosk" attendance method was never actually
+-- wired up for temp employees (modules/attendance/kiosk.php only looks
+-- employees up in the `employees` table) and "Timesheet" downloaded a
+-- blank printable grid with no digital re-entry point — no temp
+-- employee's worked hours were ever captured anywhere, digitally or
+-- otherwise. Per user decision, built supervisor/HR-entered digital
+-- capture rather than a kiosk-based self-service flow (a kiosk path
+-- for temp employees would need its own identity-verification design
+-- this phase's charter explicitly does not authorize building here).
+-- One row per employee per day; UNIQUE KEY makes re-entry an update,
+-- not a duplicate.
+CREATE TABLE IF NOT EXISTS temp_attendance (
+  id int(10) unsigned NOT NULL AUTO_INCREMENT,
+  employee_id int(10) unsigned NOT NULL,
+  attendance_date date NOT NULL,
+  hours_worked decimal(4,1) NOT NULL DEFAULT 0.0,
+  notes varchar(255) DEFAULT NULL,
+  entered_by int(10) unsigned DEFAULT NULL,
+  created_at timestamp NOT NULL DEFAULT current_timestamp(),
+  updated_at timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_temp_attendance_emp_date (employee_id, attendance_date),
+  KEY idx_temp_attendance_date (attendance_date),
+  CONSTRAINT temp_attendance_ibfk_1 FOREIGN KEY (employee_id) REFERENCES temp_employees (id) ON DELETE CASCADE,
+  CONSTRAINT temp_attendance_ibfk_2 FOREIGN KEY (entered_by) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

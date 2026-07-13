@@ -289,7 +289,7 @@ require_once dirname(dirname(dirname(__FILE__))) . '/includes/header.php';
                                             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                                             Timesheet Only
                                         </div>
-                                        <div class="text-muted" style="font-size:0.75rem;">Blank paper form only — filled by hand, not entered back into the system</div>
+                                        <div class="text-muted" style="font-size:0.75rem;">Recorded by a supervisor/HR via digital Attendance Entry (or the printable form, for manual records)</div>
                                     </div>
                                 </label>
                             </div>
@@ -302,7 +302,7 @@ require_once dirname(dirname(dirname(__FILE__))) . '/includes/header.php';
                                             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                                             Both (Kiosk &amp; Timesheet)
                                         </div>
-                                        <div class="text-muted" style="font-size:0.75rem;">Neither currently captures data digitally for temp employees</div>
+                                        <div class="text-muted" style="font-size:0.75rem;">Kiosk not yet supported; attendance recorded via digital Attendance Entry instead</div>
                                     </div>
                                 </label>
                             </div>

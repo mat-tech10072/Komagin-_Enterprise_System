@@ -196,10 +196,17 @@ require_once dirname(dirname(dirname(__FILE__))) . '/includes/header.php';
         <h1 class="page-title mb-0">Weekly Timesheet</h1>
         <p class="text-muted small mb-0">Printable manual attendance sheet — fill in clock-in / clock-out by hand</p>
     </div>
-    <a href="<?= APP_URL ?>/modules/temp_employees/index.php" class="btn btn-outline-secondary btn-sm">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-        Back to Temp Employees
-    </a>
+    <div style="display:flex;gap:8px;">
+        <?php if (canEdit('temp_employees.edit')): ?>
+        <a href="<?= APP_URL ?>/modules/temp_employees/attendance_entry.php<?= $projectId ? '?project=' . $projectId . ($siteId ? '&site=' . $siteId : '') : '' ?>" class="btn btn-primary btn-sm">
+            Enter Attendance Digitally
+        </a>
+        <?php endif; ?>
+        <a href="<?= APP_URL ?>/modules/temp_employees/index.php" class="btn btn-outline-secondary btn-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            Back to Temp Employees
+        </a>
+    </div>
 </div>
 
 <!-- Filter form (no-print) -->

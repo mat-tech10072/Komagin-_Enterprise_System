@@ -1691,3 +1691,25 @@ CREATE TABLE IF NOT EXISTS `reminder_notifications_log` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_reminder_once_per_day` (`reminder_key`, `reminder_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────
+-- Table: temp_attendance
+-- New in Phase 5, Stage 5.8 — supervisor/HR-entered digital attendance
+-- capture for temporary employees (KOM-090, KOM-058). One row per
+-- employee per day; re-entry updates rather than duplicates.
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `temp_attendance` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employee_id` int(10) unsigned NOT NULL,
+  `attendance_date` date NOT NULL,
+  `hours_worked` decimal(4,1) NOT NULL DEFAULT 0.0,
+  `notes` varchar(255) DEFAULT NULL,
+  `entered_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_temp_attendance_emp_date` (`employee_id`, `attendance_date`),
+  KEY `idx_temp_attendance_date` (`attendance_date`),
+  CONSTRAINT `temp_attendance_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `temp_employees` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `temp_attendance_ibfk_2` FOREIGN KEY (`entered_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

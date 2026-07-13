@@ -30,6 +30,14 @@ if (!$emp) { setFlash('error', 'Temporary employee not found.'); header('Locatio
 
 $flash = getFlash();
 
+// Phase 5, Stage 5.8: recent digitally-entered attendance (last 14 days).
+$recentAttendance = db()->prepare("SELECT attendance_date, hours_worked FROM temp_attendance
+    WHERE employee_id = ? AND attendance_date >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+    ORDER BY attendance_date DESC");
+$recentAttendance->execute([$id]);
+$recentAttendance = $recentAttendance->fetchAll();
+$recentHoursTotal = array_sum(array_column($recentAttendance, 'hours_worked'));
+
 $statusColor = match($emp['status']) {
     'active'     => 'success',
     'completed'  => 'secondary',
@@ -251,17 +259,16 @@ require_once dirname(dirname(dirname(__FILE__))) . '/includes/header.php';
                         'both'      => 'success',
                         default     => 'secondary',
                     };
-                    // KOM-090: neither method actually captures attendance data
-                    // digitally for temp employees yet — the kiosk only
-                    // recognizes permanent employees, and the timesheet is a
-                    // blank paper form with no re-entry point. These
-                    // descriptions previously implied both were fully
-                    // working; corrected to say so plainly rather than build
-                    // the capture mechanism (a separate, larger feature).
+                    // Phase 5, Stage 5.8: the kiosk still does not recognize
+                    // temp employees (no identity-verification path built for
+                    // it this phase — see KOM-090's history), but attendance
+                    // is now captured digitally via supervisor/HR-entered
+                    // Attendance Entry regardless of which method is selected
+                    // here, so this is no longer a dead-end either way.
                     $methodDesc = match($method) {
-                        'kiosk'     => 'Not yet available for temp employees — the attendance kiosk does not recognize this employee number. Hours must be tracked manually outside the system.',
-                        'timesheet' => 'Downloadable paper timesheet only, filled in by hand — not re-entered into the system. For manual record-keeping.',
-                        'both'      => 'Neither the kiosk nor the timesheet digitally captures attendance for temp employees yet — for manual record-keeping only.',
+                        'kiosk'     => 'Not yet available for temp employees — the attendance kiosk does not recognize this employee number. Use Attendance Entry to record hours instead.',
+                        'timesheet' => 'Recorded by a supervisor/HR via Attendance Entry (digital) or the printable weekly form (manual record-keeping).',
+                        'both'      => 'Kiosk not yet supported for temp employees. Recorded by a supervisor/HR via Attendance Entry.',
                         default     => '',
                     };
                     ?>
@@ -280,6 +287,34 @@ require_once dirname(dirname(dirname(__FILE__))) . '/includes/header.php';
                     <?php if (canEdit('temp_employees.edit')): ?>
                     <div class="mt-2">
                         <a href="<?= APP_URL ?>/modules/temp_employees/edit.php?id=<?= $id ?>" class="btn btn-outline-secondary btn-sm" style="font-size:0.72rem;">Change Method</a>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Recent Attendance (Stage 5.8) -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent fw-semibold d-flex justify-content-between align-items-center" style="font-size:0.88rem;">
+                    <span>Recent Attendance</span>
+                    <span class="text-muted" style="font-size:0.72rem;font-weight:400;">Last 14 days</span>
+                </div>
+                <div class="card-body" style="font-size:0.82rem;">
+                    <?php if (empty($recentAttendance)): ?>
+                    <div class="text-muted small mb-2">No attendance entries recorded in the last 14 days.</div>
+                    <?php else: ?>
+                    <div class="text-muted small mb-2">Total: <strong><?= number_format($recentHoursTotal, 1) ?> hrs</strong> across <?= count($recentAttendance) ?> day(s)</div>
+                    <ul class="list-unstyled mb-0" style="max-height:160px;overflow-y:auto;">
+                        <?php foreach ($recentAttendance as $ra): ?>
+                        <li class="d-flex justify-content-between border-bottom py-1">
+                            <span><?= date('D, d M Y', strtotime($ra['attendance_date'])) ?></span>
+                            <span class="fw-semibold"><?= number_format($ra['hours_worked'], 1) ?> hrs</span>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <?php endif; ?>
+                    <?php if (canEdit('temp_employees.edit') && $emp['project_id']): ?>
+                    <div class="mt-2">
+                        <a href="<?= APP_URL ?>/modules/temp_employees/attendance_entry.php?project=<?= $emp['project_id'] ?>&site=<?= $emp['site_id'] ?? '' ?>" class="btn btn-outline-secondary btn-sm" style="font-size:0.72rem;">Enter Attendance</a>
                     </div>
                     <?php endif; ?>
                 </div>
