@@ -23,6 +23,35 @@ Options -Indexes
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set X-Content-Type-Options "nosniff"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Phase 6, Stage 6.1 (KOM-054): HSTS — browsers only ever honor this
+    # header when it arrives over an already-HTTPS connection (per spec),
+    # so sending it unconditionally here is inert and harmless on this
+    # local dev environment (plain HTTP, no cert) and becomes meaningful
+    # automatically the moment HTTPS is live in production — no code
+    # change needed at that point. max-age is 6 months; raise once HTTPS
+    # has been confirmed stable in production for a while.
+    Header always set Strict-Transport-Security "max-age=15768000; includeSubDomains"
+
+    # Phase 6, Stage 6.1 (KOM-054): Content-Security-Policy, intentionally
+    # Report-Only. This codebase makes extensive, pre-existing use of
+    # inline <style> blocks, inline style="" attributes, inline <script>
+    # blocks, and inline onclick="" handlers throughout — none of that is
+    # new to Phase 6, and rewriting it to be strict-CSP-compliant (nonces
+    # or moving every inline handler to external files) would be a UI/
+    # frontend rewrite, which this phase's charter explicitly prohibits.
+    # 'unsafe-inline' is included so the policy doesn't silently break
+    # the existing UI; it still provides real protection by restricting
+    # which origins scripts/styles/fonts/images/connections may load
+    # from at all, closing off a real class of XSS payloads (loading an
+    # attacker-controlled script/exfiltrating data to an attacker
+    # domain). Report-Only means browsers log violations to the console
+    # without blocking anything — the standard, safe way to introduce
+    # CSP to an app that wasn't built CSP-first. Switch to the
+    # enforcing "Content-Security-Policy" header (drop "-Report-Only")
+    # only after confirming zero console violations against real traffic
+    # on the actual production domain — see the deployment guide.
+    Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
 </IfModule>
 
 # ── GZip compression ────────────────────────────────────────────

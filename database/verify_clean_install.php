@@ -42,6 +42,12 @@ $root->exec("CREATE DATABASE `$testDb` CHARACTER SET utf8mb4 COLLATE utf8mb4_uni
 $root->exec("USE `$testDb`");
 record($results, true, "Empty test database created");
 
+// Phase 6, Stage 6.1: kept in sync with database/install.php's own
+// INSTALL_SEQUENCE — see that file's comment for why phase11/phase12 are
+// correctly excluded (upgrade-path-only) and phase13 is included (the
+// one migration file carrying fresh-install-needed seed data, the
+// default work_calendar_settings row, that schema.sql intentionally
+// doesn't include).
 $sequence = [
     ['file' => 'schema.sql',                          'label' => 'Core database structure'],
     ['file' => 'seeds/001_baseline_admin.sql',         'label' => 'Default super_admin account'],
@@ -53,6 +59,7 @@ $sequence = [
     ['file' => 'phase8_temp_employees.sql',            'label' => 'Temporary employees module'],
     ['file' => 'phase9_consultants.sql',               'label' => 'Consultants module'],
     ['file' => 'phase10_authorization_framework.sql',  'label' => 'Activity Log & Approvals permissions'],
+    ['file' => 'phase13_workflow_completeness_automation.sql', 'label' => 'Working-calendar default row, scheduler/password-reset/notification tables'],
 ];
 
 foreach ($sequence as $entry) {
@@ -76,9 +83,10 @@ foreach ($sequence as $entry) {
 
 echo "\n=== Structural Verification ===\n";
 
-// 1. Table count matches live (60, including schema_migrations)
+// 1. Table count matches live (67, including schema_migrations — was 60
+// before Phase 6, Stage 6.1 added phase13's 7 tables to this sequence)
 $tableCount = (int)$root->query("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$testDb'")->fetchColumn();
-record($results, $tableCount === 60, "Table count is 60 (got $tableCount)");
+record($results, $tableCount === 67, "Table count is 67 (got $tableCount)");
 
 // 2. Every table the live database has also exists here
 $liveTables = file(__DIR__ . '/../docs/remediation/Database/fingerprints/live_table_list.txt', FILE_IGNORE_NEW_LINES) ?: [];

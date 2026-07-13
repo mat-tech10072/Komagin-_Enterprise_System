@@ -31,6 +31,21 @@ $stepLog = [];
 // DATA (permissions, templates, categories) that schema.sql intentionally
 // does not include run after it. phase7_test_data.sql (demo data) is
 // deliberately NOT run by default — see the "Load Demo Data" checkbox.
+//
+// Phase 6, Stage 6.1: phase11_schema_reconciliation.sql and
+// phase12_workflow_integrity_fixes.sql are correctly NOT in this list —
+// both explicitly document themselves as upgrade-path-only for
+// databases older than Phase 3/Phase 4, and everything they'd otherwise
+// add (all 11 tables, personal_email, etc.) is already confirmed present
+// natively in schema.sql. phase13_workflow_completeness_automation.sql
+// is the one exception: its CREATE TABLE/ALTER statements are likewise
+// already redundant with schema.sql, but it also carries the one seed
+// row schema.sql intentionally excludes — the default
+// work_calendar_settings row (id=1) every "Absent Today"/"Absent"
+// calculation across Dashboard, Reports, and Attendance depends on
+// (see config/functions.php's getWorkCalendarSettings()). Without it, a
+// fresh install would create the table but never seed that row. Placed
+// after phase8 since temp_attendance has a FK to temp_employees.
 const INSTALL_SEQUENCE = [
     ['file' => 'schema.sql',                          'label' => 'Core database structure (60 tables)'],
     ['file' => 'seeds/001_baseline_admin.sql',         'label' => 'Default super_admin account'],
@@ -42,6 +57,7 @@ const INSTALL_SEQUENCE = [
     ['file' => 'phase8_temp_employees.sql',            'label' => 'Temporary employees module & permissions'],
     ['file' => 'phase9_consultants.sql',               'label' => 'Consultants module & permissions'],
     ['file' => 'phase10_authorization_framework.sql',  'label' => 'Activity Log & Approvals permissions'],
+    ['file' => 'phase13_workflow_completeness_automation.sql', 'label' => 'Working-calendar default row, scheduler/password-reset/notification tables (Phase 5)'],
 ];
 
 function runSqlFile(PDO $pdo, string $path, string $label, array &$log): bool {

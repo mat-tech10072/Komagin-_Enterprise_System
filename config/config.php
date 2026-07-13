@@ -6,21 +6,30 @@
 define('APP_NAME', 'Komagin HR');
 define('APP_FULL_NAME', 'Komagin HR Management System');
 define('APP_VERSION', '1.0.0');
-define('APP_URL', 'http://localhost/HR_Komagin');
+
+// Phase 6, Stage 6.1: these constants are now environment-driven — set
+// APP_URL/DB_*/etc. as real server environment variables (Apache SetEnv,
+// Nginx fastcgi_param, or PHP-FPM pool env[] directives) on any
+// deployment other than this local dev box; see .env.example for the
+// full documented list. Every fallback below reproduces this app's
+// existing local XAMPP dev behavior exactly, so no environment
+// variable needs to be set anywhere for local development to keep
+// working unchanged.
+define('APP_URL', getenv('APP_URL') ?: 'http://localhost/HR_Komagin');
 
 // Database Configuration
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'komagin_hr');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_NAME', getenv('DB_NAME') ?: 'komagin_hr');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : '');
 define('DB_CHARSET', 'utf8mb4');
 
 // Session Settings
-define('SESSION_LIFETIME', 28800); // 8 hours
+define('SESSION_LIFETIME', (int)(getenv('SESSION_LIFETIME') ?: 28800)); // 8 hours
 
 // File Upload Settings
-define('UPLOAD_PATH', __DIR__ . '/../uploads/');
-define('MAX_FILE_SIZE', 10485760); // 10MB
+define('UPLOAD_PATH', getenv('UPLOAD_PATH') ?: (__DIR__ . '/../uploads/'));
+define('MAX_FILE_SIZE', (int)(getenv('MAX_FILE_SIZE') ?: 10485760)); // 10MB
 define('ALLOWED_IMAGE_TYPES', ['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
 define('ALLOWED_DOC_TYPES', ['application/pdf', 'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -33,7 +42,7 @@ define('CURRENCY_SYMBOL', 'K');   // e.g. '$', '£', '€', 'K', 'N', 'R', 'USD'
 define('CURRENCY_CODE',   'PGK'); // e.g. 'USD', 'GBP', 'EUR', 'ZAR', 'NGN', 'ZMW'
 
 // Employee Number Format
-define('EMP_PREFIX', 'KOM-EMP');
+define('EMP_PREFIX', getenv('EMP_PREFIX') ?: 'KOM-EMP');
 define('EMP_YEAR_FORMAT', 'Y');
 define('EMP_NUMBER_LENGTH', 4);
 
@@ -46,7 +55,7 @@ define('DEFAULT_WORK_HOURS', 8);
 define('DEFAULT_OVERTIME_THRESHOLD', 8); // hours before overtime kicks in
 
 // Timezone
-date_default_timezone_set('Pacific/Port_Moresby');
+date_default_timezone_set(getenv('APP_TIMEZONE') ?: 'Pacific/Port_Moresby');
 
 // Force UTF-8 output encoding
 ini_set('default_charset', 'UTF-8');
