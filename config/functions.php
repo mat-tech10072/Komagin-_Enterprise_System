@@ -688,8 +688,28 @@ function uploadFile(array $file, string $folder, array $allowedTypes): array {
         return ['success' => false, 'error' => 'File type not allowed.'];
     }
 
-    $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-    $filename = uniqid('', true) . '_' . time() . '.' . strtolower($ext);
+    // KOM-039: the extension previously came from the client-supplied
+    // original filename, never cross-checked against the MIME type finfo
+    // actually detected above — a file whose real bytes satisfy an
+    // allowed MIME type (e.g. a valid image, or a polyglot crafted to
+    // read as both a valid image and something else) could still be
+    // saved to disk under any extension the client chose in the upload's
+    // filename. The extension actually written to disk is now derived
+    // solely from the server-detected MIME type; an allowed MIME type
+    // with no mapping here is rejected rather than guessed at.
+    $mimeToExt = [
+        'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif',
+        'image/webp' => 'webp', 'image/x-icon' => 'ico',
+        'application/pdf' => 'pdf', 'application/msword' => 'doc',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+        'application/vnd.ms-excel' => 'xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+    ];
+    $ext = $mimeToExt[$mimeType] ?? null;
+    if ($ext === null) {
+        return ['success' => false, 'error' => 'File type not allowed.'];
+    }
+    $filename = uniqid('', true) . '_' . time() . '.' . $ext;
     $targetDir = UPLOAD_PATH . $folder . '/';
 
     if (!is_dir($targetDir)) {

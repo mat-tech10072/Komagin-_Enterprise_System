@@ -39,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
     $genType = $_POST['gen_type'] ?? '';
     $genMonth = (int)($_POST['gen_month'] ?? $month);
     $genYear  = (int)($_POST['gen_year']  ?? $year);
+    $lockId   = (int)($_POST['lock_id'] ?? 0);
 
     if ($genType) {
         // Create archive record
@@ -48,6 +49,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
         auditLog('archive','generate_monthly',null,null,json_encode(['type'=>$genType,'month'=>$genMonth,'year'=>$genYear]));
         setFlash('success', "Archive record created: $title");
         header('Location: ' . APP_URL . '/modules/archive/monthly.php?year='.$genYear.'&month='.$genMonth);
+        exit;
+    } elseif ($lockId) {
+        // KOM-051: this form posted lock_id, but nothing here ever read
+        // it — the button silently did nothing on every click.
+        $lockStmt = db()->prepare("UPDATE archive_records SET is_locked=1, locked_by=?, locked_at=NOW() WHERE id=? AND is_locked=0");
+        $lockStmt->execute([$_SESSION['user_id'], $lockId]);
+        if ($lockStmt->rowCount() > 0) {
+            auditLog('archive','lock',$lockId,json_encode(['is_locked'=>0]),json_encode(['is_locked'=>1]),'Archive record locked');
+            setFlash('success', 'Archive record locked.');
+        } else {
+            setFlash('error', 'Archive record not found or already locked.');
+        }
+        header('Location: ' . APP_URL . '/modules/archive/monthly.php?year='.$year.'&month='.$month);
         exit;
     }
 }

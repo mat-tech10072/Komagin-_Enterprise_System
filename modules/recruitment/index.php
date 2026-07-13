@@ -31,8 +31,8 @@ if ($activeTab === 'vacancies') {
     $stmt = db()->prepare("SELECT rv.*, d.name as dept_name,
         (SELECT COUNT(*) FROM recruitment_applications ra WHERE ra.vacancy_id=rv.id) as app_count
         FROM recruitment_vacancies rv LEFT JOIN departments d ON rv.department_id=d.id
-        WHERE $whereSQL ORDER BY rv.created_at DESC LIMIT $perPage OFFSET {$pagination['offset']}");
-    $stmt->execute($params);
+        WHERE $whereSQL ORDER BY rv.created_at DESC LIMIT ? OFFSET ?");
+    $stmt->execute(array_merge($params, [$perPage, $pagination['offset']]));
     $vacancies = $stmt->fetchAll();
 } else {
     $where  = ['1=1'];
@@ -47,8 +47,8 @@ if ($activeTab === 'vacancies') {
 
     $stmt = db()->prepare("SELECT ra.*, rv.job_title FROM recruitment_applications ra
         JOIN recruitment_vacancies rv ON ra.vacancy_id=rv.id
-        WHERE $whereSQL ORDER BY ra.created_at DESC LIMIT $perPage OFFSET {$pagination['offset']}");
-    $stmt->execute($params);
+        WHERE $whereSQL ORDER BY ra.created_at DESC LIMIT ? OFFSET ?");
+    $stmt->execute(array_merge($params, [$perPage, $pagination['offset']]));
     $applications = $stmt->fetchAll();
 }
 

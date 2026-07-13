@@ -53,8 +53,14 @@ ini_set('default_charset', 'UTF-8');
 mb_internal_encoding('UTF-8');
 mb_http_output('UTF-8');
 
-// Environment — set APP_ENV=production in server config to harden
-define('APP_ENV', getenv('APP_ENV') ?: 'development');
+// Environment — set APP_ENV=development in server config for verbose
+// on-screen errors during local development. KOM-053: this previously
+// defaulted to 'development' (errors displayed) whenever APP_ENV wasn't
+// explicitly set — the safer fail-closed default is production (errors
+// suppressed on-screen, still logged to logs/php_errors.log) so a
+// misconfigured/un-configured deployment doesn't leak stack traces,
+// file paths, or query text to end users by default.
+define('APP_ENV', getenv('APP_ENV') ?: 'production');
 
 if (APP_ENV === 'production') {
     error_reporting(0);

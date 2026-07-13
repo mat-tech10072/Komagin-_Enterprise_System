@@ -1,4 +1,4 @@
-Phase 1 Regression Run — Mon Jul 13 12:36:51 WPST 2026
+Phase 1 Regression Run — Mon Jul 13 14:32:55 WPST 2026
 ======================================
 --- Logging in all test accounts ---
 
@@ -8,8 +8,8 @@ PASS | hr_officer can now access Consultants (was blocked pre-fix) | expected=20
 
 --- KOM-019/NH-02: Activity Log centralized permission ---
 PASS | super_admin can access Activity Log | expected=200 got=200
-PASS | hr_manager still blocked from Activity Log (not granted — mechanism changed, access unchanged) | expected=302 got=302
-PASS | hr_officer still blocked from Activity Log | expected=302 got=302
+PASS | hr_manager can access Activity Log (audit.view merge, Stage 5.10) | expected=200 got=200
+PASS | hr_officer can access Activity Log (audit.view merge, Stage 5.10) | expected=200 got=200
 PASS | payroll_officer blocked from Activity Log | expected=302 got=302
 
 --- KOM-001/C-01: Approvals — org-wide view now permission-gated ---

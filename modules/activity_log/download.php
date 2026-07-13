@@ -6,9 +6,11 @@ require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
 requireLogin();
 
-if (!hasPermission('activity_log.view', 'export')) {
+// Phase 5, Stage 5.10 (KOM-037): merged onto audit.view's export action,
+// matching modules/activity_log/index.php's permission change.
+if (!hasPermission('audit.view', 'export')) {
     auditLog('security', 'access_denied', null, null, null,
-        "Role '" . ($_SESSION['user_role'] ?? 'unknown') . "' denied: activity_log.view.export at " . ($_SERVER['REQUEST_URI'] ?? ''));
+        "Role '" . ($_SESSION['user_role'] ?? 'unknown') . "' denied: audit.view.export at " . ($_SERVER['REQUEST_URI'] ?? ''));
     http_response_code(403);
     exit('Access denied.');
 }
@@ -41,7 +43,16 @@ function csvStart(string $filename): void {
 
 function csvRow(array $cols): void {
     $escaped = array_map(function($v) {
-        $v = str_replace('"', '""', (string)$v);
+        $v = (string)$v;
+        // KOM-033: neutralize spreadsheet formula injection — a leading
+        // =, +, -, or @ makes Excel/Sheets interpret the cell as a formula
+        // when this CSV is opened, rather than as plain text. Several
+        // exported columns (old_value, new_value, reason) are free text
+        // fully controlled by whoever triggered the original action.
+        if ($v !== '' && strpbrk($v[0], '=+-@') !== false) {
+            $v = "'" . $v;
+        }
+        $v = str_replace('"', '""', $v);
         return '"' . $v . '"';
     }, $cols);
     echo implode(',', $escaped) . "\r\n";
@@ -71,17 +82,21 @@ if ($export === 'user') {
 
         $name = trim(($subject['disp_first']??'').' '.($subject['disp_last']??'')) ?: $subject['username'];
 
-        $stmt = db()->prepare("SELECT * FROM audit_logs WHERE user_id=? ORDER BY created_at DESC");
-        $stmt->execute([$id]);
-        $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+        // KOM-034: this path previously ignored the from/to date-range
+        // filter the category exports already respect, and used
+        // fetchAll() (loading the user's entire history into memory)
+        // instead of the streaming pattern used everywhere else in this
+        // file.
         $filename = 'activity_' . preg_replace('/[^a-z0-9]+/i', '_', $name) . '_' . date('Ymd') . '.csv';
         csvStart($filename);
-        csvMeta($companyName, 'Activity Log — ' . $name, 'All time', date('Y-m-d'), $generatedBy, $generatedAt);
+        csvMeta($companyName, 'Activity Log — ' . $name, $dateFrom, $dateTo, $generatedBy, $generatedAt);
         csvRow(['#','Date/Time','User','Role','Module','Action','Record ID','Before','After','Reason','IP Address','User Agent']);
-        foreach ($logs as $i => $log) {
+        $stmt = db()->prepare("SELECT * FROM audit_logs WHERE user_id=? AND created_at BETWEEN ? AND ? ORDER BY created_at DESC");
+        $stmt->execute([$id, $dfFull, $dtFull]);
+        $i = 1;
+        while ($log = $stmt->fetch(PDO::FETCH_ASSOC)) {
             csvRow([
-                $i+1,
+                $i++,
                 $log['created_at'],
                 $log['user_name'],
                 strtoupper($subject['role']),
@@ -107,7 +122,7 @@ if ($export === 'user') {
         $name = trim($subject['first_name'] . ' ' . $subject['last_name']);
         $filename = 'activity_emp_' . preg_replace('/[^a-z0-9]+/i', '_', $name) . '_' . date('Ymd') . '.csv';
         csvStart($filename);
-        csvMeta($companyName, 'Activity Log — Employee: ' . $name, 'All time', date('Y-m-d'), $generatedBy, $generatedAt);
+        csvMeta($companyName, 'Activity Log — Employee: ' . $name, $dateFrom, $dateTo, $generatedBy, $generatedAt);
 
         // Employee profile summary
         csvRow(['EMPLOYEE DETAILS']);
@@ -118,16 +133,17 @@ if ($export === 'user') {
         csvRow(['Portal Last Login', $subject['portal_last_login'] ?? 'Never']);
         csvRow([]);
 
+        // KOM-034: date-range filter now applied here (previously ignored),
+        // and streamed via while($stmt->fetch()) instead of fetchAll().
         if ($subject['user_id']) {
-            $stmt = db()->prepare("SELECT * FROM audit_logs WHERE user_id=? ORDER BY created_at DESC");
-            $stmt->execute([$subject['user_id']]);
-            $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
             csvRow(['ACTION LOG']);
             csvRow(['#','Date/Time','Module','Action','Record ID','Before','After','Reason','IP Address']);
-            foreach ($logs as $i => $log) {
+            $stmt = db()->prepare("SELECT * FROM audit_logs WHERE user_id=? AND created_at BETWEEN ? AND ? ORDER BY created_at DESC");
+            $stmt->execute([$subject['user_id'], $dfFull, $dtFull]);
+            $i = 1;
+            while ($log = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 csvRow([
-                    $i+1,
+                    $i++,
                     $log['created_at'],
                     $log['module'],
                     $log['action'],

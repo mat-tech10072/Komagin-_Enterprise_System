@@ -4,7 +4,12 @@ require_once dirname(dirname(__DIR__)) . '/config/config.php';
 require_once dirname(dirname(__DIR__)) . '/config/database.php';
 require_once dirname(dirname(__DIR__)) . '/config/functions.php';
 
-requirePermission('activity_log.view', 'view');
+// Phase 5, Stage 5.10 (KOM-037): merged into the same audit.view
+// permission Audit Logs uses — this page is now reached from a link on
+// that page rather than its own separate, more narrowly-seeded
+// permission slug (activity_log.view had only ever been granted to
+// super_admin).
+requirePermission('audit.view', 'view');
 
 $pageTitle  = 'Activity Logs';
 $activeMenu = 'activity_log';
@@ -142,6 +147,7 @@ $dlBase = APP_URL . '/modules/activity_log/download.php';
         <p class="page-subtitle">Complete system activity for all users — for legal and compliance reference</p>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
+        <a href="<?= APP_URL ?>/modules/audit/index.php" class="btn btn-secondary btn-sm">Back to Audit Logs</a>
         <a href="<?= $dlBase ?>?export=category&type=all&from=<?= urlencode($dateFrom) ?>&to=<?= urlencode($dateTo) ?>"
            class="btn btn-primary btn-sm" title="Download all activity across all categories as CSV">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>

@@ -23,8 +23,16 @@ try {
     $onProbation  = db()->query("SELECT COUNT(*) FROM employees WHERE status = 'probation'")->fetchColumn();
 
     // Today attendance
-    $clockedIn    = db()->query("SELECT COUNT(*) FROM attendance WHERE attendance_date = '$today' AND sign_in IS NOT NULL AND sign_out IS NULL")->fetchColumn();
-    $lateToday    = db()->query("SELECT COUNT(*) FROM attendance WHERE attendance_date = '$today' AND is_late = 1")->fetchColumn();
+    // KOM-056: $today/$thisMonth are server-generated (date()), never
+    // user input, so this was never exploitable — converted to bound
+    // parameters anyway for consistency with the prepared-statement
+    // standard used everywhere else in this codebase.
+    $clockedInStmt = db()->prepare("SELECT COUNT(*) FROM attendance WHERE attendance_date = ? AND sign_in IS NOT NULL AND sign_out IS NULL");
+    $clockedInStmt->execute([$today]);
+    $clockedIn = $clockedInStmt->fetchColumn();
+    $lateTodayStmt = db()->prepare("SELECT COUNT(*) FROM attendance WHERE attendance_date = ? AND is_late = 1");
+    $lateTodayStmt->execute([$today]);
+    $lateToday = $lateTodayStmt->fetchColumn();
     // KOM-098: attendance.is_absent defaults to 0 and is never written by any
     // code path (a row only ever gets created on kiosk sign-in) — so "WHERE
     // is_absent=1" was structurally guaranteed to return 0 every single day,
@@ -35,9 +43,11 @@ try {
     // deliberately 0 rather than counting the whole company as "absent".
     $absentToday = 0;
     if (isWorkingDay($today)) {
-        $absentToday = db()->query("SELECT COUNT(*) FROM employees e
+        $absentTodayStmt = db()->prepare("SELECT COUNT(*) FROM employees e
                                      WHERE e.status IN ('active','probation')
-                                     AND NOT EXISTS (SELECT 1 FROM attendance a WHERE a.employee_id = e.id AND a.attendance_date = '$today')")->fetchColumn();
+                                     AND NOT EXISTS (SELECT 1 FROM attendance a WHERE a.employee_id = e.id AND a.attendance_date = ?)");
+        $absentTodayStmt->execute([$today]);
+        $absentToday = $absentTodayStmt->fetchColumn();
     }
 
     // Pending approvals
@@ -55,7 +65,9 @@ try {
     $totalPending = $pendingLeave + $pendingCorrect + $pendingUpdates + $pendingOT + $pendingRecruitment;
 
     // Monthly summary
-    $monthlyOT = db()->query("SELECT COALESCE(SUM(approved_hours),0) FROM overtime_records WHERE DATE_FORMAT(overtime_date,'%Y-%m') = '$thisMonth' AND status = 'approved'")->fetchColumn();
+    $monthlyOTStmt = db()->prepare("SELECT COALESCE(SUM(approved_hours),0) FROM overtime_records WHERE DATE_FORMAT(overtime_date,'%Y-%m') = ? AND status = 'approved'");
+    $monthlyOTStmt->execute([$thisMonth]);
+    $monthlyOT = $monthlyOTStmt->fetchColumn();
 
     // Open vacancies
     $openVacancies = db()->query("SELECT COUNT(*) FROM recruitment_vacancies WHERE status = 'open'")->fetchColumn();
@@ -99,20 +111,24 @@ try {
 
     // Alerts
     // Contract expiring in 30 days
-    $contractExpiring = db()->query("SELECT e.employee_number, CONCAT(e.first_name,' ',e.last_name) as name,
+    $contractExpiringStmt = db()->prepare("SELECT e.employee_number, CONCAT(e.first_name,' ',e.last_name) as name,
                                      e.contract_end_date, d.name as dept
                                      FROM employees e
                                      LEFT JOIN departments d ON e.department_id = d.id
                                      WHERE e.status IN ('active','probation')
-                                     AND e.contract_end_date BETWEEN '$today' AND DATE_ADD('$today', INTERVAL 30 DAY)
-                                     ORDER BY e.contract_end_date LIMIT 5")->fetchAll();
+                                     AND e.contract_end_date BETWEEN ? AND DATE_ADD(?, INTERVAL 30 DAY)
+                                     ORDER BY e.contract_end_date LIMIT 5");
+    $contractExpiringStmt->execute([$today, $today]);
+    $contractExpiring = $contractExpiringStmt->fetchAll();
 
     // Probation expiring in 14 days
-    $probationExpiring = db()->query("SELECT employee_number, CONCAT(first_name,' ',last_name) as name,
+    $probationExpiringStmt = db()->prepare("SELECT employee_number, CONCAT(first_name,' ',last_name) as name,
                                       probation_end FROM employees
                                       WHERE status = 'probation'
-                                      AND probation_end BETWEEN '$today' AND DATE_ADD('$today', INTERVAL 14 DAY)
-                                      ORDER BY probation_end LIMIT 5")->fetchAll();
+                                      AND probation_end BETWEEN ? AND DATE_ADD(?, INTERVAL 14 DAY)
+                                      ORDER BY probation_end LIMIT 5");
+    $probationExpiringStmt->execute([$today, $today]);
+    $probationExpiring = $probationExpiringStmt->fetchAll();
 
     // Missing documents (employees without ID document)
     $missingDocs = db()->query("SELECT COUNT(*) FROM employees e

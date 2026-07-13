@@ -34,8 +34,8 @@ $pagination = paginate($total,$perPage,$page);
 $stmt = db()->prepare("SELECT a.*, e.first_name, e.last_name, e.employee_number, d.name as dept_name
     FROM attendance a JOIN employees e ON a.employee_id=e.id
     LEFT JOIN departments d ON e.department_id=d.id
-    WHERE $whereSQL ORDER BY e.last_name LIMIT $perPage OFFSET {$pagination['offset']}");
-$stmt->execute($params);
+    WHERE $whereSQL ORDER BY e.last_name LIMIT ? OFFSET ?");
+$stmt->execute(array_merge($params, [$perPage, $pagination['offset']]));
 $records = $stmt->fetchAll();
 
 $departments = getDepartments();

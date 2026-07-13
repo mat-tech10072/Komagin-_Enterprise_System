@@ -29,8 +29,8 @@ $stmt = db()->prepare("SELECT e.*, d.name as dept_name, p.title as position_titl
     FROM employees e
     LEFT JOIN departments d ON e.department_id=d.id
     LEFT JOIN positions p ON e.position_id=p.id
-    WHERE $whereSQL ORDER BY e.start_date DESC LIMIT $perPage OFFSET {$pagination['offset']}");
-$stmt->execute($params);
+    WHERE $whereSQL ORDER BY e.start_date DESC LIMIT ? OFFSET ?");
+$stmt->execute(array_merge($params, [$perPage, $pagination['offset']]));
 $newHires = $stmt->fetchAll();
 
 // Onboarding checklists

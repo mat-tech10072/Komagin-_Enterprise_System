@@ -25,11 +25,22 @@ $stmt = db()->prepare("SELECT e.*, d.name as dept_name
 $stmt->execute($params);
 $employees = $stmt->fetchAll();
 
+// KOM-048: previously one SELECT per employee (N+1) — a single query
+// for all filtered employees' document categories, grouped in PHP.
+$existingByEmp = [];
+if ($employees) {
+    $empIds = array_column($employees, 'id');
+    $in = implode(',', array_fill(0, count($empIds), '?'));
+    $docStmt = db()->prepare("SELECT DISTINCT employee_id, category FROM employee_documents WHERE employee_id IN ($in) AND is_deleted=0");
+    $docStmt->execute($empIds);
+    foreach ($docStmt->fetchAll() as $row) {
+        $existingByEmp[$row['employee_id']][] = $row['category'];
+    }
+}
+
 $missingList = [];
 foreach ($employees as $emp) {
-    $docTypes = db()->prepare("SELECT DISTINCT category FROM employee_documents WHERE employee_id=? AND is_deleted=0");
-    $docTypes->execute([$emp['id']]);
-    $existing = array_column($docTypes->fetchAll(), 'category');
+    $existing = $existingByEmp[$emp['id']] ?? [];
 
     $missing = [];
     foreach ($requiredDocs as $cat => $label) {

@@ -155,7 +155,11 @@ $csrf = generateCsrfToken();
     <form method="POST" style="padding:16px;">
         <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
         <input type="hidden" name="action" value="save_email_settings">
-        <?php foreach (['smtp_host','smtp_port','smtp_user','smtp_pass','smtp_encryption','from_name','from_email'] as $k): ?>
+        <?php // KOM-031: smtp_pass deliberately excluded here — re-emitting it as a
+        // hidden field's cleartext value exposed it in the page's HTML source. Not
+        // submitting it at all is safe: the save handler above already preserves
+        // the existing stored password whenever the field is blank/absent. ?>
+        <?php foreach (['smtp_host','smtp_port','smtp_user','smtp_encryption','from_name','from_email'] as $k): ?>
         <input type="hidden" name="<?= $k ?>" value="<?= e($e[$k]) ?>">
         <?php endforeach; ?>
 

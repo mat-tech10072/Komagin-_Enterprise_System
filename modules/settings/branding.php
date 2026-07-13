@@ -20,8 +20,27 @@ $activeMenu = 'settings';
 $activeTab  = $_GET['tab'] ?? 'letterheads';
 
 // ── Allowed types for branding uploads ────────────────────────────────────
-$IMG_TYPES = ['image/png','image/jpeg','image/gif','image/webp','image/svg+xml'];
+// KOM-038: image/svg+xml removed — SVG can carry embedded <script>, and
+// this app's server-side MIME sniffing (finfo, see uploadFile()) will
+// pass a well-formed malicious SVG since it genuinely is a valid SVG
+// file. Letterheads are rendered via <img src>, which doesn't execute
+// embedded script today, but there is no reason to accept a format with
+// that risk when raster formats cover the same use case.
+$IMG_TYPES = ['image/png','image/jpeg','image/gif','image/webp'];
 $PNG_TYPES = ['image/png','image/gif','image/webp']; // transparency support
+
+// KOM-055: replacing or deleting a branding asset previously only ever
+// touched the database row — the old file on disk (superseded on
+// replace, or orphaned entirely on delete) was never removed, so
+// uploads/{letterheads,signatures,stamps,watermarks}/ grows without
+// bound forever.
+function deleteBrandingAssetFile(?string $relativePath): void {
+    if (!$relativePath) return;
+    $absolute = dirname(dirname(__DIR__)) . '/' . $relativePath;
+    if (is_file($absolute)) {
+        @unlink($absolute);
+    }
+}
 
 // ── POST handlers ─────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'] ?? '')) {
@@ -38,8 +57,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
         $marginT  = (int)($_POST['margin_top'] ?? 120);
         $marginB  = (int)($_POST['margin_bottom'] ?? 60);
         $isDefault= isset($_POST['is_default']) ? 1 : 0;
-        $headerHtml = $_POST['header_html'] ?? null;
-        $footerHtml = $_POST['footer_html'] ?? null;
+        // KOM-060: header_html/footer_html removed — captured by this
+        // handler previously (with no corresponding form field anywhere
+        // in this page's UI to ever populate them) but never read by
+        // DocumentEngine.php's rendering. Per user decision, removed
+        // rather than wired up; the database columns are left in place,
+        // unused, consistent with not removing a data structure without
+        // migration/rollback planning.
 
         if (!$name) { setFlash('error','Name is required.'); header('Location: ?tab=letterheads'); exit; }
 
@@ -53,17 +77,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
         if ($isDefault) db()->exec("UPDATE company_letterheads SET is_default=0");
 
         if ($id) {
-            $set = "name=?,type=?,paper_size=?,orientation=?,margin_top=?,margin_bottom=?,is_default=?,header_html=?,footer_html=?";
-            $vals = [$name,$type,$paper,$orient,$marginT,$marginB,$isDefault,$headerHtml,$footerHtml];
+            $oldPath = null;
+            if ($imagePath) {
+                $oldPath = db()->prepare("SELECT image_path FROM company_letterheads WHERE id=?");
+                $oldPath->execute([$id]);
+                $oldPath = $oldPath->fetchColumn() ?: null;
+            }
+            $set = "name=?,type=?,paper_size=?,orientation=?,margin_top=?,margin_bottom=?,is_default=?";
+            $vals = [$name,$type,$paper,$orient,$marginT,$marginB,$isDefault];
             if ($imagePath) { $set .= ",image_path=?"; $vals[] = $imagePath; }
             $vals[] = $id;
             db()->prepare("UPDATE company_letterheads SET $set WHERE id=?")->execute($vals);
+            if ($imagePath && $oldPath && $oldPath !== $imagePath) { deleteBrandingAssetFile($oldPath); }
             auditLog('branding','update_letterhead',$id);
             setFlash('success','Letterhead updated.');
         } else {
             if (!$imagePath) { setFlash('error','Image required for new letterhead.'); header('Location: ?tab=letterheads'); exit; }
-            db()->prepare("INSERT INTO company_letterheads (name,type,paper_size,orientation,margin_top,margin_bottom,is_default,image_path,header_html,footer_html,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
-                ->execute([$name,$type,$paper,$orient,$marginT,$marginB,$isDefault,$imagePath,$headerHtml,$footerHtml,$_SESSION['user_id']]);
+            db()->prepare("INSERT INTO company_letterheads (name,type,paper_size,orientation,margin_top,margin_bottom,is_default,image_path,created_by) VALUES (?,?,?,?,?,?,?,?,?)")
+                ->execute([$name,$type,$paper,$orient,$marginT,$marginB,$isDefault,$imagePath,$_SESSION['user_id']]);
             auditLog('branding','create_letterhead',(int)db()->lastInsertId());
             setFlash('success','Letterhead added.');
         }
@@ -79,7 +110,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
     } elseif ($act === 'delete_letterhead') {
         requirePermission('branding.letterheads', 'delete');
         $id = (int)($_POST['id'] ?? 0);
+        $oldPath = db()->prepare("SELECT image_path FROM company_letterheads WHERE id=?");
+        $oldPath->execute([$id]);
+        $oldPath = $oldPath->fetchColumn() ?: null;
         db()->prepare("DELETE FROM company_letterheads WHERE id=?")->execute([$id]);
+        deleteBrandingAssetFile($oldPath);
         auditLog('branding','delete_letterhead',$id);
         setFlash('success','Letterhead deleted.');
         header('Location: ?tab=letterheads'); exit;
@@ -104,11 +139,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
         }
 
         if ($id) {
+            $oldPath = null;
+            if ($imagePath) {
+                $oldPath = db()->prepare("SELECT image_path FROM company_signatures WHERE id=?");
+                $oldPath->execute([$id]);
+                $oldPath = $oldPath->fetchColumn() ?: null;
+            }
             $set = "signatory_name=?,designation=?,department=?,approval_level=?,notes=?";
             $vals = [$name,$desig,$dept,$level,$notes];
             if ($imagePath) { $set .= ",image_path=?,version=version+1"; $vals[] = $imagePath; }
             $vals[] = $id;
             db()->prepare("UPDATE company_signatures SET $set WHERE id=?")->execute($vals);
+            if ($imagePath && $oldPath && $oldPath !== $imagePath) { deleteBrandingAssetFile($oldPath); }
             auditLog('branding','update_signature',$id);
             setFlash('success','Signature updated.');
         } else {
@@ -129,7 +171,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
     } elseif ($act === 'delete_signature') {
         requirePermission('branding.signatures', 'delete');
         $id = (int)($_POST['id'] ?? 0);
+        $oldPath = db()->prepare("SELECT image_path FROM company_signatures WHERE id=?");
+        $oldPath->execute([$id]);
+        $oldPath = $oldPath->fetchColumn() ?: null;
         db()->prepare("DELETE FROM company_signatures WHERE id=?")->execute([$id]);
+        deleteBrandingAssetFile($oldPath);
         auditLog('branding','delete_signature',$id);
         setFlash('success','Signature deleted.');
         header('Location: ?tab=signatures'); exit;
@@ -150,10 +196,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
         }
 
         if ($id) {
+            $oldPath = null;
+            if ($imagePath) {
+                $oldPath = db()->prepare("SELECT image_path FROM company_stamps WHERE id=?");
+                $oldPath->execute([$id]);
+                $oldPath = $oldPath->fetchColumn() ?: null;
+            }
             $set = "name=?"; $vals = [$name];
             if ($imagePath) { $set .= ",image_path=?"; $vals[] = $imagePath; }
             $vals[] = $id;
             db()->prepare("UPDATE company_stamps SET $set WHERE id=?")->execute($vals);
+            if ($imagePath && $oldPath && $oldPath !== $imagePath) { deleteBrandingAssetFile($oldPath); }
             setFlash('success','Stamp updated.');
         } else {
             if (!$imagePath) { setFlash('error','Stamp image (transparent PNG) required.'); header('Location: ?tab=stamps'); exit; }
@@ -172,7 +225,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
     } elseif ($act === 'delete_stamp') {
         requirePermission('branding.stamps', 'delete');
         $id = (int)($_POST['id'] ?? 0);
+        $oldPath = db()->prepare("SELECT image_path FROM company_stamps WHERE id=?");
+        $oldPath->execute([$id]);
+        $oldPath = $oldPath->fetchColumn() ?: null;
         db()->prepare("DELETE FROM company_stamps WHERE id=?")->execute([$id]);
+        deleteBrandingAssetFile($oldPath);
         setFlash('success','Stamp deleted.'); header('Location: ?tab=stamps'); exit;
 
     // ── WATERMARKS ─────────────────────────────────────────────────────────
@@ -196,8 +253,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
         }
 
         if ($id) {
+            $oldPath = null;
+            if ($imagePath) {
+                $oldPath = db()->prepare("SELECT image_path FROM company_watermarks WHERE id=?");
+                $oldPath->execute([$id]);
+                $oldPath = $oldPath->fetchColumn() ?: null;
+            }
             db()->prepare("UPDATE company_watermarks SET name=?,type=?,text=?,opacity=?,color=?,font_size=?,rotation=?" . ($imagePath?",image_path=?":'') . " WHERE id=?")
                 ->execute(array_filter([$name,$type,$text,$opacity,$color,$fontSize,$rotation,$imagePath,$id], fn($v)=>$v!==null || $v===0));
+            if ($imagePath && $oldPath && $oldPath !== $imagePath) { deleteBrandingAssetFile($oldPath); }
             setFlash('success','Watermark updated.');
         } else {
             db()->prepare("INSERT INTO company_watermarks (name,type,text,image_path,opacity,color,font_size,rotation,created_by) VALUES (?,?,?,?,?,?,?,?,?)")
@@ -214,7 +278,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
 
     } elseif ($act === 'delete_watermark') {
         requirePermission('branding.watermarks', 'delete');
-        db()->prepare("DELETE FROM company_watermarks WHERE id=?")->execute([(int)($_POST['id']??0)]);
+        $id = (int)($_POST['id'] ?? 0);
+        $oldPath = db()->prepare("SELECT image_path FROM company_watermarks WHERE id=?");
+        $oldPath->execute([$id]);
+        $oldPath = $oldPath->fetchColumn() ?: null;
+        db()->prepare("DELETE FROM company_watermarks WHERE id=?")->execute([$id]);
+        deleteBrandingAssetFile($oldPath);
         setFlash('success','Watermark deleted.'); header('Location: ?tab=watermarks'); exit;
     }
 }

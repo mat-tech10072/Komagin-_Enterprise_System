@@ -57,19 +57,17 @@ $balance = $bal->fetch();
     </div>
     <div class="page-actions">
         <?php if ($isHR && $leave['status'] === 'pending'): ?>
-        <form method="POST" action="<?= APP_URL ?>/modules/leave/approve.php" style="display:inline;">
-            <input type="hidden" name="csrf_token" value="<?= generateCsrfToken() ?>">
-            <input type="hidden" name="leave_id" value="<?= $id ?>">
-            <input type="hidden" name="action" value="reject">
-            <input type="hidden" name="reason" value="Rejected via view page.">
-            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Reject this application?')">Reject</button>
-        </form>
-        <form method="POST" action="<?= APP_URL ?>/modules/leave/approve.php" style="display:inline;">
-            <input type="hidden" name="csrf_token" value="<?= generateCsrfToken() ?>">
-            <input type="hidden" name="leave_id" value="<?= $id ?>">
-            <input type="hidden" name="action" value="approve">
-            <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Approve this application?')">Approve</button>
-        </form>
+        <?php // KOM-009: these used to be inline POST forms sending
+        // leave_id/action fields, but approve.php's actual contract is a
+        // GET-loaded confirmation page (id/action query params) that
+        // itself POSTs back to approve.php with the required remarks —
+        // the field-name/method mismatch meant every click here silently
+        // redirected back to the list with no action taken. Linking to
+        // approve.php's real entry point instead also correctly routes
+        // "Reject" through its required-remarks form, rather than the
+        // hardcoded placeholder reason the old inline form silently sent. ?>
+        <a href="<?= APP_URL ?>/modules/leave/approve.php?id=<?= $id ?>&action=reject" class="btn btn-danger btn-sm">Reject</a>
+        <a href="<?= APP_URL ?>/modules/leave/approve.php?id=<?= $id ?>&action=approve" class="btn btn-success btn-sm">Approve</a>
         <?php endif; ?>
     </div>
 </div>

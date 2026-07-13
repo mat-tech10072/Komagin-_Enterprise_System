@@ -41,14 +41,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Gross salary must be greater than 0.';
         } else {
             if ($editId) {
-                db()->prepare("UPDATE payslips SET gross_salary=?,basic_salary=?,net_salary=?,total_deductions=?,
-                    tax_amount=?,uif_employee=?,uif_employer=?,other_deductions=?,
-                    overtime_hours=?,overtime_amount=?,notes=?
-                    WHERE id=? AND employee_id=?")->execute([
-                    $gross,$basic,$net,$totalDed,$tax,$uifEmp,$uifEmr,$othDed,
-                    $otHrs,$otAmt,$notes,$editId,$empId
-                ]);
-                $success = 'Payslip updated.';
+                // KOM-016: the update branch had no status guard at all (a
+                // finalized or already-sent payslip could be silently
+                // rewritten after the fact) and never recorded an audit
+                // entry, unlike the create branch just below. Both fixed
+                // together — block edits once the payslip has left draft,
+                // and log the change when it's still allowed.
+                $curStmt = db()->prepare("SELECT status, gross_salary, basic_salary, net_salary FROM payslips WHERE id=? AND employee_id=?");
+                $curStmt->execute([$editId, $empId]);
+                $current = $curStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$current) {
+                    $error = 'Payslip not found.';
+                } elseif (in_array($current['status'], ['finalized', 'sent'], true)) {
+                    $error = 'This payslip has been ' . $current['status'] . ' and can no longer be edited.';
+                } else {
+                    db()->prepare("UPDATE payslips SET gross_salary=?,basic_salary=?,net_salary=?,total_deductions=?,
+                        tax_amount=?,uif_employee=?,uif_employer=?,other_deductions=?,
+                        overtime_hours=?,overtime_amount=?,notes=?
+                        WHERE id=? AND employee_id=?")->execute([
+                        $gross,$basic,$net,$totalDed,$tax,$uifEmp,$uifEmr,$othDed,
+                        $otHrs,$otAmt,$notes,$editId,$empId
+                    ]);
+                    auditLog('payslips', 'update', $editId,
+                        json_encode(['gross_salary' => $current['gross_salary'], 'basic_salary' => $current['basic_salary'], 'net_salary' => $current['net_salary']]),
+                        json_encode(['gross_salary' => $gross, 'basic_salary' => $basic, 'net_salary' => $net]),
+                        "Updated draft payslip for emp {$empId}");
+                    $success = 'Payslip updated.';
+                }
             } else {
                 db()->prepare("INSERT INTO payslips (employee_id,period_month,period_year,gross_salary,basic_salary,
                     net_salary,total_deductions,tax_amount,uif_employee,uif_employer,other_deductions,

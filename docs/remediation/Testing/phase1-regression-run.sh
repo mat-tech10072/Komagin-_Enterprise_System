@@ -77,9 +77,15 @@ assert_http "modules/consultants/index.php" 200 hrofficer "hr_officer can now ac
 
 echo "" | tee -a "$LOG"
 echo "--- KOM-019/NH-02: Activity Log centralized permission ---" | tee -a "$LOG"
+# Phase 5, Stage 5.10 (KOM-037): Activity Log's permission gate was
+# deliberately merged onto audit.view (previously activity_log.view,
+# seeded to super_admin only) — hr_manager/hr_officer both hold
+# audit.view, so gaining access here is the INTENDED effect of the
+# merge, not a regression. payroll_officer still doesn't hold
+# audit.view at all, so remains correctly blocked.
 assert_http "modules/activity_log/index.php" 200 superadmin "super_admin can access Activity Log"
-assert_http "modules/activity_log/index.php" 302 hrmanager "hr_manager still blocked from Activity Log (not granted — mechanism changed, access unchanged)"
-assert_http "modules/activity_log/index.php" 302 hrofficer "hr_officer still blocked from Activity Log"
+assert_http "modules/activity_log/index.php" 200 hrmanager "hr_manager can access Activity Log (audit.view merge, Stage 5.10)"
+assert_http "modules/activity_log/index.php" 200 hrofficer "hr_officer can access Activity Log (audit.view merge, Stage 5.10)"
 assert_http "modules/activity_log/index.php" 302 payroll "payroll_officer blocked from Activity Log"
 
 echo "" | tee -a "$LOG"

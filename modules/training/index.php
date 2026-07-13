@@ -23,8 +23,9 @@ $completed      = (int)db()->query("SELECT COUNT(*) FROM training_attendance WHE
 if ($activeTab === 'programs') {
     $total = $totalPrograms;
     $pagination = paginate($total,$perPage,$page);
-    $stmt = db()->query("SELECT tp.*, (SELECT COUNT(*) FROM training_attendance ta WHERE ta.training_id=tp.id) as attendees
-        FROM training_programs tp ORDER BY tp.start_date DESC LIMIT $perPage OFFSET {$pagination['offset']}");
+    $stmt = db()->prepare("SELECT tp.*, (SELECT COUNT(*) FROM training_attendance ta WHERE ta.training_id=tp.id) as attendees
+        FROM training_programs tp ORDER BY tp.start_date DESC LIMIT ? OFFSET ?");
+    $stmt->execute([$perPage, $pagination['offset']]);
     $programs = $stmt->fetchAll();
 } else {
     $countStmt = db()->query("SELECT COUNT(*) FROM training_attendance ta JOIN employees e ON ta.employee_id=e.id");
@@ -36,11 +37,12 @@ if ($activeTab === 'programs') {
     // Attendance tab (reading, not just writing) has never worked. Ordering
     // by id DESC is the closest available proxy for "most recently
     // enrolled" since there's no timestamp column to order by.
-    $stmt = db()->query("SELECT ta.*, e.first_name, e.last_name, e.employee_number, tp.title as program_title
+    $stmt = db()->prepare("SELECT ta.*, e.first_name, e.last_name, e.employee_number, tp.title as program_title
         FROM training_attendance ta
         JOIN employees e ON ta.employee_id=e.id
         JOIN training_programs tp ON ta.training_id=tp.id
-        ORDER BY ta.id DESC LIMIT $perPage OFFSET {$pagination['offset']}");
+        ORDER BY ta.id DESC LIMIT ? OFFSET ?");
+    $stmt->execute([$perPage, $pagination['offset']]);
     $attendance = $stmt->fetchAll();
 }
 

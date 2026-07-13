@@ -56,8 +56,8 @@ $stmt = db()->prepare("SELECT e.*, d.name as dept_name, p.title as pos_title
     LEFT JOIN positions p ON e.position_id = p.id
     WHERE $whereSQL
     ORDER BY e.created_at DESC
-    LIMIT {$perPage} OFFSET {$pagination['offset']}");
-$stmt->execute($params);
+    LIMIT ? OFFSET ?");
+$stmt->execute(array_merge($params, [$perPage, $pagination['offset']]));
 $employees = $stmt->fetchAll();
 
 $departments = getDepartments();

@@ -109,6 +109,36 @@ if ($type === 'attendance') {
     $reportData = $stmt->fetchAll();
 }
 
+// ── CSV Export (KOM-028: link existed but nothing ever read $_GET['export']) ──
+if (($_GET['export'] ?? '') === 'csv') {
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="report_' . $type . '_' . $thisMonth . '.csv"');
+    $out = fopen('php://output', 'w');
+    if ($type === 'attendance') {
+        fputcsv($out, ['Employee No.','Name','Department','Present Days','Absent Days','Late Days','Leave Days','Total Hours','Overtime Hours']);
+        foreach ($reportData as $r) {
+            fputcsv($out, [$r['employee_number'],$r['name'],$r['dept'],$r['present_days'],$r['absent_days'],$r['late_days'],$r['leave_days'],$r['total_hours'],$r['ot_hours']]);
+        }
+    } elseif ($type === 'employees') {
+        fputcsv($out, ['Employee No.','Name','Department','Position','Employment Type','Status','Start Date','Contract End','Email','Phone']);
+        foreach ($reportData as $r) {
+            fputcsv($out, [$r['employee_number'],$r['name'],$r['dept'],$r['position'],$r['employment_type'],$r['status'],$r['start_date'],$r['contract_end_date'],$r['email'],$r['phone']]);
+        }
+    } elseif ($type === 'leave') {
+        fputcsv($out, ['Employee No.','Name','Department','Leave Type','Start Date','End Date','Total Days','Status']);
+        foreach ($reportData as $r) {
+            fputcsv($out, [$r['employee_number'],$r['name'],$r['dept'],$r['leave_type'],$r['start_date'],$r['end_date'],$r['total_days'],$r['status']]);
+        }
+    } elseif ($type === 'overtime') {
+        fputcsv($out, ['Employee No.','Name','Department','Date','Suggested Hours','Approved Hours','Status']);
+        foreach ($reportData as $r) {
+            fputcsv($out, [$r['employee_number'],$r['name'],$r['dept'],$r['attendance_date'],$r['suggested_hours'],$r['approved_hours'],$r['status']]);
+        }
+    }
+    fclose($out);
+    exit;
+}
+
 $months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 ?>
 <?php include dirname(dirname(__DIR__)) . '/includes/header.php'; ?>

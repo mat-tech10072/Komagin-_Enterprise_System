@@ -375,7 +375,7 @@ $csrf = generateCsrfToken();
                         <?php if (canViewSalaryData()): ?>
                         <div class="form-group">
                             <label class="form-label">Gross Salary (<?= CURRENCY_CODE ?>)</label>
-                            <input type="number" class="form-control" name="salary" value="<?= e($emp['salary'] ?? '') ?>" step="0.01" min="0">
+                            <input type="number" class="form-control" name="salary" value="<?= e($emp['basic_salary'] ?? '') ?>" step="0.01" min="0">
                         </div>
                         <?php else: ?>
                         <div class="form-group">

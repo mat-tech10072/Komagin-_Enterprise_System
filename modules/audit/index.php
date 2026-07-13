@@ -51,6 +51,9 @@ $actionColors = [
         <h1 class="page-title">Audit Logs</h1>
         <p class="page-subtitle">Complete audit trail of all system actions</p>
     </div>
+    <div class="page-actions">
+        <a href="<?= APP_URL ?>/modules/activity_log/index.php" class="btn btn-secondary btn-sm">View by User</a>
+    </div>
 </div>
 
 <div class="card">

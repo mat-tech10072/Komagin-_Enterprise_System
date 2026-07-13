@@ -34,7 +34,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
         // 'super_admin', so this check must happen here regardless of what
         // the form offered.
         if (!$role || !isValidAssignableRole($role)) $errors[] = 'A valid role you are authorized to grant is required.';
-        if (strlen($pass) < 6) $errors[] = 'Password must be at least 6 characters.';
+        // KOM-063: was 6, inconsistent with the 8-character minimum every
+        // other password path in this app (self-service change, self-
+        // service reset) enforces.
+        if (strlen($pass) < 8) $errors[] = 'Password must be at least 8 characters.';
 
         if (empty($errors)) {
             try {
@@ -77,7 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrfToken($_POST['csrf_token'
         $newpass = trim($_POST['new_password'] ?? '');
         $targetRole = $uid ? db()->prepare("SELECT role FROM users WHERE id=?") : null;
         if ($targetRole) { $targetRole->execute([$uid]); $targetRole = $targetRole->fetchColumn(); }
-        if ($uid && strlen($newpass) >= 6 && $targetRole && isValidAssignableRole($targetRole)) {
+        // KOM-063: was 6, now 8 — consistent with the add_user path above
+        // and every self-service password path elsewhere in the app.
+        if ($uid && strlen($newpass) >= 8 && $targetRole && isValidAssignableRole($targetRole)) {
             $hash = password_hash($newpass, PASSWORD_BCRYPT, ['cost'=>12]);
             // Phase 5, Stage 5.5: password_changed_at also covers an
             // admin-initiated reset, not just self-service — any other
@@ -246,7 +251,7 @@ $csrf = generateCsrfToken();
                     </div>
                     <div class="form-group">
                         <label class="form-label">Temporary Password <span class="required">*</span></label>
-                        <input type="password" class="form-control" name="password" minlength="6" required>
+                        <input type="password" class="form-control" name="password" minlength="8" required>
                     </div>
                 </div>
                 <div class="form-group">
@@ -281,7 +286,7 @@ $csrf = generateCsrfToken();
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label">New Password <span class="required">*</span></label>
-                    <input type="password" class="form-control" name="new_password" minlength="6" required>
+                    <input type="password" class="form-control" name="new_password" minlength="8" required>
                 </div>
                 <div class="alert alert-warning" style="margin:0;">User will be forced to change password on next login.</div>
             </div>

@@ -1,7 +1,7 @@
 # Komagin HR — Change Control Log & Template
 
 **Document type:** Phase 0 supporting deliverable (Task 11) — first populated in Phase 1
-**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; 4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13; 1 more (CC-103) recording the KOM-045 close-out decision — all 13 Phase 4 workflow groups complete, see the Phase 4 Completion Report; 2 more (CC-104–CC-105) recorded for Phase 5, Stage 5.1; 1 more (CC-106) recorded for Phase 5, Stage 5.2; 1 more (CC-107) recorded for Phase 5, Stage 5.3; 1 more (CC-108) recorded for Phase 5, Stage 5.4; 2 more (CC-109–CC-110) recorded for Phase 5, Stage 5.5; 2 more (CC-111–CC-112) recorded for Phase 5, Stage 5.6; 1 more (CC-113) recorded for Phase 5, Stage 5.7; 1 more (CC-114) recorded for Phase 5, Stage 5.8; **1 more (CC-115) recorded for Phase 5, Stage 5.9 — more to follow as each subsequent stage completes.**
+**Status:** Living log. 13 entries recorded for Phase 1; 11 more (CC-014–CC-024) recorded for Phase 2; 11 more (CC-025–CC-035) recorded for Phase 3; 10 more (CC-036–CC-045) recorded for Phase 4, Workflow Group 1; 5 more (CC-046–CC-050) recorded for Phase 4, Workflow Group 2; 7 more (CC-051–CC-057) recorded for Phase 4, Workflow Group 3; 4 more (CC-058–CC-061) recorded for Phase 4, Workflow Group 4; 5 more (CC-062–CC-066) recorded for Phase 4, Workflow Group 5; 1 more (CC-067) recording the KOM-085/KOM-086 user decisions; 3 more (CC-068–CC-070) recorded for Phase 4, Workflow Group 6; 4 more (CC-071–CC-074) recorded for Phase 4, Workflow Group 7; 4 more (CC-075–CC-078) recorded for Phase 4, Workflow Group 8; 3 more (CC-079–CC-081) recorded for Phase 4, Workflow Group 9; 6 more (CC-082–CC-087) recorded for Phase 4, Workflow Group 10; 5 more (CC-088–CC-092) recorded for Phase 4, Workflow Group 11; 6 more (CC-093–CC-098) recorded for Phase 4, Workflow Group 12; 4 more (CC-099–CC-102) recorded for Phase 4, Workflow Group 13; 1 more (CC-103) recording the KOM-045 close-out decision — all 13 Phase 4 workflow groups complete, see the Phase 4 Completion Report; 2 more (CC-104–CC-105) recorded for Phase 5, Stage 5.1; 1 more (CC-106) recorded for Phase 5, Stage 5.2; 1 more (CC-107) recorded for Phase 5, Stage 5.3; 1 more (CC-108) recorded for Phase 5, Stage 5.4; 2 more (CC-109–CC-110) recorded for Phase 5, Stage 5.5; 2 more (CC-111–CC-112) recorded for Phase 5, Stage 5.6; 1 more (CC-113) recorded for Phase 5, Stage 5.7; 1 more (CC-114) recorded for Phase 5, Stage 5.8; 1 more (CC-115) recorded for Phase 5, Stage 5.9; **17 more (CC-116–CC-132) recorded for Phase 5, Stage 5.10 — more to follow as each subsequent stage completes.**
 **Date compiled:** 2026-07-11 (template) — entries added 2026-07-11/12 (Phase 1) — added 2026-07-11/12 (Phase 2) — added 2026-07-12 (Phase 3) — **more added 2026-07-12 (Phase 4, in progress)**
 **Baseline tag:** `v1.0-enterprise-baseline` → Phase 1 on branch `phase-1-authorization-framework` → Phase 2 on branch `phase-2-authentication-session-security` → Phase 3 on branch `phase-3-database-schema-integrity` → **Phase 4 on branch `phase-4-business-workflow-integrity`**
 
@@ -1438,6 +1438,244 @@ Copy this block for every change and append it to the log below.
 
 ---
 
+### CC-116 — Leave approve/reject buttons fixed (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-009
+- **Files changed:** `modules/leave/view.php`
+- **Reason:** The Approve/Reject buttons POSTed `leave_id`/`action` fields, but `approve.php` only ever reads `$_GET['id']`/`$_GET['action']` — a field-name and method mismatch meant every click silently no-opped. Replaced the broken inline forms with links to `approve.php`'s real GET-loaded confirmation page.
+- **Tests added/updated:** None beyond live functional re-testing.
+- **Regression tests executed:** Created a disposable pending leave application, clicked through the full Approve flow (GET confirmation → POST with remarks), confirmed status flipped from `pending` to `approved` in the database. Phase 1 regression 20/20 (after the KOM-037-related test update, see CC-122), Phase 2 regression 29/29. Test data removed after verification.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes.
+
+---
+
+### CC-117 — Finalized/sent payslips blocked from editing (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-016
+- **Files changed:** `modules/payroll/payslips.php`
+- **Reason:** The update branch had no status guard (could silently rewrite a `finalized`/`sent` payslip) and never called `auditLog()`. Per user decision, edits are now blocked once a payslip leaves `draft`; an allowed edit is now audit-logged.
+- **Tests added/updated:** None beyond live functional re-testing.
+- **Regression tests executed:** Created a disposable `finalized` payslip, attempted an edit via crafted POST, confirmed the expected error rendered and `gross_salary` remained unchanged. Test data removed after verification.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes.
+
+---
+
+### CC-118 — Employee salary field display fixed (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-025
+- **Files changed:** `modules/employees/edit.php`
+- **Reason:** Read `$emp['salary']` (a key that never existed) instead of `$emp['basic_salary']` (the real column) — the field always rendered blank regardless of the employee's actual salary.
+- **Tests added/updated:** None beyond live functional re-testing.
+- **Regression tests executed:** Confirmed a real employee's salary field now pre-fills correctly.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes.
+
+---
+
+### CC-119 — Reports Hub CSV export implemented (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-028
+- **Files changed:** `modules/reports/index.php`
+- **Reason:** The "Export CSV" link existed but nothing ever read `$_GET['export']`. Added an export branch for all 4 report types (attendance/employees/leave/overtime), matching the existing `fputcsv()` pattern in `reports/executive.php`.
+- **Tests added/updated:** None beyond live functional re-testing.
+- **Regression tests executed:** Confirmed the export downloads real data with correct headers and `Content-Type: text/csv`.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes.
+
+---
+
+### CC-120 — SMTP password no longer exposed in HTML source (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-031
+- **Files changed:** `modules/settings/email.php`
+- **Reason:** The "Payslip Notifications" form re-emitted every SMTP setting as a hidden field, including `smtp_pass`'s live cleartext value. Removed `smtp_pass` from that hidden-field list; the save handler already preserves the existing password whenever the field is blank/absent.
+- **Tests added/updated:** None beyond live functional re-testing.
+- **Regression tests executed:** Confirmed `smtp_pass` no longer appears anywhere in the settings page's HTML source.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes.
+
+---
+
+### CC-121 — Activity Log CSV formula injection and filter/streaming fixes (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-033, KOM-034
+- **Files changed:** `modules/activity_log/download.php`
+- **Reason:** `csvRow()` (the shared helper every export path uses) escaped double-quotes but not a leading `=`,`+`,`-`,`@` — a spreadsheet formula-injection risk given several exported columns are free text (reason, old_value, new_value). Fixed by prefixing any such value with a single quote before quoting. Separately, the admin/employee individual-export paths ignored the `from`/`to` date-range filter the category exports already respect, and used `fetchAll()` instead of the streaming pattern used elsewhere in the file — both fixed together since they're adjacent code in the same file.
+- **Tests added/updated:** None beyond live functional re-testing.
+- **Regression tests executed:** Inserted a disposable audit log row with a `=cmd|...` payload as its reason; exported it and confirmed the CSV cell is neutralized (`'=cmd...`), not the raw value. Test data removed after verification.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes — both findings.
+
+---
+
+### CC-122 — Audit Logs / Activity Logs menus merged (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-037
+- **Files changed:** `includes/header.php` (Activity Logs sidebar entry removed), `modules/activity_log/index.php` and `modules/activity_log/download.php` (re-gated onto `audit.view`), `modules/audit/index.php` ("View by User" link added), `modules/activity_log/index.php` ("Back to Audit Logs" link added), `docs/remediation/Testing/phase1-regression-run.sh` (KOM-019/NH-02 test expectations updated)
+- **Reason:** "Audit Logs" (`audit.view`, held by hr_manager/hr_officer/payroll_manager) and "Activity Logs" (`activity_log.view`, seeded to super_admin only) sat side by side in the sidebar, both reading the same `audit_logs` table under two different authorization models. Per user decision, merged into one consistently-gated entry point.
+- **Tests added/updated:** Updated the Phase 1 regression suite's KOM-019/NH-02 assertions — hr_manager/hr_officer now correctly expect 200 (not 302) for Activity Log, since they hold `audit.view`; payroll_officer (who holds neither) remains expected at 302.
+- **Regression tests executed:** Confirmed the sidebar shows only "Audit Logs"; confirmed "View by User" reaches the per-user page; confirmed both pages reachable under `audit.view`. First Phase 1 regression run surfaced 2 "failures" that were the deliberate, intended effect of this merge, not a defect — confirmed and the test updated accordingly (see `Phase5/11-remaining-findings-closure-report.md` §4). Phase 1 regression 20/20 after the update, Phase 2 regression 29/29.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes.
+
+---
+
+### CC-123 — Branding upload hardening: SVG removed, extension derived from MIME (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-038, KOM-039
+- **Files changed:** `modules/settings/branding.php` (`image/svg+xml` removed from allowed letterhead types), `config/functions.php` (`uploadFile()` — extension derived from detected MIME type, not client filename)
+- **Reason:** SVG can carry embedded `<script>`, and server-side MIME sniffing passes a well-formed malicious SVG since it genuinely is one — removed rather than sanitized, since raster formats cover the same use case. Separately (but touching the same upload path), the file extension saved to disk came from the client-supplied original filename, never cross-checked against the MIME type `finfo` actually detected — a crafted upload could choose any extension regardless of real content. The extension is now derived solely from the server-detected MIME type via an explicit map, applying to every `uploadFile()` caller app-wide.
+- **Tests added/updated:** None beyond live functional re-testing.
+- **Regression tests executed:** Uploaded a file with real PNG content but a client-supplied filename of `malicious.php` — confirmed it was saved with a `.png` extension. Test data removed after verification.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes — both findings.
+
+---
+
+### CC-124 — Pagination bound parameters, 6 files (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-046
+- **Files changed:** `modules/employees/index.php`, `modules/attendance/index.php`, `modules/timesheets/index.php`, `modules/recruitment/index.php` (2 queries), `modules/onboarding/index.php`, `modules/training/index.php` (2 queries)
+- **Reason:** `LIMIT {$perPage} OFFSET {$offset}` string interpolation across all 6 files — values were always int-cast before use (not previously exploitable), but deviated from the prepared-statement standard used elsewhere. Converted to `LIMIT ? OFFSET ?` bound parameters. Verified empirically first (via a standalone test against this app's actual `db()` connection) that plain `execute($array)` correctly handles `LIMIT`/`OFFSET` under this app's native, non-emulated prepared statements (`PDO::ATTR_EMULATE_PREPARES => false`) before applying the change at scale, since that combination is a known PDO/MySQL gotcha in other configurations.
+- **Tests added/updated:** None beyond live functional re-testing.
+- **Regression tests executed:** Confirmed all 6 pages still load correctly (200 OK) post-fix. Phase 1 regression 20/20, Phase 2 regression 29/29.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes.
+
+---
+
+### CC-125 — Missing-documents report N+1 query fixed (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-048
+- **Files changed:** `modules/documents/missing.php`
+- **Reason:** One `SELECT` per employee in a loop — scaled linearly with headcount. Replaced with a single `SELECT ... WHERE employee_id IN (...)` for all filtered employees, grouped in PHP; 2 queries total regardless of headcount.
+- **Tests added/updated:** None beyond live functional re-testing.
+- **Regression tests executed:** Confirmed the page loads correctly post-fix.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes.
+
+---
+
+### CC-126 — Archive Lock control wired up (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-051
+- **Files changed:** `modules/archive/monthly.php`
+- **Reason:** The Lock button posted `lock_id`, which the POST handler never read at all — every click silently did nothing. Added a handler branch that sets `is_locked=1`/`locked_by`/`locked_at` and audit-logs the action.
+- **Tests added/updated:** None beyond live functional re-testing.
+- **Regression tests executed:** Confirmed the page loads correctly post-fix; the hardcoded-role-list visibility issue this finding also named was confirmed already resolved by KOM-040's Phase 1 fix.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes.
+
+---
+
+### CC-127 — APP_ENV fail-safe default (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-053
+- **Files changed:** `config/config.php`
+- **Reason:** `APP_ENV` defaulted to `'development'` (on-screen errors) whenever unset. Flipped the fail-safe default to `'production'` (errors suppressed on-screen, still logged to `logs/php_errors.log`) — a misconfigured/un-configured deployment no longer leaks stack traces/paths/queries by default.
+- **Tests added/updated:** None.
+- **Regression tests executed:** Confirmed production-mode error logging still works via the log file. This local dev machine's Apache config (`C:\New_xampp\apache\conf\httpd.conf`, outside the git repo) was given an explicit `SetEnv APP_ENV development` override so local development is unaffected — takes effect on Apache's next natural restart; a forced restart attempt during this session did not succeed (non-service standalone Apache) but did not disrupt the running server either, confirmed via process check.
+- **Verification result:** VERIFIED (code-level; behavioral effect confirmed via direct `production`-mode error-logging test)
+- **Master Register updated:** Yes.
+
+---
+
+### CC-128 — Branding asset file cleanup and dead letterhead fields removed (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-055, KOM-060
+- **Files changed:** `modules/settings/branding.php`
+- **Reason:** Replacing or deleting a branding asset (letterhead/signature/stamp/watermark) only ever touched the database row — the old file on disk was never removed, so `uploads/{letterheads,signatures,stamps,watermarks}/` grows without bound. Added a shared `deleteBrandingAssetFile()` helper wired into all 8 update/delete handlers (a file is only deleted once the superseding database change has actually succeeded). Separately (same file, same user decision session), `header_html`/`footer_html` — captured by the letterhead save handler with no corresponding form field anywhere in the page's UI and never read by `DocumentEngine.php` — removed from the handler per user decision; the database columns are left in place, unused.
+- **Tests added/updated:** None beyond live functional re-testing.
+- **Regression tests executed:** Replaced a disposable test letterhead's image and confirmed the original file was deleted from disk while the new one saved correctly. Confirmed no remaining references to `header_html`/`footer_html` anywhere in the codebase. Test data removed after verification.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes — both findings.
+
+---
+
+### CC-129 — Dashboard SQL bound parameters (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-056
+- **Files changed:** `dashboard.php`
+- **Reason:** `$today`/`$thisMonth` (both server-generated via `date()`, never user input — not exploitable) were interpolated into 6 queries. Converted to bound parameters for consistency with the prepared-statement standard used elsewhere.
+- **Tests added/updated:** None beyond live functional re-testing.
+- **Regression tests executed:** Confirmed the dashboard loads correctly post-fix.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes.
+
+---
+
+### CC-130 — KOM-057 resolved, no code change (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-057
+- **Files changed:** None.
+- **Reason:** The described defect (a throwaway `COUNT` statement's `PDOStatement` object assigned then immediately overwritten) is no longer present in `modules/temp_employees/index.php` — the current file uses distinct, correctly-named `$stmtCount`/`$stmtRows` variables. Resolved incidentally during Phase 4 Workflow Group 10's rewrite of this module; recorded here for traceability rather than left silently unaddressed.
+- **Tests added/updated:** None.
+- **Regression tests executed:** Current file re-read line by line; no reused/overwritten statement variable found.
+- **Verification result:** VERIFIED (code review — no live behavior to test, since there is no defect to reproduce)
+- **Master Register updated:** Yes — marked Resolved.
+
+---
+
+### CC-131 — KOM-059 deferred, documented (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-059
+- **Files changed:** None.
+- **Reason:** Normalizing `temp_employees.position_title` from free text to a FK against `positions` would require migrating existing values with no reliable automatic mapping (temp/project role titles don't cleanly correspond to the permanent-employee position catalog) and deciding a fallback for unmatched values. Not exploitable, no live bug — a genuine data-modeling improvement but a real migration-risk decision, not a mechanical fix within this stage's safe scope. Deferred rather than attempted unilaterally.
+- **Tests added/updated:** None.
+- **Regression tests executed:** N/A — no change made.
+- **Verification result:** N/A
+- **Master Register updated:** Yes — marked Deferred with documented reason.
+
+---
+
+### CC-132 — Admin password minimum length raised to 8 (Stage 5.10)
+
+- **Date:** 2026-07-13
+- **Phase:** 5
+- **Finding ID(s) addressed:** KOM-063
+- **Files changed:** `modules/users/index.php`
+- **Reason:** Admin-initiated create-user and reset-password both allowed a 6-character minimum (client `minlength` and server `strlen()`), inconsistent with the 8-character minimum every self-service password path in the app enforces (self-service change; Stage 5.5's self-service reset). Raised both admin paths to 8.
+- **Tests added/updated:** None beyond live functional re-testing.
+- **Regression tests executed:** Confirmed both admin-side password fields now render `minlength="8"`.
+- **Verification result:** VERIFIED live
+- **Master Register updated:** Yes.
+
+---
+
 ## Change Log for This Document
 
 | Date | Change | Author |
@@ -1470,3 +1708,4 @@ Copy this block for every change and append it to the log below.
 | 2026-07-13 | 1 entry (CC-113) recorded for Phase 5, Stage 5.7 (Recruitment-to-Employee Conversion) | Remediation Program — Phase 5 |
 | 2026-07-13 | 1 entry (CC-114) recorded for Phase 5, Stage 5.8 (Temporary Employee Attendance Capture) | Remediation Program — Phase 5 |
 | 2026-07-13 | 1 entry (CC-115) recorded for Phase 5, Stage 5.9 (Document QR Verification — Disabled) | Remediation Program — Phase 5 |
+| 2026-07-13 | 17 entries (CC-116–CC-132) recorded for Phase 5, Stage 5.10 (Remaining Open Findings Closure — 20 findings) | Remediation Program — Phase 5 |
