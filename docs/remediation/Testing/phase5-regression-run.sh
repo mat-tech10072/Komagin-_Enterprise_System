@@ -121,12 +121,34 @@ else
   fail "forgot_password.php responses differ between real and nonexistent identifier — possible enumeration"
 fi
 
-# Extract the real reset token from email_logs and complete a reset from a
-# SECOND, independent session — then confirm session A is invalidated.
+# Phase 6, Stage 6.8: email_logs.body_html no longer contains the raw
+# reset token (fixed — it previously did, defeating the point of hashing
+# password_reset_tokens.token_hash; see Phase6/09-logging-monitoring-
+# report.md). Confirm the redaction actually took effect on the real row
+# the enumeration-resistance POST above just created via the real
+# forgot_password.php endpoint.
 sleep 1
-# The reset link appears twice in the email body (href= and visible link
-# text) — take only the first match.
-TOKEN=$($MYSQL -N -e "SELECT body_html FROM email_logs WHERE reference_id=$UID_TEST AND reference_type='users' ORDER BY id DESC LIMIT 1;" | grep -oE "token=[a-f0-9]{64}" | head -1 | sed 's/token=//')
+LOGGED_BODY=$($MYSQL -N -e "SELECT body_html FROM email_logs WHERE reference_id=$UID_TEST AND reference_type='users' ORDER BY id DESC LIMIT 1;")
+if echo "$LOGGED_BODY" | grep -qE "token=[a-f0-9]{64}"; then
+  fail "email_logs.body_html still contains a raw reset token — Stage 6.8 redaction not working"
+else
+  pass "email_logs.body_html does NOT contain a raw reset token (Stage 6.8 redaction verified)"
+fi
+
+# The raw token is no longer recoverable from any log or table (only its
+# hash is ever stored, by design) — generate a fresh one directly using
+# the identical generation/storage logic forgot_password.php uses, so the
+# rest of this test can still exercise reset_password.php's real
+# completion/invalidation logic end to end.
+TOKEN=$(php -r "
+require '$APPROOT/config/config.php';
+require '$APPROOT/config/database.php';
+db()->prepare(\"UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL\")->execute([$UID_TEST]);
+\$raw = bin2hex(random_bytes(32));
+\$hash = hash('sha256', \$raw);
+db()->prepare(\"INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, requested_ip) VALUES (?,?,DATE_ADD(NOW(), INTERVAL 1 HOUR),?)\")->execute([$UID_TEST, \$hash, '127.0.0.1']);
+echo \$raw;
+")
 if [ -n "$TOKEN" ]; then
   JAR_B="$JAR_DIR/p5regress_b.txt"
   rm -f "$JAR_B"
@@ -147,7 +169,7 @@ if [ -n "$TOKEN" ]; then
   CODE_AFTER=$(curl -s -b "$JAR_A" -o /dev/null -w "%{http_code}" "$BASE/dashboard.php")
   [ "$CODE_AFTER" = "302" ] && pass "session A correctly invalidated after password reset (302)" || fail "session A was NOT invalidated after reset (got $CODE_AFTER, expected 302)"
 else
-  fail "could not extract reset token from email_logs — skipping dependent reset/invalidation checks"
+  fail "could not generate a test reset token — skipping dependent reset/invalidation checks"
 fi
 
 # Cleanup

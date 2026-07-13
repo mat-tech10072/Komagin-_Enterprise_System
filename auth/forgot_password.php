@@ -63,7 +63,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     . '<p><a href="' . htmlspecialchars($resetLink) . '">' . htmlspecialchars($resetLink) . '</a></p>'
                     . '<p>If you did not request this, you can safely ignore this email — your password will not be changed.</p>';
 
-                sendEmail($user['email'], 'Reset your Komagin HR password', $bodyHtml, [], 'password_reset', null, $user['id'], 'users');
+                // Phase 6, Stage 6.8: the reset link's token is the same
+                // secret password_reset_tokens.token_hash exists to
+                // protect at rest — email_logs must not become a second,
+                // unhashed copy of it. Log a redacted body instead of the
+                // real one; the real $bodyHtml (with the working link) is
+                // still what actually gets sent.
+                $redactedBodyHtml = '<p>Hi ' . htmlspecialchars($name) . ',</p>'
+                    . '<p>A password reset was requested for your Komagin HR account. If this was you, click the link below to set a new password. This link expires in 1 hour and can only be used once.</p>'
+                    . '<p>[reset link redacted from log — token is single-use and expires in 1 hour]</p>'
+                    . '<p>If you did not request this, you can safely ignore this email — your password will not be changed.</p>';
+
+                sendEmail($user['email'], 'Reset your Komagin HR password', $bodyHtml, [], 'password_reset', null, $user['id'], 'users', $redactedBodyHtml);
             }
         }
     }

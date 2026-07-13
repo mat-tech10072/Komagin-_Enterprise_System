@@ -419,6 +419,22 @@ sudo nano /etc/logrotate.d/komagin-backup
 }
 ```
 
+**Phase 6, Stage 6.8**: `logs/php_errors.log` (where `config/config.php` routes every PHP error/exception, unconditionally, in every environment) had no rotation policy anywhere in this guide — a gap found during the Logging & Monitoring Verification stage. On a busy production system this file grows without bound. Add the same pattern:
+
+```bash
+sudo nano /etc/logrotate.d/komagin-php-errors
+```
+
+```
+/var/www/komagin-hr/logs/php_errors.log {
+    weekly
+    rotate 8
+    compress
+    missingok
+    notifempty
+}
+```
+
 ## 11. Post-Deployment Checklist
 
 Run through this in order, every deployment:
@@ -431,6 +447,7 @@ Run through this in order, every deployment:
 - [ ] SSL certificate valid, HTTP→HTTPS redirect confirmed working (`curl -I http://...` returns a `301` to `https://...`)
 - [ ] `php-fpm` pool `env[]` values all correct (`APP_ENV=production`, `APP_URL` matches the real domain, DB credentials point at the dedicated `komagin_app` user, not root)
 - [ ] Cron entry installed under `www-data`, output redirected to a log file, log rotation configured
+- [ ] Log rotation configured for all three log files (`cron.log`, `backup.log`, `php_errors.log` — §10/§10.5)
 - [ ] Backup cron entries installed under `deploy` (§10.5), `BACKUP_ROOT` pointed outside the app directory, and a manual test run confirmed non-empty backup files were produced
 - [ ] `uploads/` and `logs/` owned by `www-data`, mode 770; everything else owned by `deploy:www-data`, mode 750
 - [ ] `ufw` firewall active, only SSH/HTTP/HTTPS open

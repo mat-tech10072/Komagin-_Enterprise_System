@@ -1,4 +1,4 @@
-Phase 5 Regression Run — Tue Jul 14 06:56:51 WPST 2026
+Phase 5 Regression Run — Tue Jul 14 07:11:59 WPST 2026
 ======================================
 --- Logging in test accounts ---
 
@@ -25,6 +25,7 @@ PASS | cron/run.php CLI run: all tasks OK
 --- Group 5: Self-Service Password Recovery (Stage 5.5) ---
 PASS | session A authenticated and reaches dashboard.php
 PASS | forgot_password.php returns identical response for real vs nonexistent identifier
+PASS | email_logs.body_html does NOT contain a raw reset token (Stage 6.8 redaction verified)
 PASS | reset token accepted, reset form rendered
 PASS | password reset completed successfully
 PASS | consumed reset token correctly rejected on reuse
@@ -71,4 +72,4 @@ PASS | table 'reminder_notifications_log' exists in live database
 PASS | table 'temp_attendance' exists in live database
 
 ======================================
-TOTAL: 40 passed, 0 failed
+TOTAL: 41 passed, 0 failed

@@ -437,7 +437,8 @@ function sendEmail(
     string $type        = 'general',
     ?int   $employeeId  = null,
     ?int   $referenceId = null,
-    string $referenceType = ''
+    string $referenceType = '',
+    ?string $logBodyHtml = null
 ): array {
     $cfg      = getEmailSettings();
     $host     = $cfg['smtp_host']       ?? '';
@@ -448,12 +449,19 @@ function sendEmail(
     $fromName = $cfg['from_name']       ?? 'Komagin HR';
     $fromAddr = $cfg['from_email']      ?? '';
 
-    // Log the attempt first (pending)
+    // Log the attempt first (pending). Phase 6, Stage 6.8: email_logs is a
+    // durable audit table, readable by anyone with the relevant admin
+    // permission and captured whole by every database backup — it must
+    // never hold a live, usable credential. $logBodyHtml lets a caller
+    // (e.g. a password-reset email, whose body necessarily contains a raw,
+    // single-use token in the reset link) pass a redacted body for
+    // persistence while $bodyHtml — the real content — is still what
+    // actually gets sent to the recipient.
     $logId = null;
     try {
         $settings = getCompanySettings();
         db()->prepare("INSERT INTO email_logs (type, recipient_email, subject, body_html, status, employee_id, reference_id, reference_type) VALUES (?,?,?,?,?,?,?,?)")
-            ->execute([$type, $to, $subject, $bodyHtml, 'pending', $employeeId, $referenceId, $referenceType]);
+            ->execute([$type, $to, $subject, $logBodyHtml ?? $bodyHtml, 'pending', $employeeId, $referenceId, $referenceType]);
         $logId = (int)db()->lastInsertId();
     } catch (Exception $e) { /* non-fatal */ }
 
