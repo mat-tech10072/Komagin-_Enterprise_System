@@ -1,0 +1,321 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body.komagin-login {
+    background: linear-gradient(135deg, #1A3A5C 0%, #0F2B45 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    overflow-x: hidden;
+    font-family: 'Inter', sans-serif;
+}
+
+body.komagin-login::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(circle at 20% 30%, rgba(232, 163, 23, 0.08) 0%, transparent 50%),
+        repeating-linear-gradient(45deg, rgba(232, 163, 23, 0.03) 0px, rgba(232, 163, 23, 0.03) 2px, transparent 2px, transparent 8px);
+    pointer-events: none;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 440px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+    animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.login-header {
+    background: linear-gradient(135deg, #1A3A5C 0%, #2A4A6C 100%);
+    color: #fff;
+    padding: 35px 30px 25px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(232, 163, 23, 0.1) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.login-header .logo {
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 15px;
+    background: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.login-header .logo img {
+    width: 65px;
+    height: 65px;
+    object-fit: contain;
+}
+
+.login-header h1 {
+    font-size: 26px;
+    margin-bottom: 5px;
+    font-family: 'Oswald', 'Inter', sans-serif;
+    position: relative;
+    z-index: 1;
+}
+
+.login-header h1 span {
+    color: #E8A317;
+}
+
+.login-header p {
+    opacity: 0.88;
+    font-size: 13px;
+    position: relative;
+    z-index: 1;
+}
+
+.login-form {
+    padding: 35px 30px;
+}
+
+.form-group {
+    margin-bottom: 22px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #1A2632;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.form-group label i {
+    color: #1A3A5C;
+    margin-right: 6px;
+}
+
+.input-wrapper {
+    position: relative;
+}
+
+.input-wrapper i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #1A3A5C;
+    font-size: 15px;
+}
+
+.input-wrapper .toggle-password {
+    left: auto;
+    right: 14px;
+    cursor: pointer;
+    color: #6C757D;
+    transition: color 0.3s;
+}
+
+.input-wrapper .toggle-password:hover {
+    color: #1A3A5C;
+}
+
+.form-group input {
+    width: 100%;
+    min-height: 52px;
+    padding: 14px 45px;
+    border: 1px solid #E9ECEF;
+    border-radius: 10px;
+    font-size: 15px;
+    transition: all 0.3s;
+    background: #F8F9FA;
+    font-family: 'Inter', sans-serif;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #1A3A5C;
+    box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1);
+    background: #fff;
+}
+
+.login-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #1A3A5C 0%, #2A4A6C 100%);
+    color: #fff;
+    border: 0;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-family: 'Inter', sans-serif;
+}
+
+.login-btn:hover {
+    background: linear-gradient(135deg, #0F2B45 0%, #1A3A5C 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(26, 58, 92, 0.3);
+}
+
+.login-btn:disabled {
+    opacity: 0.8;
+    cursor: wait;
+    transform: none;
+}
+
+.message {
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+    font-size: 13px;
+}
+
+.message.show,
+.message[style*="display: block"] {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+}
+
+.message.error {
+    background: #FEF3F2;
+    border: 1px solid #FEE2E2;
+    color: #DC2626;
+}
+
+.message.success {
+    background: #ECFDF5;
+    border: 1px solid #D1FAE5;
+    color: #059669;
+}
+
+.message.info {
+    background: #EFF6FF;
+    border: 1px solid #DBEAFE;
+    color: #2563EB;
+}
+
+.portal-switch {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #E9ECEF;
+    color: #6C757D;
+    font-size: 12px;
+    text-align: center;
+}
+
+.portal-switch p {
+    margin-bottom: 10px;
+}
+
+.portal-links {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.portal-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 8px 11px;
+    border: 1px solid #E9ECEF;
+    border-radius: 8px;
+    color: #1A3A5C;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.portal-links a:hover {
+    border-color: #E8A317;
+    color: #0F2B45;
+    background: #FFF9EA;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 480px) {
+    body.komagin-login {
+        padding: 14px;
+        align-items: flex-start;
+    }
+
+    .login-container {
+        max-width: 100%;
+        margin-top: 12px;
+        border-radius: 16px;
+    }
+
+    .login-header {
+        padding: 25px 20px;
+    }
+
+    .login-header .logo {
+        width: 75px;
+        height: 75px;
+    }
+
+    .login-header .logo img {
+        width: 55px;
+        height: 55px;
+    }
+
+    .login-header h1 {
+        font-size: 22px;
+    }
+
+    .login-form {
+        padding: 25px 20px;
+    }
+
+    .portal-links {
+        flex-direction: column;
+    }
+
+    .portal-links a {
+        justify-content: center;
+        width: 100%;
+    }
+}

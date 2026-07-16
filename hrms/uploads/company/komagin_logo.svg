@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 380" width="400" height="380">
+  <!-- White background -->
+  <rect width="400" height="380" fill="white"/>
+
+  <!-- Buildings group -->
+  <!-- Left small building -->
+  <rect x="72" y="195" width="42" height="100" rx="3" fill="url(#bldg-left)"/>
+  <!-- Left-center building -->
+  <rect x="122" y="155" width="52" height="140" rx="3" fill="url(#bldg-lc)"/>
+  <!-- Center tall building -->
+  <rect x="182" y="90" width="62" height="205" rx="3" fill="url(#bldg-center)"/>
+  <!-- Right-center building -->
+  <rect x="252" y="138" width="50" height="157" rx="3" fill="url(#bldg-rc)"/>
+  <!-- Right small building -->
+  <rect x="310" y="172" width="38" height="123" rx="3" fill="url(#bldg-right)"/>
+
+  <!-- Building window highlights (white stripes) -->
+  <!-- Center building windows -->
+  <rect x="191" y="110" width="8" height="80" rx="1" fill="rgba(255,255,255,0.25)"/>
+  <rect x="205" y="110" width="8" height="80" rx="1" fill="rgba(255,255,255,0.15)"/>
+  <rect x="219" y="110" width="8" height="80" rx="1" fill="rgba(255,255,255,0.1)"/>
+  <rect x="233" y="110" width="8" height="80" rx="1" fill="rgba(255,255,255,0.08)"/>
+  <!-- Left-center windows -->
+  <rect x="130" y="172" width="7" height="55" rx="1" fill="rgba(255,255,255,0.2)"/>
+  <rect x="142" y="172" width="7" height="55" rx="1" fill="rgba(255,255,255,0.12)"/>
+  <!-- Right-center windows -->
+  <rect x="260" y="155" width="7" height="55" rx="1" fill="rgba(255,255,255,0.2)"/>
+  <rect x="272" y="155" width="7" height="55" rx="1" fill="rgba(255,255,255,0.12)"/>
+
+  <!-- Green swoosh arcs underneath buildings -->
+  <path d="M 52 298 Q 130 340 213 330 Q 296 320 348 298"
+        fill="none" stroke="url(#swoosh-green)" stroke-width="22" stroke-linecap="round"/>
+  <path d="M 80 318 Q 155 368 213 356 Q 272 344 322 318"
+        fill="none" stroke="url(#swoosh-green2)" stroke-width="16" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- Gradients -->
+  <defs>
+    <linearGradient id="bldg-center" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1565C0;stop-opacity:1" />
+      <stop offset="40%" style="stop-color:#1E88E5;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#42A5F5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#90CAF9;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bldg-lc" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1565C0;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#1E88E5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#64B5F6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bldg-rc" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1976D2;stop-opacity:1" />
+      <stop offset="60%" style="stop-color:#42A5F5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#90CAF9;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bldg-left" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0D47A1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1976D2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bldg-right" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1565C0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#64B5F6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="swoosh-green" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#33CC00;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#66FF00;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#33CC00;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="swoosh-green2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22AA00;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#55EE00;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#22AA00;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>
