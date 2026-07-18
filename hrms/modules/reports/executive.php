@@ -11,6 +11,7 @@ $pageTitle  = 'Executive Analytics';
 $activeMenu = 'reports';
 
 $year  = (int)($_GET['year'] ?? date('Y'));
+if (!isValidPayrollYear($year)) { $year = (int)date('Y'); }
 
 // ── CSV Export ─────────────────────────────────────────────────────────────
 $export = $_GET['export'] ?? '';
@@ -109,9 +110,12 @@ $attWorkingDays = $attPeriodStart <= $attPeriodEnd ? countWorkingDays($attPeriod
 $attExpected    = $attActiveCount * $attWorkingDays;
 
 // 5. Payroll summary
-// Once an official run exists for a period, only payslips linked to that
-// run count toward this total — mirrors modules/payroll/reports.php so
-// stray/unlinked payslips don't inflate the YTD figure here either.
+// Same run-scoping rule as getPayrollPeriodSummary() in
+// config/functions.php and modules/payroll/reports.php's $runScope — see
+// that file's comment for the full justification. Kept manually in sync
+// here (rather than reused) because this is a single-column intval()
+// interpolation in an unprepared query, structurally different from the
+// prepared-statement pattern the shared helper assumes.
 $payrollSum = db()->query("SELECT
     SUM(ps.gross_salary) as total_gross,
     SUM(ps.net_salary) as total_net,
@@ -119,7 +123,10 @@ $payrollSum = db()->query("SELECT
     COUNT(DISTINCT ps.employee_id) as emp_count
     FROM payslips ps
     LEFT JOIN payroll_runs pr ON pr.period_month=ps.period_month AND pr.period_year=ps.period_year
-    WHERE ps.period_year=".intval($year)." AND (pr.id IS NULL OR ps.payroll_run_id = pr.id)")->fetch();
+    WHERE ps.period_year=".intval($year)." AND (
+        (ps.payroll_run_id IS NULL AND (pr.id IS NULL OR pr.status NOT IN ('finalized','published')))
+        OR (pr.status IN ('finalized','published') AND ps.payroll_run_id = pr.id)
+    )")->fetch();
 
 // 6. Recruitment pipeline
 $recPipeline = db()->query("SELECT status, COUNT(*) as cnt FROM recruitment_applications GROUP BY status")->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -144,6 +151,12 @@ $_deptLabels = json_encode(array_keys($hcByDept));
 $_deptActive = json_encode(array_map(fn($s)=>($s['active']??0)+($s['probation']??0), $hcByDept));
 
 $csrf = generateCsrfToken();
+
+// Phase 6 hardening: this page includes a real YTD payroll financial
+// total — must never be served stale from a browser back/forward cache
+// or an intermediate proxy. See sendNoStorePayrollHeaders()'s doc comment
+// in config/functions.php for why this is not applied globally in header.php.
+sendNoStorePayrollHeaders();
 ?>
 <?php include dirname(dirname(__DIR__)) . '/includes/header.php'; ?>
 

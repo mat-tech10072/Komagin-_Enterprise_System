@@ -625,6 +625,213 @@ function sendPayslipEmail(int $payslipId): array {
 }
 
 // ============================================================
+// PAYROLL PERIOD AGGREGATION (dashboard hardening, 2026-07-18)
+//
+// Responds to an incident where the live Payroll Dashboard once showed 0
+// matched payslips alongside a large non-zero total for gross/deductions/
+// net simultaneously for the same period — a combination the query shape
+// below is structurally incapable of producing (payslip_count and every
+// SUM always come from one row of one query), and which
+// normalizePayrollSummary() additionally refuses to ever render even if
+// some future code path did produce it. See
+// docs/deployment/payroll-dashboard-production-verification.md.
+// ============================================================
+
+// Reasonable payroll year range, not hardcoded to any single calendar
+// year: 10 years back-dated correction/reporting, 1 year advance entry.
+function isValidPayrollYear(int $year): bool {
+    $current = (int)date('Y');
+    return $year >= ($current - 10) && $year <= ($current + 1);
+}
+
+// Normalizes a requested payroll period from user input. Never throws —
+// always returns a usable month/year, plus a non-null 'message' when the
+// input had to be corrected, so the caller can show a controlled
+// validation notice instead of silently guessing or crashing.
+function normalizePayrollPeriod($rawMonth, $rawYear): array {
+    $month = (int)$rawMonth;
+    $year  = (int)$rawYear;
+    $message = null;
+
+    $clampedMonth = max(1, min(12, $month));
+    if ($clampedMonth !== $month) {
+        $message = 'The selected month was invalid and has been reset.';
+    }
+
+    if (!isValidPayrollYear($year)) {
+        $year = (int)date('Y');
+        $message = 'The selected year was outside the supported range and has been reset to the current year.';
+    }
+
+    return ['month' => $clampedMonth, 'year' => $year, 'message' => $message];
+}
+
+// Single authoritative source for the payroll dashboard's four KPI
+// values — payslip_count, total_gross, total_deductions, total_net — for
+// one period. Every caller (KPI cards, the recent-payslips list) must
+// derive its own WHERE scope from this result's 'mode'/'run' rather than
+// recomputing an independent run lookup, so they can never silently
+// disagree about which rows they're summarizing.
+//
+// Scoping rule (see the remediation completion report for the full
+// evidence trail this was decided from):
+//   - If a run exists for the period AND has left draft/processing (i.e.
+//     status is 'finalized' or 'published'), it is authoritative: only
+//     payslips actually linked to it (payroll_run_id = run.id) count.
+//     Anything still unlinked at that point was deliberately not swept in
+//     by run_finalize.php's backfill and must not silently reappear in
+//     totals — this is what keeps a stray/orphaned payslip (created or
+//     finalized outside the run workflow) excluded.
+//   - Otherwise (no run yet, or a run exists but is still draft/
+//     processing and has not claimed anything yet) the authoritative set
+//     is every unlinked payslip for the period. This preserves the
+//     existing "draft payslips before a run exists" manual workflow, and
+//     also fixes a gap found while designing this fix: immediately after
+//     a run is created but before it is finalized, payroll_run_id is not
+//     yet set on anything (only run_finalize.php's backfill sets it), so
+//     a run-existence-only rule would incorrectly show 0 for a period
+//     that actually has real draft payslips sitting in it.
+function getPayrollPeriodSummary(int $month, int $year): array {
+    $runStmt = db()->prepare("SELECT * FROM payroll_runs WHERE period_month=? AND period_year=? LIMIT 1");
+    $runStmt->execute([$month, $year]);
+    $run = $runStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+
+    $runIsAuthoritative = $run && in_array($run['status'], ['finalized', 'published'], true);
+
+    if ($runIsAuthoritative) {
+        $mode   = 'payroll_run';
+        $where  = 'payroll_run_id = ?';
+        $params = [(int)$run['id']];
+    } else {
+        $mode   = 'unlinked_period';
+        $where  = 'period_month = ? AND period_year = ? AND payroll_run_id IS NULL';
+        $params = [$month, $year];
+    }
+
+    $stmt = db()->prepare("SELECT
+        COUNT(*) AS payslip_count,
+        COALESCE(SUM(gross_salary), 0)     AS total_gross,
+        COALESCE(SUM(total_deductions), 0) AS total_deductions,
+        COALESCE(SUM(net_salary), 0)       AS total_net
+        FROM payslips WHERE $where");
+    $stmt->execute($params);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: ['payslip_count' => 0, 'total_gross' => 0, 'total_deductions' => 0, 'total_net' => 0];
+
+    $summary = normalizePayrollSummary($row, $mode, $run, $month, $year);
+    $summary['where']  = $where;
+    $summary['params'] = $params;
+    return $summary;
+}
+
+// Applies the payroll-invariant checks: numeric, non-negative count,
+// zero-count-forces-zero-totals, and an accounting-relationship tolerance
+// check (net ≈ gross - deductions). Never mutates any database row —
+// only decides what is safe to display and what to log.
+function normalizePayrollSummary(array $row, string $mode, ?array $run, int $month, int $year): array {
+    $count = max(0, (int)($row['payslip_count'] ?? 0));
+    $gross = (float)($row['total_gross'] ?? 0);
+    $ded   = (float)($row['total_deductions'] ?? 0);
+    $net   = (float)($row['total_net'] ?? 0);
+    $warning = null;
+
+    if ($count === 0) {
+        // A zero-row result can only legitimately have zero totals — SQL's
+        // SUM() over an empty set is NULL, already coalesced to 0 above.
+        // If any of these is still non-zero, something upstream is
+        // structurally broken (corrupted read, a future refactor that
+        // reintroduces separate count/sum queries, a bad driver/replica)
+        // — this is exactly the shape of the incident this hardening
+        // responds to. Never display invented totals for zero matched
+        // records, no matter what produced them.
+        if (abs($gross) > 0.0001 || abs($ded) > 0.0001 || abs($net) > 0.0001) {
+            error_log(sprintf(
+                '[PAYROLL_INVARIANT] zero_count_nonzero_sum period=%04d-%02d mode=%s gross=%.2f deductions=%.2f net=%.2f run_id=%s',
+                $year, $month, $mode, $gross, $ded, $net, $run['id'] ?? 'null'
+            ));
+            $warning = 'Payroll totals for this period were suppressed due to an internal data inconsistency (zero matching payslips but non-zero totals). This has been logged — contact an administrator.';
+        }
+        $gross = 0.0; $ded = 0.0; $net = 0.0;
+    } else {
+        // Accounting sanity check at cent precision (avoids binary float
+        // equality on repeatedly-summed monetary values, since decimal
+        // SUM() results pass through a (float) cast): net should equal
+        // gross minus deductions to within one cent.
+        $expectedNet = $gross - $ded;
+        $diffCents = abs((int)round(($net - $expectedNet) * 100));
+        if ($diffCents > 1) {
+            error_log(sprintf(
+                '[PAYROLL_INVARIANT] accounting_mismatch period=%04d-%02d mode=%s gross=%.2f deductions=%.2f net=%.2f expected_net=%.2f diff_cents=%d run_id=%s',
+                $year, $month, $mode, $gross, $ded, $net, $expectedNet, $diffCents, $run['id'] ?? 'null'
+            ));
+            $warning = 'Totals for this period do not reconcile (net pay does not equal gross minus deductions). Records were not modified — please review payslips for this period.';
+        }
+    }
+
+    return [
+        'payslip_count'    => $count,
+        'total_gross'      => $gross,
+        'total_deductions' => $ded,
+        'total_net'        => $net,
+        'mode'             => $mode,
+        'run'              => $run,
+        'warning'          => $warning,
+    ];
+}
+
+// Comparison-only figure — NEVER used for the authoritative aggregation
+// or rendered on the page. A naive period-wide total (no payroll_run_id
+// awareness at all — the pre-remediation query shape). Purely so the
+// diagnostic log line can flag exactly the class of incident this
+// hardening responds to: if this ever diverges sharply from the
+// authoritative total, that's worth investigating even though the page
+// itself is now guaranteed to only ever display the authoritative one.
+function getPayrollPeriodFallbackForDiagnostics(int $month, int $year): array {
+    $stmt = db()->prepare("SELECT COUNT(*) AS payslip_count, COALESCE(SUM(gross_salary),0) AS total_gross
+        FROM payslips WHERE period_month=? AND period_year=?");
+    $stmt->execute([$month, $year]);
+    return $stmt->fetch(PDO::FETCH_ASSOC) ?: ['payslip_count' => 0, 'total_gross' => 0];
+}
+
+// Emits one non-sensitive structured diagnostic log line for a rendered
+// payroll dashboard view. Deliberately excludes anything
+// employee-identifying, financial-record-level, or credential-shaped —
+// see the remediation completion report's Security and Privacy Review for
+// the exact inclusion/exclusion list this was checked against.
+function logPayrollDashboardDiagnostics(int $month, int $year, array $summary, array $fallback): void {
+    error_log(sprintf(
+        '[PAYROLL_DIAG] build=%s period=%04d-%02d run_id=%s mode=%s payslip_count=%d gross=%.2f deductions=%.2f net=%.2f invariant=%s period_fallback_count=%d period_fallback_gross=%.2f',
+        BUILD_ID,
+        $year, $month,
+        $summary['run']['id'] ?? 'null',
+        $summary['mode'],
+        $summary['payslip_count'],
+        $summary['total_gross'],
+        $summary['total_deductions'],
+        $summary['total_net'],
+        $summary['warning'] ? 'WARNING' : 'ok',
+        (int)($fallback['payslip_count'] ?? 0),
+        (float)($fallback['total_gross'] ?? 0)
+    ));
+}
+
+// Sends response headers that stop an authenticated payroll page's
+// rendered HTML (which can include real financial totals) from being
+// reused stale by a browser back/forward cache or an intermediate proxy.
+// Call this BEFORE any output/include of header.php on payroll pages
+// specifically — deliberately NOT wired into includes/header.php
+// globally, since that file is shared by every authenticated page
+// (including ones where caching the shell is harmless) and by
+// static-asset-adjacent code paths this must not touch. PHP OPcache
+// (server-side compiled-bytecode caching) is a separate, server-runtime
+// concern this cannot address from application code — see
+// docs/deployment/payroll-dashboard-production-verification.md.
+function sendNoStorePayrollHeaders(): void {
+    header('Cache-Control: no-store, no-cache, must-revalidate');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+}
+
+// ============================================================
 // DATE / TIME HELPERS
 // ============================================================
 

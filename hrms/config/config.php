@@ -7,6 +7,17 @@ define('APP_NAME', 'Komagin HR');
 define('APP_FULL_NAME', 'Komagin HR Management System');
 define('APP_VERSION', '1.0.0');
 
+// Safe, lightweight build/deployment identifier for runtime diagnostics
+// (e.g. the payroll dashboard's diagnostic log line — see
+// config/functions.php's logPayrollDashboardDiagnostics()). Never shells
+// out to `git` on a request — that would add a process-spawn cost to
+// every page load. A deploy script MAY set BUILD_ID or GIT_COMMIT as a
+// real server environment variable (e.g. `export BUILD_ID=$(git rev-parse
+// HEAD)` right after `git pull` on the droplet) to make diagnostics show
+// exactly which commit is live; if neither is set, this safely falls back
+// to APP_VERSION so nothing breaks on an environment that hasn't opted in.
+define('BUILD_ID', getenv('BUILD_ID') ?: (getenv('GIT_COMMIT') ?: APP_VERSION));
+
 // Phase 6, Stage 6.1: these constants are now environment-driven — set
 // APP_URL/DB_*/etc. as real server environment variables (Apache SetEnv,
 // Nginx fastcgi_param, or PHP-FPM pool env[] directives) on any

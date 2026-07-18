@@ -9,15 +9,30 @@ $pageTitle  = 'Payroll Reports';
 $activeMenu = 'payroll_reports';
 
 $year  = isset($_GET['year'])  ? (int)$_GET['year']  : (int)date('Y');
+if (!isValidPayrollYear($year)) { $year = (int)date('Y'); }
 $month = isset($_GET['month']) ? (int)$_GET['month'] : 0; // 0 = all months
 
-// Once an official run exists for a period, only payslips linked to that
-// run (payroll_run_id) count toward its totals — stray/unlinked payslips
-// no longer pollute the aggregate. Periods with no run yet keep summing
-// every payslip as before. payroll_runs has a UNIQUE(period_month,
+// Same run-scoping rule as getPayrollPeriodSummary() in config/functions.php
+// (kept in sync manually here since this query aggregates a whole year of
+// mixed run/no-run months in one grouped statement, rather than one period
+// at a time): a payslip counts toward its period's totals when either —
+//   (a) that period's run has left draft/processing (finalized/published)
+//       and the payslip is linked to it, or
+//   (b) the period has no run yet, or its run is still draft/processing,
+//       and the payslip is unlinked.
+// Originally this only checked "(pr.id IS NULL OR ps.payroll_run_id =
+// pr.id)", which correctly excluded a stray unlinked payslip once a run
+// was finalized, but incorrectly excluded genuine draft payslips for a
+// period whose run had just been created and not yet finalized (nothing
+// is linked to a run until run_finalize.php's backfill runs) — found
+// while designing the payroll dashboard hardening, not a change to any
+// previously-tested behaviour. payroll_runs has a UNIQUE(period_month,
 // period_year) key so this join never duplicates rows.
 $runScope = "LEFT JOIN payroll_runs pr ON pr.period_month=ps.period_month AND pr.period_year=ps.period_year
-    WHERE ps.period_year=? AND (pr.id IS NULL OR ps.payroll_run_id = pr.id)";
+    WHERE ps.period_year=? AND (
+        (ps.payroll_run_id IS NULL AND (pr.id IS NULL OR pr.status NOT IN ('finalized','published')))
+        OR (pr.status IN ('finalized','published') AND ps.payroll_run_id = pr.id)
+    )";
 
 // Monthly summary for the year
 $monthlyStmt = db()->prepare("SELECT ps.period_month as period_month, COUNT(*) as emp_count,
@@ -81,6 +96,12 @@ if (isset($_GET['export']) && $_GET['export']==='csv') {
     fclose($out);
     exit;
 }
+
+// Phase 6 hardening: this page renders real financial totals — must never
+// be served stale from a browser back/forward cache or an intermediate
+// proxy. See sendNoStorePayrollHeaders()'s doc comment in
+// config/functions.php for why this is not applied globally in header.php.
+sendNoStorePayrollHeaders();
 
 include __DIR__ . '/../../includes/header.php';
 ?>

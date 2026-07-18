@@ -8,56 +8,76 @@ requirePermission('payroll.view', 'view');
 $pageTitle  = 'Payroll Dashboard';
 $activeMenu = 'payroll';
 
-$month = isset($_GET['month']) ? (int)$_GET['month'] : (int)date('n');
-$year  = isset($_GET['year'])  ? (int)$_GET['year']  : (int)date('Y');
-$month = max(1, min(12, $month));
-
-// Payroll run for this period
-$runStmt = db()->prepare("SELECT * FROM payroll_runs WHERE period_month=? AND period_year=? LIMIT 1");
-$runStmt->execute([$month,$year]);
-$run = $runStmt->fetch(PDO::FETCH_ASSOC);
-
-// Once an official run exists for this period, scope summaries to payslips
-// linked to that run so stray/unlinked payslips (e.g. never attached to a
-// run) don't pollute dashboard totals. No run yet -> fall back to the
-// period-wide view so payslips can still be drafted before a run exists.
-if ($run) {
-    $periodWhere  = 'payroll_run_id = ?';
-    $periodParams = [$run['id']];
-} else {
-    $periodWhere  = 'period_month = ? AND period_year = ?';
-    $periodParams = [$month, $year];
+// Selected-period validation (Phase 4 hardening): month/year are always
+// resolved to a single valid, in-range pair before anything else on this
+// page reads them, and every KPI card, the payroll-run card, and the
+// payslip list all read from these same two variables — never a
+// separately re-parsed/re-validated copy.
+$rawMonth = $_GET['month'] ?? date('n');
+$rawYear  = $_GET['year']  ?? date('Y');
+$periodCheck = normalizePayrollPeriod($rawMonth, $rawYear);
+if ($periodCheck['message'] !== null && !isset($_GET['notice'])) {
+    // Redirect to the canonical, corrected URL rather than silently
+    // rendering a guessed period — keeps the address bar truthful and
+    // avoids repeating the same correction on every subsequent reload.
+    setFlash('warning', $periodCheck['message']);
+    header('Location: ' . APP_URL . '/modules/payroll/index.php?month=' . $periodCheck['month'] . '&year=' . $periodCheck['year'] . '&notice=period_corrected');
+    exit;
 }
+$month = $periodCheck['month'];
+$year  = $periodCheck['year'];
 
-// Summary for selected period
-$totalGross = db()->prepare("SELECT SUM(gross_salary) FROM payslips WHERE $periodWhere");
-$totalGross->execute($periodParams);
-$sumGross = (float)$totalGross->fetchColumn();
+// Authoritative aggregation (Phase 2/3 hardening): one query, one WHERE
+// scope, one result row for all four KPI values — see
+// getPayrollPeriodSummary()'s doc comment in config/functions.php for the
+// exact run/no-run scoping rule and why it was chosen. normalizePayrollSummary()
+// inside it guarantees a zero-count result can never carry non-zero totals.
+$summary = getPayrollPeriodSummary($month, $year);
+$run       = $summary['run'];
+$countEmp  = $summary['payslip_count'];
+$sumGross  = $summary['total_gross'];
+$sumDed    = $summary['total_deductions'];
+$sumNet    = $summary['total_net'];
 
-$totalNet = db()->prepare("SELECT SUM(net_salary) FROM payslips WHERE $periodWhere");
-$totalNet->execute($periodParams);
-$sumNet = (float)$totalNet->fetchColumn();
+// Runtime diagnostics (Phase 5): one non-sensitive log line per view,
+// plus a comparison-only naive total that would previously have been
+// used, purely so a future divergence is visible in logs immediately.
+logPayrollDashboardDiagnostics($month, $year, $summary, getPayrollPeriodFallbackForDiagnostics($month, $year));
 
-$totalDed = db()->prepare("SELECT SUM(total_deductions) FROM payslips WHERE $periodWhere");
-$totalDed->execute($periodParams);
-$sumDed = (float)$totalDed->fetchColumn();
-
-$empCount = db()->prepare("SELECT COUNT(*) FROM payslips WHERE $periodWhere");
-$empCount->execute($periodParams);
-$countEmp = (int)$empCount->fetchColumn();
-
-// Recent payslips
-$recentWhere = $run ? 'ps.payroll_run_id = ?' : 'ps.period_month = ? AND ps.period_year = ?';
+// Recent payslips — reuses the SAME mode/run decision as the summary
+// above (never a separately-computed scope) so the list can never
+// disagree with the KPI cards about which rows belong to this period.
+if ($summary['mode'] === 'payroll_run') {
+    $recentWhere  = 'ps.payroll_run_id = ?';
+    $recentParams = [(int)$run['id']];
+} else {
+    $recentWhere  = 'ps.period_month = ? AND ps.period_year = ? AND ps.payroll_run_id IS NULL';
+    $recentParams = [$month, $year];
+}
 $recent = db()->prepare("SELECT ps.*, e.first_name, e.last_name, e.employee_number
     FROM payslips ps JOIN employees e ON ps.employee_id=e.id
     WHERE $recentWhere
     ORDER BY e.last_name LIMIT 15");
-$recent->execute($periodParams);
+$recent->execute($recentParams);
 $recentSlips = $recent->fetchAll(PDO::FETCH_ASSOC);
 
 $monthNames = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
 
+// Phase 6: authenticated payroll pages render real financial totals —
+// must never be served from a browser back/forward cache or an
+// intermediate proxy after the underlying data changes. See
+// sendNoStorePayrollHeaders()'s doc comment for why this is not global.
+sendNoStorePayrollHeaders();
+
 include __DIR__ . '/../../includes/header.php';
+
+// Phase 5 (optional admin-only panel): double-gated — an explicit
+// environment flag AND super_admin — so this never appears by accident
+// in front of a payroll_officer/payroll_manager or on an unconfigured
+// production box. Shows the same non-sensitive fields already logged
+// above; never renders employee names, bank/tax data, or raw query text.
+$showPayrollDiagnostics = getenv('PAYROLL_DIAGNOSTICS') === '1'
+    && (($_SESSION['user_role'] ?? '') === 'super_admin');
 ?>
 
 <div class="content-wrapper">
@@ -84,6 +104,27 @@ include __DIR__ . '/../../includes/header.php';
         </a>
     </div>
 </div>
+
+<?php if (isset($_GET['notice']) && $_GET['notice'] === 'period_corrected'): $periodNotice = getFlash(); if ($periodNotice): ?>
+<div class="alert alert-warning"><?= e($periodNotice['message']) ?></div>
+<?php endif; endif; ?>
+
+<?php if ($summary['warning']): ?>
+<div class="alert alert-warning"><?= e($summary['warning']) ?></div>
+<?php endif; ?>
+
+<?php if ($showPayrollDiagnostics): ?>
+<div class="alert alert-info" style="font-family:monospace;font-size:0.72rem;line-height:1.6;">
+    <strong>Payroll diagnostics</strong> (super_admin + PAYROLL_DIAGNOSTICS=1 only)<br>
+    build=<?= e(BUILD_ID) ?> |
+    period=<?= e(sprintf('%04d-%02d', $year, $month)) ?> |
+    run_id=<?= e((string)($run['id'] ?? 'null')) ?> |
+    run_status=<?= e($run['status'] ?? 'none') ?> |
+    mode=<?= e($summary['mode']) ?> |
+    payslip_count=<?= (int)$summary['payslip_count'] ?> |
+    invariant=<?= $summary['warning'] ? 'WARNING' : 'ok' ?>
+</div>
+<?php endif; ?>
 
 <!-- KPI Cards -->
 <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
