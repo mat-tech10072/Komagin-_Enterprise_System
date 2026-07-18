@@ -109,12 +109,17 @@ $attWorkingDays = $attPeriodStart <= $attPeriodEnd ? countWorkingDays($attPeriod
 $attExpected    = $attActiveCount * $attWorkingDays;
 
 // 5. Payroll summary
+// Once an official run exists for a period, only payslips linked to that
+// run count toward this total — mirrors modules/payroll/reports.php so
+// stray/unlinked payslips don't inflate the YTD figure here either.
 $payrollSum = db()->query("SELECT
-    SUM(gross_salary) as total_gross,
-    SUM(net_salary) as total_net,
-    SUM(total_deductions) as total_ded,
-    COUNT(DISTINCT employee_id) as emp_count
-    FROM payslips WHERE period_year=".intval($year))->fetch();
+    SUM(ps.gross_salary) as total_gross,
+    SUM(ps.net_salary) as total_net,
+    SUM(ps.total_deductions) as total_ded,
+    COUNT(DISTINCT ps.employee_id) as emp_count
+    FROM payslips ps
+    LEFT JOIN payroll_runs pr ON pr.period_month=ps.period_month AND pr.period_year=ps.period_year
+    WHERE ps.period_year=".intval($year)." AND (pr.id IS NULL OR ps.payroll_run_id = pr.id)")->fetch();
 
 // 6. Recruitment pipeline
 $recPipeline = db()->query("SELECT status, COUNT(*) as cnt FROM recruitment_applications GROUP BY status")->fetchAll(PDO::FETCH_KEY_PAIR);

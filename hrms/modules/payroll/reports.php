@@ -11,23 +11,31 @@ $activeMenu = 'payroll_reports';
 $year  = isset($_GET['year'])  ? (int)$_GET['year']  : (int)date('Y');
 $month = isset($_GET['month']) ? (int)$_GET['month'] : 0; // 0 = all months
 
+// Once an official run exists for a period, only payslips linked to that
+// run (payroll_run_id) count toward its totals — stray/unlinked payslips
+// no longer pollute the aggregate. Periods with no run yet keep summing
+// every payslip as before. payroll_runs has a UNIQUE(period_month,
+// period_year) key so this join never duplicates rows.
+$runScope = "LEFT JOIN payroll_runs pr ON pr.period_month=ps.period_month AND pr.period_year=ps.period_year
+    WHERE ps.period_year=? AND (pr.id IS NULL OR ps.payroll_run_id = pr.id)";
+
 // Monthly summary for the year
-$monthlyStmt = db()->prepare("SELECT period_month, COUNT(*) as emp_count,
-    SUM(gross_salary) as total_gross, SUM(net_salary) as total_net,
-    SUM(total_deductions) as total_ded, SUM(tax_amount) as total_tax,
-    SUM(uif_employee) as total_uif
-    FROM payslips WHERE period_year=?
-    GROUP BY period_month ORDER BY period_month");
+$monthlyStmt = db()->prepare("SELECT ps.period_month as period_month, COUNT(*) as emp_count,
+    SUM(ps.gross_salary) as total_gross, SUM(ps.net_salary) as total_net,
+    SUM(ps.total_deductions) as total_ded, SUM(ps.tax_amount) as total_tax,
+    SUM(ps.uif_employee) as total_uif
+    FROM payslips ps $runScope
+    GROUP BY ps.period_month ORDER BY ps.period_month");
 $monthlyStmt->execute([$year]);
 $monthly = $monthlyStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Annual totals
-$annualStmt = db()->prepare("SELECT COUNT(DISTINCT employee_id) as unique_employees,
-    SUM(gross_salary) as total_gross, SUM(net_salary) as total_net,
-    SUM(total_deductions) as total_ded, SUM(tax_amount) as total_tax,
-    SUM(uif_employee) as total_uif, SUM(uif_employer) as total_uif_er,
-    SUM(overtime_amount) as total_ot
-    FROM payslips WHERE period_year=?");
+$annualStmt = db()->prepare("SELECT COUNT(DISTINCT ps.employee_id) as unique_employees,
+    SUM(ps.gross_salary) as total_gross, SUM(ps.net_salary) as total_net,
+    SUM(ps.total_deductions) as total_ded, SUM(ps.tax_amount) as total_tax,
+    SUM(ps.uif_employee) as total_uif, SUM(ps.uif_employer) as total_uif_er,
+    SUM(ps.overtime_amount) as total_ot
+    FROM payslips ps $runScope");
 $annualStmt->execute([$year]);
 $annual = $annualStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -44,7 +52,7 @@ $topEarners = db()->prepare("SELECT e.first_name, e.last_name, e.employee_number
     d.name as dept_name, SUM(ps.net_salary) as annual_net, SUM(ps.gross_salary) as annual_gross
     FROM payslips ps JOIN employees e ON ps.employee_id=e.id
     LEFT JOIN departments d ON e.department_id=d.id
-    WHERE ps.period_year=?
+    $runScope
     GROUP BY ps.employee_id ORDER BY annual_gross DESC LIMIT 10");
 $topEarners->execute([$year]);
 $topEarnersList = $topEarners->fetchAll(PDO::FETCH_ASSOC);

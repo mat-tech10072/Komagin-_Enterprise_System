@@ -39,17 +39,19 @@ if ($claimed->rowCount() === 0) {
     exit;
 }
 
-// Mark payslips as sent so employees can see them
-db()->prepare("UPDATE payslips SET status='sent' WHERE period_month=? AND period_year=? AND status='finalized'")
-    ->execute([$run['period_month'],$run['period_year']]);
+// Mark payslips belonging to this run as sent so employees can see them.
+// Scoped to payroll_run_id (not period-wide) so a stray/unlinked payslip
+// for the same period is never swept into this run's publish/email batch.
+db()->prepare("UPDATE payslips SET status='sent' WHERE payroll_run_id=? AND status='finalized'")
+    ->execute([$runId]);
 
 auditLog('payroll_runs','publish',$runId,null,null,"Published payroll run {$run['period_month']}/{$run['period_year']} to portal");
 
 // ── Email payslips to employees if notification is configured ─────────
 $cfg = getEmailSettings();
 if (!empty($cfg['payslip_notify']) && $cfg['payslip_notify'] == '1' && !empty($cfg['smtp_host'])) {
-    $slips = db()->prepare("SELECT id FROM payslips WHERE period_month=? AND period_year=? AND status='sent'");
-    $slips->execute([$run['period_month'], $run['period_year']]);
+    $slips = db()->prepare("SELECT id FROM payslips WHERE payroll_run_id=? AND status='sent'");
+    $slips->execute([$runId]);
     $sent = 0; $failed = 0;
     foreach ($slips->fetchAll(PDO::FETCH_COLUMN) as $psId) {
         $result = sendPayslipEmail((int)$psId);

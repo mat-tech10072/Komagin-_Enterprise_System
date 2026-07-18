@@ -12,34 +12,47 @@ $month = isset($_GET['month']) ? (int)$_GET['month'] : (int)date('n');
 $year  = isset($_GET['year'])  ? (int)$_GET['year']  : (int)date('Y');
 $month = max(1, min(12, $month));
 
-// Summary for selected period
-$totalGross = db()->prepare("SELECT SUM(gross_salary) FROM payslips WHERE period_month=? AND period_year=?");
-$totalGross->execute([$month,$year]);
-$sumGross = (float)$totalGross->fetchColumn();
-
-$totalNet = db()->prepare("SELECT SUM(net_salary) FROM payslips WHERE period_month=? AND period_year=?");
-$totalNet->execute([$month,$year]);
-$sumNet = (float)$totalNet->fetchColumn();
-
-$totalDed = db()->prepare("SELECT SUM(total_deductions) FROM payslips WHERE period_month=? AND period_year=?");
-$totalDed->execute([$month,$year]);
-$sumDed = (float)$totalDed->fetchColumn();
-
-$empCount = db()->prepare("SELECT COUNT(*) FROM payslips WHERE period_month=? AND period_year=?");
-$empCount->execute([$month,$year]);
-$countEmp = (int)$empCount->fetchColumn();
-
 // Payroll run for this period
 $runStmt = db()->prepare("SELECT * FROM payroll_runs WHERE period_month=? AND period_year=? LIMIT 1");
 $runStmt->execute([$month,$year]);
 $run = $runStmt->fetch(PDO::FETCH_ASSOC);
 
+// Once an official run exists for this period, scope summaries to payslips
+// linked to that run so stray/unlinked payslips (e.g. never attached to a
+// run) don't pollute dashboard totals. No run yet -> fall back to the
+// period-wide view so payslips can still be drafted before a run exists.
+if ($run) {
+    $periodWhere  = 'payroll_run_id = ?';
+    $periodParams = [$run['id']];
+} else {
+    $periodWhere  = 'period_month = ? AND period_year = ?';
+    $periodParams = [$month, $year];
+}
+
+// Summary for selected period
+$totalGross = db()->prepare("SELECT SUM(gross_salary) FROM payslips WHERE $periodWhere");
+$totalGross->execute($periodParams);
+$sumGross = (float)$totalGross->fetchColumn();
+
+$totalNet = db()->prepare("SELECT SUM(net_salary) FROM payslips WHERE $periodWhere");
+$totalNet->execute($periodParams);
+$sumNet = (float)$totalNet->fetchColumn();
+
+$totalDed = db()->prepare("SELECT SUM(total_deductions) FROM payslips WHERE $periodWhere");
+$totalDed->execute($periodParams);
+$sumDed = (float)$totalDed->fetchColumn();
+
+$empCount = db()->prepare("SELECT COUNT(*) FROM payslips WHERE $periodWhere");
+$empCount->execute($periodParams);
+$countEmp = (int)$empCount->fetchColumn();
+
 // Recent payslips
+$recentWhere = $run ? 'ps.payroll_run_id = ?' : 'ps.period_month = ? AND ps.period_year = ?';
 $recent = db()->prepare("SELECT ps.*, e.first_name, e.last_name, e.employee_number
     FROM payslips ps JOIN employees e ON ps.employee_id=e.id
-    WHERE ps.period_month=? AND ps.period_year=?
+    WHERE $recentWhere
     ORDER BY e.last_name LIMIT 15");
-$recent->execute([$month,$year]);
+$recent->execute($periodParams);
 $recentSlips = $recent->fetchAll(PDO::FETCH_ASSOC);
 
 $monthNames = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
