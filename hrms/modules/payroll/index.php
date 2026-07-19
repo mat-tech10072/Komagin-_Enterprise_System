@@ -33,11 +33,11 @@ $year  = $periodCheck['year'];
 // exact run/no-run scoping rule and why it was chosen. normalizePayrollSummary()
 // inside it guarantees a zero-count result can never carry non-zero totals.
 $summary = getPayrollPeriodSummary($month, $year);
-$run       = $summary['run'];
-$countEmp  = $summary['payslip_count'];
-$sumGross  = $summary['total_gross'];
-$sumDed    = $summary['total_deductions'];
-$sumNet    = $summary['total_net'];
+$run                  = $summary['run'];
+$payrollEmployeeCount = $summary['payslip_count'];
+$payrollTotalGross    = $summary['total_gross'];
+$payrollTotalDed      = $summary['total_deductions'];
+$payrollTotalNet      = $summary['total_net'];
 
 // Runtime diagnostics (Phase 5): one non-sensitive log line per view,
 // plus a comparison-only naive total that would previously have been
@@ -130,22 +130,22 @@ $showPayrollDiagnostics = getenv('PAYROLL_DIAGNOSTICS') === '1'
 <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
     <div class="stat-card">
         <div class="stat-label">Employees on Payroll</div>
-        <div class="stat-value"><?= $countEmp ?></div>
+        <div class="stat-value"><?= $payrollEmployeeCount ?></div>
         <div class="stat-sub"><?= $monthNames[$month] . ' ' . $year ?></div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Total Gross</div>
-        <div class="stat-value"><?= CURRENCY_SYMBOL ?> <?= number_format($sumGross,2) ?></div>
+        <div class="stat-value"><?= CURRENCY_SYMBOL ?> <?= number_format($payrollTotalGross,2) ?></div>
         <div class="stat-sub">Before deductions</div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Total Deductions</div>
-        <div class="stat-value"><?= CURRENCY_SYMBOL ?> <?= number_format($sumDed,2) ?></div>
+        <div class="stat-value"><?= CURRENCY_SYMBOL ?> <?= number_format($payrollTotalDed,2) ?></div>
         <div class="stat-sub">Tax + UIF + other</div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Total Net Pay</div>
-        <div class="stat-value"><?= CURRENCY_SYMBOL ?> <?= number_format($sumNet,2) ?></div>
+        <div class="stat-value"><?= CURRENCY_SYMBOL ?> <?= number_format($payrollTotalNet,2) ?></div>
         <div class="stat-sub">Take-home total</div>
     </div>
 </div>

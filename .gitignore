@@ -5,3 +5,14 @@ uploads/*/*
 !uploads/*/.htaccess
 .claude/
 database/backups/
+
+# These four rules were written before commit 73924a6 restructured the
+# repository into this hrms/website monorepo and were never updated —
+# without the hrms/ prefix, none of them actually match anything (verify
+# with `git check-ignore -v hrms/logs/php_errors.log`), which is why the
+# tracked log file and any database backup taken under hrms/database/
+# keep showing up as untracked/modified instead of being ignored.
+hrms/logs/*.log
+hrms/uploads/*/*
+!hrms/uploads/*/.htaccess
+hrms/database/backups/

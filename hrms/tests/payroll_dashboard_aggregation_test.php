@@ -11,15 +11,19 @@
  * introduced 2026-07-18 in response to
  * Komagin_HR_Payroll_Dashboard_Aggregation_Audit_2026-07-18.md.
  *
- * Safety: every fixture row this script inserts is written inside a
- * single database transaction that is ALWAYS rolled back at the end
- * (success or failure) — nothing is ever committed. Fixture periods are
- * chosen to be months with zero pre-existing local data (this repo's
- * local database only has real payroll data in May/June of one year), so
- * even if the rollback somehow didn't happen, no developer's real record
- * would be overwritten (INSERTs would simply fail on a genuine
- * employee_id/period collision rather than corrupt anything). The June
- * 2026 orphan-payslip repair script is never executed by this suite.
+ * Safety: every fixture row this script inserts — including its own six
+ * temporary employees, clearly labelled TEST-FIXTURE-EMP-1..6 — is
+ * written inside a single database transaction that is ALWAYS rolled
+ * back at the end (success or failure), so nothing is ever committed.
+ * The suite is fully self-contained: it does not read or depend on
+ * whatever the real employees/payslips/payroll_runs tables happen to
+ * contain, and runs identically whether the local database is fully
+ * populated or completely empty. Fixture periods are chosen to be years
+ * with zero pre-existing local data, so even if the rollback somehow
+ * didn't happen, no developer's real record would be overwritten
+ * (INSERTs would simply fail on a genuine employee_id/period collision
+ * rather than corrupt anything). The June 2026 orphan-payslip repair
+ * script is never executed by this suite.
  *
  * Usage: php tests/payroll_dashboard_aggregation_test.php
  */
@@ -49,19 +53,24 @@ $FY = (int)date('Y') - 3;
 echo "=== Payroll Dashboard Aggregation Regression Suite ===\n";
 echo "Fixture year: $FY (chosen to have zero pre-existing local data)\n\n";
 
-// Real employee ids already present locally — safe to reference (FK
-// requires an existing employees.id), never written to, only referenced
-// by temporary payslip fixture rows that are rolled back.
-$empIds = $db->query("SELECT id FROM employees ORDER BY id LIMIT 6")->fetchAll(PDO::FETCH_COLUMN);
-if (count($empIds) < 6) {
-    fwrite(STDERR, "Need at least 6 employees in the local database to run this suite.\n");
-    exit(1);
-}
-[$E1, $E2, $E3, $E4, $E5, $E6] = $empIds;
-
 $db->beginTransaction();
 
 try {
+    // Self-contained fixture employees, created fresh inside this
+    // transaction rather than borrowed from whatever the real employees
+    // table happens to contain — the suite must run identically whether
+    // the local database has 0 employees (e.g. right after an intentional
+    // full wipe) or thousands. All six are removed by the rollback at the
+    // end along with everything else this suite inserts.
+    $empIds = [];
+    for ($i = 1; $i <= 6; $i++) {
+        $db->prepare("INSERT INTO employees (employee_number, first_name, last_name, status)
+            VALUES (?,?,?,?)")
+            ->execute(["TEST-FIXTURE-EMP-$i", "Fixture$i", "Employee", 'active']);
+        $empIds[] = (int)$db->lastInsertId();
+    }
+    [$E1, $E2, $E3, $E4, $E5, $E6] = $empIds;
+
     function insertPayslip(PDO $db, int $empId, int $month, int $year, ?int $runId, string $status,
                             float $gross, float $ded, float $net): int {
         $db->prepare("INSERT INTO payslips
@@ -200,6 +209,110 @@ try {
     record($results, approx($s['total_gross'], 4000.00), 'TEST11 draft-run-not-yet-linked: total_gross is 4000.00, not 0.00');
     record($results, $s['mode'] === 'unlinked_period', 'TEST11 draft-run-not-yet-linked: mode is unlinked_period despite a run row existing');
     record($results, $s['run'] !== null && (int)$s['run']['id'] === $run11, 'TEST11 draft-run-not-yet-linked: run object is still returned (status draft)');
+
+    // A second fixture year, independently confirmed empty, so TEST12-20
+    // below can never collide with TEST1-11 above.
+    $FY2 = $FY - 1;
+
+    // ── TEST 12: Single employee ─────────────────────────────────────────
+    insertPayslip($db, $E1, 1, $FY2, null, 'draft', 4500.00, 450.00, 4050.00);
+    $s = getPayrollPeriodSummary(1, $FY2);
+    record($results, $s['payslip_count'] === 1, 'TEST12 single employee: payslip_count is 1');
+    record($results, approx($s['total_gross'], 4500.00), 'TEST12 single employee: total_gross is 4500.00');
+
+    // ── TEST 13: Published run status is also authoritative (not just finalized) ─
+    $run13 = insertRun($db, 2, $FY2, 'published');
+    insertPayslip($db, $E1, 2, $FY2, $run13, 'sent', 6000.00, 600.00, 5400.00);
+    insertPayslip($db, $E2, 2, $FY2, null, 'draft', 9999.00, 0.00, 9999.00); // unlinked, must be excluded
+    $s = getPayrollPeriodSummary(2, $FY2);
+    record($results, $s['payslip_count'] === 1, 'TEST13 published run: only the linked payslip counts (1, not 2)');
+    record($results, approx($s['total_gross'], 6000.00), 'TEST13 published run: total_gross is 6000.00, unlinked draft excluded');
+    record($results, $s['mode'] === 'payroll_run', 'TEST13 published run: mode is payroll_run (published is authoritative, same as finalized)');
+
+    // ── TEST 14: Cross-year isolation (same month number, different years) ─
+    insertPayslip($db, $E6, 10, $FY,  null, 'draft', 1111.00, 0.00, 1111.00); // FY,  month 10 (previously unused slot)
+    insertPayslip($db, $E2, 4,  $FY2, null, 'draft', 2222.00, 0.00, 2222.00); // FY2, month 4  (previously unused slot)
+    $sFY  = getPayrollPeriodSummary(10, $FY);
+    $sFY2 = getPayrollPeriodSummary(4, $FY2);
+    record($results, approx($sFY['total_gross'], 1111.00), 'TEST14 cross-year isolation: FY month-10 total is exactly its own fixture (1111.00)');
+    record($results, approx($sFY2['total_gross'], 2222.00), 'TEST14 cross-year isolation: FY2 month-4 total is exactly its own fixture (2222.00), independent of FY');
+
+    // ── TEST 15: Moderate-volume dataset (30 payslips in one period) ────
+    for ($i = 0; $i < 30; $i++) {
+        $empPool = [$E1, $E2, $E3, $E4, $E5, $E6];
+        $emp = $empPool[$i % count($empPool)];
+        // Can't reuse the same employee twice in the same period (UNIQUE
+        // employee_id+period_month+period_year) — spread across months
+        // 6..10 of FY2 instead of colliding on one single period.
+        $m = 6 + ($i % 5);
+        insertPayslip($db, $emp, $m, $FY2, null, 'draft', 1000.00 + $i, 100.00, 900.00 + $i);
+    }
+    $volumeTotal = 0; $volumeCount = 0;
+    for ($m = 6; $m <= 10; $m++) {
+        $s = getPayrollPeriodSummary($m, $FY2);
+        $volumeCount += $s['payslip_count'];
+        $volumeTotal += $s['total_gross'];
+    }
+    record($results, $volumeCount === 30, 'TEST15 moderate-volume dataset: all 30 fixture payslips are accounted for across their periods');
+    record($results, $volumeTotal > 0, 'TEST15 moderate-volume dataset: aggregation completes without error across 30 rows');
+
+    // ── TEST 16: Dangling payroll_run_id (simulates a deleted payroll run) ─
+    // payslips.payroll_run_id has no FK constraint (see completion report
+    // §18 / Phase 8 assessment) — nothing stops a payslip from pointing at
+    // a payroll_runs.id that no longer exists. No payroll_runs row is
+    // inserted for this period at all, so $run is null and the query
+    // scope is "unlinked_period" (payroll_run_id IS NULL) — a payslip
+    // with a non-null-but-dangling payroll_run_id will NOT match that
+    // filter and is correctly excluded, exactly like any other linked
+    // payslip would be once its run stops being the authoritative one.
+    insertPayslip($db, $E5, 11, $FY2, 999999, 'finalized', 7777.00, 777.00, 7000.00);
+    $s = getPayrollPeriodSummary(11, $FY2);
+    record($results, $s['payslip_count'] === 0, 'TEST16 dangling payroll_run_id: a payslip pointing at a non-existent run is not silently counted (0, not 1)');
+    record($results, $s['total_gross'] === 0.0, 'TEST16 dangling payroll_run_id: totals are 0.00, not the dangling row\'s figures');
+
+    // ── TEST 17: Deleted employee (ON DELETE CASCADE) ────────────────────
+    // A temporary, clearly-labelled fixture employee — never a real one —
+    // created and destroyed entirely inside this same rolled-back
+    // transaction. Confirms payslips.employee_id's ON DELETE CASCADE FK
+    // (schema.sql) actually removes the payslip when the employee row is
+    // deleted, so a payroll total can never reference a nonexistent employee.
+    $db->prepare("INSERT INTO employees (employee_number, first_name, last_name, status)
+        VALUES ('TEST-FIXTURE-DELETE-ME', 'Fixture', 'ToDelete', 'active')")->execute();
+    $tempEmpId = (int)$db->lastInsertId();
+    insertPayslip($db, $tempEmpId, 3, $FY2, null, 'draft', 3333.00, 0.00, 3333.00);
+    $before = getPayrollPeriodSummary(3, $FY2);
+    $db->prepare("DELETE FROM employees WHERE id=?")->execute([$tempEmpId]);
+    $after = getPayrollPeriodSummary(3, $FY2);
+    record($results, $before['payslip_count'] === 1, 'TEST17 deleted employee: payslip counted while employee still exists');
+    record($results, $after['payslip_count'] === 0, 'TEST17 deleted employee: ON DELETE CASCADE removed the payslip, total drops to 0');
+
+    // ── TEST 18: Null gross_salary ───────────────────────────────────────
+    // payslips.gross_salary is a nullable column (schema.sql). SUM() over
+    // SQL NULL contributes 0, not an error — confirm that holds through
+    // the full aggregation + normalization path, and the row is still
+    // counted (a payslip existing with an unset amount is a data-quality
+    // signal, not a reason to hide the row from the count).
+    $db->prepare("INSERT INTO payslips (employee_id, period_month, period_year, payroll_run_id, gross_salary, net_salary, total_deductions, status)
+        VALUES (?,?,?,?,NULL,?,?,?)")->execute([$E6, 6, $FY2 - 1, null, 500.00, 0.00, 'draft']); // FY2-1: a third, untouched fixture year
+    $s = getPayrollPeriodSummary(6, $FY2 - 1);
+    record($results, $s['payslip_count'] === 1, 'TEST18 null gross_salary: row is still counted (1)');
+    record($results, $s['total_gross'] === 0.0, 'TEST18 null gross_salary: SUM() over NULL contributes 0.00, no PHP error/warning');
+
+    // ── TEST 19: Malformed / boundary values (negative gross_salary) ────
+    insertPayslip($db, $E1, 7, $FY2 - 1, null, 'draft', -500.00, 0.00, -500.00);
+    $s = getPayrollPeriodSummary(7, $FY2 - 1);
+    record($results, $s['payslip_count'] === 1, 'TEST19 malformed value: negative-gross row is still counted, not silently dropped');
+    record($results, approx($s['total_gross'], -500.00), 'TEST19 malformed value: negative total is preserved, not clamped/hidden');
+    record($results, $s['warning'] === null, 'TEST19 malformed value: net=gross-deductions still reconciles (-500 = -500 - 0), so no false invariant warning fires just because the amount is negative');
+
+    // ── TEST 20: Idempotency (repeated calls return identical results) ──
+    $callA = getPayrollPeriodSummary(2, $FY2); // reuses TEST13's published-run period
+    $callB = getPayrollPeriodSummary(2, $FY2);
+    record($results,
+        $callA['payslip_count'] === $callB['payslip_count']
+        && $callA['total_gross'] === $callB['total_gross']
+        && $callA['mode'] === $callB['mode'],
+        'TEST20 idempotency: calling getPayrollPeriodSummary() twice for the same period returns identical results (no hidden state/side effects)');
 
 } finally {
     $db->rollBack();

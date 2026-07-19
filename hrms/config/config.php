@@ -26,7 +26,17 @@ define('BUILD_ID', getenv('BUILD_ID') ?: (getenv('GIT_COMMIT') ?: APP_VERSION));
 // existing local XAMPP dev behavior exactly, so no environment
 // variable needs to be set anywhere for local development to keep
 // working unchanged.
-define('APP_URL', getenv('APP_URL') ?: 'http://localhost/HR_Komagin');
+//
+// 2026-07-18: the fallback below previously read 'http://localhost/
+// HR_Komagin' — correct before this app lived in its own top-level
+// htdocs folder, but stale ever since commit 73924a6 restructured the
+// repository into this Komagin_Enterprise_System/hrms monorepo layout
+// and never updated it. A stale APP_URL breaks every internal absolute
+// link the app generates from it — including, critically, the
+// post-login redirect to dashboard.php, which is why a fresh local
+// login was landing on a 404 instead of the dashboard. Updated to match
+// this repository's actual current local path.
+define('APP_URL', getenv('APP_URL') ?: 'http://localhost/Komagin_Enterprise_System/hrms');
 
 // Database Configuration
 // Phase 6, Stage 6.4: default fallback is '127.0.0.1', not 'localhost'.
