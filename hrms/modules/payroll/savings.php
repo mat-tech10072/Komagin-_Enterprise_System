@@ -129,16 +129,16 @@ include __DIR__ . '/../../includes/header.php';
 <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
     <div class="stat-card">
         <div class="stat-label">Total Fund Balance</div>
-        <div class="stat-value"><?= CURRENCY_SYMBOL ?> <?= nf($totBalance,2) ?></div>
+        <div class="stat-value"><?= HRMS_CURRENCY_SYMBOL ?> <?= nf($totBalance,2) ?></div>
         <div class="stat-sub"><?= count($records) ?> active records</div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Total Employee Contributions</div>
-        <div class="stat-value"><?= CURRENCY_SYMBOL ?> <?= nf($totEmpC,2) ?></div>
+        <div class="stat-value"><?= HRMS_CURRENCY_SYMBOL ?> <?= nf($totEmpC,2) ?></div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Total Employer Contributions</div>
-        <div class="stat-value"><?= CURRENCY_SYMBOL ?> <?= nf($totErC,2) ?></div>
+        <div class="stat-value"><?= HRMS_CURRENCY_SYMBOL ?> <?= nf($totErC,2) ?></div>
     </div>
 </div>
 
@@ -182,7 +182,7 @@ include __DIR__ . '/../../includes/header.php';
                         <input type="number" name="employee_rate_pct" class="form-control" step="0.01" min="0" placeholder="0.00">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Monthly Employee (<?= CURRENCY_CODE ?>)</label>
+                        <label class="form-label">Monthly Employee (<?= HRMS_CURRENCY_CODE ?>)</label>
                         <input type="number" name="monthly_employee_contrib" class="form-control" step="0.01" min="0" placeholder="0.00">
                     </div>
                     <div class="form-group">
@@ -190,25 +190,25 @@ include __DIR__ . '/../../includes/header.php';
                         <input type="number" name="employer_rate_pct" class="form-control" step="0.01" min="0" placeholder="0.00">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Monthly Employer (<?= CURRENCY_CODE ?>)</label>
+                        <label class="form-label">Monthly Employer (<?= HRMS_CURRENCY_CODE ?>)</label>
                         <input type="number" name="monthly_employer_contrib" class="form-control" step="0.01" min="0" placeholder="0.00">
                     </div>
                 </div>
                 <div class="form-row form-row-4">
                     <div class="form-group">
-                        <label class="form-label">Total Employee Contrib (<?= CURRENCY_CODE ?>)</label>
+                        <label class="form-label">Total Employee Contrib (<?= HRMS_CURRENCY_CODE ?>)</label>
                         <input type="number" name="total_employee_contrib" class="form-control" step="0.01" min="0" placeholder="0.00">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Total Employer Contrib (<?= CURRENCY_CODE ?>)</label>
+                        <label class="form-label">Total Employer Contrib (<?= HRMS_CURRENCY_CODE ?>)</label>
                         <input type="number" name="total_employer_contrib" class="form-control" step="0.01" min="0" placeholder="0.00">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Current Balance (<?= CURRENCY_CODE ?>)</label>
+                        <label class="form-label">Current Balance (<?= HRMS_CURRENCY_CODE ?>)</label>
                         <input type="number" name="current_balance" class="form-control" step="0.01" min="0" placeholder="0.00">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Target Amount (<?= CURRENCY_CODE ?>)</label>
+                        <label class="form-label">Target Amount (<?= HRMS_CURRENCY_CODE ?>)</label>
                         <input type="number" name="target_amount" class="form-control" step="0.01" min="0" placeholder="0.00">
                     </div>
                 </div>
@@ -283,9 +283,9 @@ include __DIR__ . '/../../includes/header.php';
                     <td><?= e($r['fund_name']??'—') ?></td>
                     <td><?= $r['employee_rate_pct'] ?>%</td>
                     <td><?= $r['employer_rate_pct'] ?>%</td>
-                    <td><?= CURRENCY_SYMBOL ?> <?= nf($r['monthly_employee_contrib'],2) ?></td>
-                    <td><?= CURRENCY_SYMBOL ?> <?= nf($r['monthly_employer_contrib'],2) ?></td>
-                    <td><strong><?= CURRENCY_SYMBOL ?> <?= nf($r['current_balance'],2) ?></strong></td>
+                    <td><?= HRMS_CURRENCY_SYMBOL ?> <?= nf($r['monthly_employee_contrib'],2) ?></td>
+                    <td><?= HRMS_CURRENCY_SYMBOL ?> <?= nf($r['monthly_employer_contrib'],2) ?></td>
+                    <td><strong><?= HRMS_CURRENCY_SYMBOL ?> <?= nf($r['current_balance'],2) ?></strong></td>
                     <td style="min-width:120px">
                         <?php if ($r['target_amount']>0): ?>
                         <div style="font-size:0.65rem;margin-bottom:3px"><?= number_format($pct,1) ?>%</div>

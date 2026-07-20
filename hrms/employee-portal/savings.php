@@ -46,17 +46,17 @@ epLayoutStart('Savings & Benefits', 'savings');
 <div class="ep-kpi-grid" style="grid-template-columns:repeat(3,1fr)">
     <div class="ep-kpi green">
         <div class="ep-kpi-label">Total Balance</div>
-        <div class="ep-kpi-value"><?= CURRENCY_SYMBOL ?> <?= number_format($totalBalance, 2) ?></div>
+        <div class="ep-kpi-value"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($totalBalance, 2) ?></div>
         <div class="ep-kpi-sub">All funds combined</div>
     </div>
     <div class="ep-kpi info">
         <div class="ep-kpi-label">Your Contributions</div>
-        <div class="ep-kpi-value"><?= CURRENCY_SYMBOL ?> <?= number_format($totalEmployee, 2) ?></div>
+        <div class="ep-kpi-value"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($totalEmployee, 2) ?></div>
         <div class="ep-kpi-sub">Total employee contributions</div>
     </div>
     <div class="ep-kpi amber">
         <div class="ep-kpi-label">Employer Contributions</div>
-        <div class="ep-kpi-value"><?= CURRENCY_SYMBOL ?> <?= number_format($totalEmployer, 2) ?></div>
+        <div class="ep-kpi-value"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($totalEmployer, 2) ?></div>
         <div class="ep-kpi-sub">Total employer contributions</div>
     </div>
 </div>
@@ -74,7 +74,7 @@ epLayoutStart('Savings & Benefits', 'savings');
     <div class="savings-card">
         <div class="savings-header" style="background:linear-gradient(135deg,<?= $color ?> 0%,<?= $color ?>cc 100%)">
             <div class="savings-title"><?= $label ?><?= $sv['fund_name'] ? ' — ' . htmlspecialchars($sv['fund_name']) : '' ?></div>
-            <div class="savings-amount"><?= CURRENCY_SYMBOL ?> <?= number_format($sv['current_balance'], 2) ?></div>
+            <div class="savings-amount"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($sv['current_balance'], 2) ?></div>
             <?php if ($sv['target_amount'] > 0): ?>
             <div style="font-size:0.72rem;opacity:.75;margin-top:4px">Target: R <?= number_format($sv['target_amount'],2) ?></div>
             <?php endif; ?>
@@ -96,19 +96,19 @@ epLayoutStart('Savings & Benefits', 'savings');
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div>
                     <div style="font-size:0.65rem;text-transform:uppercase;font-weight:600;color:var(--text-muted)">Your Rate</div>
-                    <div style="font-size:0.82rem;font-weight:600"><?= $sv['employee_rate_pct'] ?>% / <?= $sv['monthly_employee_contrib'] > 0 ? CURRENCY_SYMBOL . " " . number_format($sv['monthly_employee_contrib'],2).'/mo' : '—' ?></div>
+                    <div style="font-size:0.82rem;font-weight:600"><?= $sv['employee_rate_pct'] ?>% / <?= $sv['monthly_employee_contrib'] > 0 ? HRMS_CURRENCY_SYMBOL . " " . number_format($sv['monthly_employee_contrib'],2).'/mo' : '—' ?></div>
                 </div>
                 <div>
                     <div style="font-size:0.65rem;text-transform:uppercase;font-weight:600;color:var(--text-muted)">Employer Rate</div>
-                    <div style="font-size:0.82rem;font-weight:600"><?= $sv['employer_rate_pct'] ?>% / <?= $sv['monthly_employer_contrib'] > 0 ? CURRENCY_SYMBOL . " " . number_format($sv['monthly_employer_contrib'],2).'/mo' : '—' ?></div>
+                    <div style="font-size:0.82rem;font-weight:600"><?= $sv['employer_rate_pct'] ?>% / <?= $sv['monthly_employer_contrib'] > 0 ? HRMS_CURRENCY_SYMBOL . " " . number_format($sv['monthly_employer_contrib'],2).'/mo' : '—' ?></div>
                 </div>
                 <div>
                     <div style="font-size:0.65rem;text-transform:uppercase;font-weight:600;color:var(--text-muted)">Total Yours</div>
-                    <div style="font-size:0.82rem;font-weight:600"><?= CURRENCY_SYMBOL ?> <?= number_format($sv['total_employee_contrib'],2) ?></div>
+                    <div style="font-size:0.82rem;font-weight:600"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($sv['total_employee_contrib'],2) ?></div>
                 </div>
                 <div>
                     <div style="font-size:0.65rem;text-transform:uppercase;font-weight:600;color:var(--text-muted)">Total Employer</div>
-                    <div style="font-size:0.82rem;font-weight:600"><?= CURRENCY_SYMBOL ?> <?= number_format($sv['total_employer_contrib'],2) ?></div>
+                    <div style="font-size:0.82rem;font-weight:600"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($sv['total_employer_contrib'],2) ?></div>
                 </div>
                 <?php if ($sv['start_date']): ?>
                 <div>

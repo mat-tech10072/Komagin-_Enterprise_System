@@ -135,16 +135,16 @@ include __DIR__ . '/../../includes/header.php';
     </div>
     <div class="stat-card">
         <div class="stat-label">Total Gross (<?=$year?>)</div>
-        <div class="stat-value"><?= CURRENCY_SYMBOL ?> <?= number_format($annual['total_gross']??0,0) ?></div>
+        <div class="stat-value"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($annual['total_gross']??0,0) ?></div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Total Deductions</div>
-        <div class="stat-value"><?= CURRENCY_SYMBOL ?> <?= number_format($annual['total_ded']??0,0) ?></div>
+        <div class="stat-value"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($annual['total_ded']??0,0) ?></div>
         <div class="stat-sub">Tax + UIF + other</div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Total Net Pay</div>
-        <div class="stat-value"><?= CURRENCY_SYMBOL ?> <?= number_format($annual['total_net']??0,0) ?></div>
+        <div class="stat-value"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($annual['total_net']??0,0) ?></div>
     </div>
 </div>
 
@@ -178,21 +178,21 @@ include __DIR__ . '/../../includes/header.php';
                     <tr>
                         <td><strong><?= $monthNames[$m['period_month']] ?></strong></td>
                         <td><?= $m['emp_count'] ?></td>
-                        <td><?= CURRENCY_SYMBOL ?> <?= nf($m['total_gross'],2) ?></td>
-                        <td><?= CURRENCY_SYMBOL ?> <?= nf($m['total_ded'],2) ?></td>
-                        <td><strong><?= CURRENCY_SYMBOL ?> <?= nf($m['total_net'],2) ?></strong></td>
-                        <td><?= CURRENCY_SYMBOL ?> <?= number_format($m['total_tax']??0,2) ?></td>
-                        <td><?= CURRENCY_SYMBOL ?> <?= number_format($m['total_uif']??0,2) ?></td>
+                        <td><?= HRMS_CURRENCY_SYMBOL ?> <?= nf($m['total_gross'],2) ?></td>
+                        <td><?= HRMS_CURRENCY_SYMBOL ?> <?= nf($m['total_ded'],2) ?></td>
+                        <td><strong><?= HRMS_CURRENCY_SYMBOL ?> <?= nf($m['total_net'],2) ?></strong></td>
+                        <td><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($m['total_tax']??0,2) ?></td>
+                        <td><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($m['total_uif']??0,2) ?></td>
                     </tr>
                     <?php endforeach; ?>
                     <tr style="background:var(--bg);font-weight:700">
                         <td>TOTAL</td>
                         <td>—</td>
-                        <td><?= CURRENCY_SYMBOL ?> <?= number_format($annual['total_gross']??0,2) ?></td>
-                        <td><?= CURRENCY_SYMBOL ?> <?= number_format($annual['total_ded']??0,2) ?></td>
-                        <td><?= CURRENCY_SYMBOL ?> <?= number_format($annual['total_net']??0,2) ?></td>
-                        <td><?= CURRENCY_SYMBOL ?> <?= number_format($annual['total_tax']??0,2) ?></td>
-                        <td><?= CURRENCY_SYMBOL ?> <?= number_format($annual['total_uif']??0,2) ?></td>
+                        <td><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($annual['total_gross']??0,2) ?></td>
+                        <td><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($annual['total_ded']??0,2) ?></td>
+                        <td><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($annual['total_net']??0,2) ?></td>
+                        <td><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($annual['total_tax']??0,2) ?></td>
+                        <td><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($annual['total_uif']??0,2) ?></td>
                     </tr>
                 </tbody>
             </table>
@@ -211,7 +211,7 @@ include __DIR__ . '/../../includes/header.php';
                 <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
                     <span style="font-size:0.78rem"><?= $typeLabels[$d['deduction_type']]??$d['deduction_type'] ?></span>
                     <div style="text-align:right">
-                        <div style="font-size:0.78rem;font-weight:600"><?= CURRENCY_SYMBOL ?> <?= nf($d['total_amount'],2) ?></div>
+                        <div style="font-size:0.78rem;font-weight:600"><?= HRMS_CURRENCY_SYMBOL ?> <?= nf($d['total_amount'],2) ?></div>
                         <div style="font-size:0.67rem;color:var(--text-muted)"><?= $d['count'] ?> records</div>
                     </div>
                 </div>
@@ -236,7 +236,7 @@ include __DIR__ . '/../../includes/header.php';
                 <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
                     <span style="font-size:0.78rem"><?= $typeLabelsS[$s['savings_type']]??$s['savings_type'] ?></span>
                     <div style="text-align:right">
-                        <div style="font-size:0.78rem;font-weight:600"><?= CURRENCY_SYMBOL ?> <?= nf($s['total'],2) ?></div>
+                        <div style="font-size:0.78rem;font-weight:600"><?= HRMS_CURRENCY_SYMBOL ?> <?= nf($s['total'],2) ?></div>
                         <div style="font-size:0.67rem;color:var(--text-muted)"><?= $s['count'] ?> employees</div>
                     </div>
                 </div>
@@ -266,8 +266,8 @@ include __DIR__ . '/../../includes/header.php';
                         <div style="font-size:0.7rem;color:var(--text-muted)"><?= e($t['employee_number']) ?></div>
                     </td>
                     <td><?= e($t['dept_name']??'—') ?></td>
-                    <td><?= CURRENCY_SYMBOL ?> <?= nf($t['annual_gross'],2) ?></td>
-                    <td><strong><?= CURRENCY_SYMBOL ?> <?= nf($t['annual_net'],2) ?></strong></td>
+                    <td><?= HRMS_CURRENCY_SYMBOL ?> <?= nf($t['annual_gross'],2) ?></td>
+                    <td><strong><?= HRMS_CURRENCY_SYMBOL ?> <?= nf($t['annual_net'],2) ?></strong></td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>

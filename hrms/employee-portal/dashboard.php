@@ -55,7 +55,7 @@ epLayoutStart('Dashboard', 'dashboard');
 <div class="ep-kpi-grid">
     <div class="ep-kpi green">
         <div class="ep-kpi-label">Net Pay (Latest)</div>
-        <div class="ep-kpi-value"><?= CURRENCY_SYMBOL ?> <?= $latestPayslip ? number_format($latestPayslip['net_salary'],2) : '—' ?></div>
+        <div class="ep-kpi-value"><?= HRMS_CURRENCY_SYMBOL ?> <?= $latestPayslip ? number_format($latestPayslip['net_salary'],2) : '—' ?></div>
         <div class="ep-kpi-sub">
             <?= $latestPayslip ? date('F Y', mktime(0,0,0,$latestPayslip['period_month'],1,$latestPayslip['period_year'])) : 'No payslip yet' ?>
         </div>
@@ -67,7 +67,7 @@ epLayoutStart('Dashboard', 'dashboard');
     </div>
     <div class="ep-kpi info">
         <div class="ep-kpi-label">Savings Balance</div>
-        <div class="ep-kpi-value"><?= CURRENCY_SYMBOL ?> <?= number_format($totalSavings, 2) ?></div>
+        <div class="ep-kpi-value"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($totalSavings, 2) ?></div>
         <div class="ep-kpi-sub">All funds combined</div>
     </div>
     <div class="ep-kpi" style="border-left-color:<?= $openRequests>0 ? '#D97706' : '#16A34A' ?>">

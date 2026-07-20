@@ -143,11 +143,11 @@ include __DIR__ . '/../../includes/header.php';
                         <input type="number" name="percentage" class="form-control" step="0.01" min="0" max="100" placeholder="% rate">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Fixed Amount (<?= CURRENCY_CODE ?>)</label>
+                        <label class="form-label">Fixed Amount (<?= HRMS_CURRENCY_CODE ?>)</label>
                         <input type="number" name="amount" class="form-control" step="0.01" min="0" placeholder="0.00">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Employer Contribution (<?= CURRENCY_CODE ?>)</label>
+                        <label class="form-label">Employer Contribution (<?= HRMS_CURRENCY_CODE ?>)</label>
                         <input type="number" name="employer_contribution" class="form-control" step="0.01" min="0" placeholder="0.00">
                     </div>
                     <div class="form-group">

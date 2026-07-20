@@ -135,17 +135,17 @@ $showPayrollDiagnostics = getenv('PAYROLL_DIAGNOSTICS') === '1'
     </div>
     <div class="stat-card">
         <div class="stat-label">Total Gross</div>
-        <div class="stat-value"><?= CURRENCY_SYMBOL ?> <?= number_format($payrollTotalGross,2) ?></div>
+        <div class="stat-value"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($payrollTotalGross,2) ?></div>
         <div class="stat-sub">Before deductions</div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Total Deductions</div>
-        <div class="stat-value"><?= CURRENCY_SYMBOL ?> <?= number_format($payrollTotalDed,2) ?></div>
+        <div class="stat-value"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($payrollTotalDed,2) ?></div>
         <div class="stat-sub">Tax + UIF + other</div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Total Net Pay</div>
-        <div class="stat-value"><?= CURRENCY_SYMBOL ?> <?= number_format($payrollTotalNet,2) ?></div>
+        <div class="stat-value"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($payrollTotalNet,2) ?></div>
         <div class="stat-sub">Take-home total</div>
     </div>
 </div>
@@ -173,8 +173,8 @@ $showPayrollDiagnostics = getenv('PAYROLL_DIAGNOSTICS') === '1'
                 <?= ucfirst($run['status']) ?>
             </span>
             <span style="font-size:0.82rem">Employees: <strong><?= $run['employee_count'] ?></strong></span>
-            <span style="font-size:0.82rem">Gross: <strong><?= CURRENCY_SYMBOL ?> <?= number_format($run['total_gross'],2) ?></strong></span>
-            <span style="font-size:0.82rem">Net: <strong><?= CURRENCY_SYMBOL ?> <?= number_format($run['total_net'],2) ?></strong></span>
+            <span style="font-size:0.82rem">Gross: <strong><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($run['total_gross'],2) ?></strong></span>
+            <span style="font-size:0.82rem">Net: <strong><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($run['total_net'],2) ?></strong></span>
             <?php if ($run['finalized_at']): ?>
             <span style="font-size:0.78rem;color:var(--text-muted)">Finalized: <?= date('d M Y', strtotime($run['finalized_at'])) ?></span>
             <?php endif; ?>
@@ -230,9 +230,9 @@ $showPayrollDiagnostics = getenv('PAYROLL_DIAGNOSTICS') === '1'
                 <tr>
                     <td><?= e($ps['first_name'].' '.$ps['last_name']) ?></td>
                     <td class="text-muted" style="font-family:monospace;font-size:0.72rem"><?= e($ps['employee_number']) ?></td>
-                    <td><?= CURRENCY_SYMBOL ?> <?= number_format($ps['gross_salary'],2) ?></td>
-                    <td><?= CURRENCY_SYMBOL ?> <?= number_format($ps['total_deductions']??0,2) ?></td>
-                    <td><strong><?= CURRENCY_SYMBOL ?> <?= number_format($ps['net_salary'],2) ?></strong></td>
+                    <td><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($ps['gross_salary'],2) ?></td>
+                    <td><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($ps['total_deductions']??0,2) ?></td>
+                    <td><strong><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($ps['net_salary'],2) ?></strong></td>
                     <td><span class="badge <?= $sc[$ps['status']] ?? 'badge-secondary' ?>"><?= ucfirst($ps['status']) ?></span></td>
                     <td>
                         <a href="<?= APP_URL ?>/modules/payroll/payslips.php?edit=<?=$ps['id']?>" class="btn btn-ghost btn-sm">Edit</a>

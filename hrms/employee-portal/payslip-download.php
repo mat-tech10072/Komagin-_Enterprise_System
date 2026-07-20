@@ -53,7 +53,7 @@ $months = ['','January','February','March','April','May','June',
 $period = $months[(int)$ps['period_month']] . ' ' . $ps['period_year'];
 $empName = trim(($ps['first_name'] ?? '') . ' ' . ($ps['last_name'] ?? ''));
 $psRef   = 'PS-' . str_pad($psId, 6, '0', STR_PAD_LEFT);
-$cur     = CURRENCY_SYMBOL;
+$cur     = HRMS_CURRENCY_SYMBOL;
 
 $earnings   = array_filter($items, fn($i) => $i['item_type'] === 'earning');
 $deductions = array_filter($items, fn($i) => $i['item_type'] === 'deduction');

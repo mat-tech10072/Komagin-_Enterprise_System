@@ -179,7 +179,7 @@ include __DIR__ . '/../../includes/header.php';
             </div>
             <div class="form-row form-row-3">
                 <div class="form-group">
-                    <label class="form-label">Basic Salary (<?= CURRENCY_CODE ?>)</label>
+                    <label class="form-label">Basic Salary (<?= HRMS_CURRENCY_CODE ?>)</label>
                     <input type="number" name="basic_salary" class="form-control" step="0.01" min="0"
                            value="<?= $editSlip?$editSlip['basic_salary']:'' ?>" id="basicSalary">
                 </div>
@@ -189,42 +189,42 @@ include __DIR__ . '/../../includes/header.php';
                            value="<?= $editSlip?$editSlip['overtime_hours']:0 ?>">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Overtime Amount (<?= CURRENCY_CODE ?>)</label>
+                    <label class="form-label">Overtime Amount (<?= HRMS_CURRENCY_CODE ?>)</label>
                     <input type="number" name="overtime_amount" class="form-control" step="0.01" min="0"
                            value="<?= $editSlip?$editSlip['overtime_amount']:0 ?>" id="otAmt">
                 </div>
             </div>
             <div class="form-row form-row-3">
                 <div class="form-group">
-                    <label class="form-label">Gross Salary (<?= CURRENCY_CODE ?>) <span class="text-danger">*</span></label>
+                    <label class="form-label">Gross Salary (<?= HRMS_CURRENCY_CODE ?>) <span class="text-danger">*</span></label>
                     <input type="number" name="gross_salary" class="form-control" step="0.01" min="0" required
                            value="<?= $editSlip?$editSlip['gross_salary']:'' ?>" id="grossSalary">
                     <small class="form-text text-muted">Auto-calculated or enter manually</small>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Income Tax / PAYE (<?= CURRENCY_CODE ?>)</label>
+                    <label class="form-label">Income Tax / PAYE (<?= HRMS_CURRENCY_CODE ?>)</label>
                     <input type="number" name="tax_amount" class="form-control" step="0.01" min="0"
                            value="<?= $editSlip?$editSlip['tax_amount']:0 ?>" id="taxAmt">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Employee Contribution (<?= CURRENCY_CODE ?>)</label>
+                    <label class="form-label">Employee Contribution (<?= HRMS_CURRENCY_CODE ?>)</label>
                     <input type="number" name="uif_employee" class="form-control" step="0.01" min="0"
                            value="<?= $editSlip?$editSlip['uif_employee']:0 ?>" id="uifEmp">
                 </div>
             </div>
             <div class="form-row form-row-3">
                 <div class="form-group">
-                    <label class="form-label">Employer Contribution (<?= CURRENCY_CODE ?>)</label>
+                    <label class="form-label">Employer Contribution (<?= HRMS_CURRENCY_CODE ?>)</label>
                     <input type="number" name="uif_employer" class="form-control" step="0.01" min="0"
                            value="<?= $editSlip?$editSlip['uif_employer']:0 ?>">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Other Deductions (<?= CURRENCY_CODE ?>)</label>
+                    <label class="form-label">Other Deductions (<?= HRMS_CURRENCY_CODE ?>)</label>
                     <input type="number" name="other_deductions" class="form-control" step="0.01" min="0"
                            value="<?= $editSlip?$editSlip['other_deductions']:0 ?>" id="othDed">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Net Pay (<?= CURRENCY_CODE ?>)</label>
+                    <label class="form-label">Net Pay (<?= HRMS_CURRENCY_CODE ?>)</label>
                     <input type="number" name="net_display" class="form-control" step="0.01" readonly
                            id="netPay" style="background:var(--bg);font-weight:700">
                 </div>
@@ -302,11 +302,11 @@ include __DIR__ . '/../../includes/header.php';
                         <div style="font-size:0.7rem;color:var(--text-muted)"><?= e($ps['employee_number']) ?></div>
                     </td>
                     <td><?= e($ps['dept_name']??'—') ?></td>
-                    <td><?= CURRENCY_SYMBOL ?> <?= number_format($ps['gross_salary'],2) ?></td>
-                    <td><?= CURRENCY_SYMBOL ?> <?= number_format($ps['tax_amount']??0,2) ?></td>
-                    <td><?= CURRENCY_SYMBOL ?> <?= number_format(($ps['uif_employee']??0)+($ps['uif_employer']??0),2) ?></td>
-                    <td><?= CURRENCY_SYMBOL ?> <?= number_format($ps['other_deductions']??0,2) ?></td>
-                    <td><strong><?= CURRENCY_SYMBOL ?> <?= number_format($ps['net_salary'],2) ?></strong></td>
+                    <td><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($ps['gross_salary'],2) ?></td>
+                    <td><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($ps['tax_amount']??0,2) ?></td>
+                    <td><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format(($ps['uif_employee']??0)+($ps['uif_employer']??0),2) ?></td>
+                    <td><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($ps['other_deductions']??0,2) ?></td>
+                    <td><strong><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($ps['net_salary'],2) ?></strong></td>
                     <td><span class="badge <?= $sc[$ps['status']]??'badge-secondary' ?>"><?= ucfirst($ps['status']) ?></span></td>
                     <td>
                         <a href="?edit=<?=$ps['id']?>" class="btn btn-ghost btn-sm">Edit</a>

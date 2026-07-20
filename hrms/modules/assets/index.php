@@ -134,7 +134,7 @@ $csrf = generateCsrfToken();
                 <td style="font-size:0.72rem;"><?= ucfirst($a['asset_type']) ?></td>
                 <td class="emp-num"><?= e($a['serial_number'] ?? '—') ?></td>
                 <td style="font-size:0.72rem;"><?= e($a['make_model'] ?? '—') ?></td>
-                <td style="font-size:0.75rem;"><?= $a['purchase_value'] ? CURRENCY_SYMBOL . " " . number_format($a['purchase_value'],2) : '—' ?></td>
+                <td style="font-size:0.75rem;"><?= $a['purchase_value'] ? HRMS_CURRENCY_SYMBOL . " " . number_format($a['purchase_value'],2) : '—' ?></td>
                 <td><?= $a['is_available'] ? '<span class="badge badge-success">Available</span>' : '<span class="badge badge-warning">Assigned</span>' ?></td>
                 <td style="font-size:0.75rem;"><?= e($a['assigned_to'] ?? '—') ?></td>
                 <td>
@@ -201,7 +201,7 @@ $csrf = generateCsrfToken();
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Purchase Value (<?= CURRENCY_CODE ?>)</label>
+                        <label class="form-label">Purchase Value (<?= HRMS_CURRENCY_CODE ?>)</label>
                         <input type="number" class="form-control" name="purchase_value" step="0.01" min="0">
                     </div>
                     <div class="form-group">

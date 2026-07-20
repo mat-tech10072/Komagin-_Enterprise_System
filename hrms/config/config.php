@@ -73,8 +73,26 @@ define('ALLOWED_DOC_TYPES', ['application/pdf', 'application/msword',
     'image/jpeg', 'image/png']);
 
 // Currency Settings — change these two lines to switch currency system-wide
-define('CURRENCY_SYMBOL', 'K');   // e.g. '$', '£', '€', 'K', 'N', 'R', 'USD'
-define('CURRENCY_CODE',   'PGK'); // e.g. 'USD', 'GBP', 'EUR', 'ZAR', 'NGN', 'ZMW'
+//
+// 2026-07-20: renamed from the generic CURRENCY_SYMBOL/CURRENCY_CODE to
+// HRMS_-prefixed names. CURRENCY_SYMBOL collides with a real PHP-predefined
+// constant: nl_langinfo()'s LC_MONETARY item constant of the same name
+// (see php.net/manual/en/function.nl-langinfo.php). nl_langinfo() and its
+// constants aren't compiled into PHP's Windows builds, which is why this
+// went undetected on every Windows dev machine used throughout this
+// project, but on the Linux production server the constant already
+// existed (as an integer — the raw glibc locale-item code, not a currency
+// value) before this define() ever ran. define() silently no-ops and
+// emits a warning when the target name is already defined, so production
+// kept rendering that stray integer directly in front of every monetary
+// amount instead of 'K'. Defensive defined()-guards below so re-including
+// this file is still safe, without ever touching the colliding built-in.
+if (!defined('HRMS_CURRENCY_SYMBOL')) {
+    define('HRMS_CURRENCY_SYMBOL', 'K');   // e.g. '$', '£', '€', 'K', 'N', 'R', 'USD'
+}
+if (!defined('HRMS_CURRENCY_CODE')) {
+    define('HRMS_CURRENCY_CODE', 'PGK'); // e.g. 'USD', 'GBP', 'EUR', 'ZAR', 'NGN', 'ZMW'
+}
 
 // Employee Number Format
 define('EMP_PREFIX', getenv('EMP_PREFIX') ?: 'KOM-EMP');

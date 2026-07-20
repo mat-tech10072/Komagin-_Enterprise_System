@@ -91,23 +91,23 @@ epLayoutStart($payslip ? 'Pay Slip Detail' : 'Pay Slips', 'payslips');
             <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:8px">Earnings</div>
             <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
                 <span style="font-size:0.82rem">Basic Salary</span>
-                <span style="font-size:0.82rem;font-weight:600"><?= CURRENCY_SYMBOL ?> <?= number_format($payslip['basic_salary']??0, 2) ?></span>
+                <span style="font-size:0.82rem;font-weight:600"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($payslip['basic_salary']??0, 2) ?></span>
             </div>
             <?php if ($payslip['overtime_amount'] > 0): ?>
             <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
                 <span style="font-size:0.82rem">Overtime (<?= $payslip['overtime_hours'] ?> hrs)</span>
-                <span style="font-size:0.82rem;font-weight:600"><?= CURRENCY_SYMBOL ?> <?= number_format($payslip['overtime_amount'], 2) ?></span>
+                <span style="font-size:0.82rem;font-weight:600"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($payslip['overtime_amount'], 2) ?></span>
             </div>
             <?php endif; ?>
             <?php foreach ($psItems as $item): if ($item['item_type']!=='earning') continue; ?>
             <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
                 <span style="font-size:0.82rem"><?= htmlspecialchars($item['description']) ?></span>
-                <span style="font-size:0.82rem;font-weight:600"><?= CURRENCY_SYMBOL ?> <?= number_format($item['amount'], 2) ?></span>
+                <span style="font-size:0.82rem;font-weight:600"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($item['amount'], 2) ?></span>
             </div>
             <?php endforeach; ?>
             <div style="display:flex;justify-content:space-between;padding:10px 0;font-weight:700">
                 <span>Gross Pay</span>
-                <span><?= CURRENCY_SYMBOL ?> <?= number_format($payslip['gross_salary']??0, 2) ?></span>
+                <span><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($payslip['gross_salary']??0, 2) ?></span>
             </div>
         </div>
 
@@ -141,7 +141,7 @@ epLayoutStart($payslip ? 'Pay Slip Detail' : 'Pay Slips', 'payslips');
         <!-- Net Pay -->
         <div style="background:var(--bg);border-radius:8px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
             <span style="font-size:1rem;font-weight:700">NET PAY</span>
-            <span style="font-size:1.4rem;font-weight:800;color:var(--success)"><?= CURRENCY_SYMBOL ?> <?= number_format($payslip['net_salary']??0, 2) ?></span>
+            <span style="font-size:1.4rem;font-weight:800;color:var(--success)"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($payslip['net_salary']??0, 2) ?></span>
         </div>
 
         <?php if ($payslip['notes']): ?>
@@ -177,9 +177,9 @@ epLayoutStart($payslip ? 'Pay Slip Detail' : 'Pay Slips', 'payslips');
                 </div>
                 <div style="padding:14px 16px">
                     <div style="font-size:0.67rem;color:var(--text-muted);margin-bottom:2px">Gross</div>
-                    <div style="font-size:0.82rem;font-weight:600"><?= CURRENCY_SYMBOL ?> <?= number_format($ps['gross_salary'],2) ?></div>
+                    <div style="font-size:0.82rem;font-weight:600"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($ps['gross_salary'],2) ?></div>
                     <div style="font-size:0.67rem;color:var(--text-muted);margin-top:8px;margin-bottom:2px">Net Pay</div>
-                    <div class="payslip-net"><?= CURRENCY_SYMBOL ?> <?= number_format($ps['net_salary'],2) ?></div>
+                    <div class="payslip-net"><?= HRMS_CURRENCY_SYMBOL ?> <?= number_format($ps['net_salary'],2) ?></div>
                 </div>
             </div>
         </a>

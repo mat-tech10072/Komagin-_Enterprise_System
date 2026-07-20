@@ -189,7 +189,7 @@ sendNoStorePayrollHeaders();
         ['Attendance Rate',  $attExpected > 0 ? min(100, round(($attKpi['total_present']/$attExpected)*100)).'%' : '—'],
         ['Avg Hours/Day',    $attKpi['avg_hours'] ? number_format($attKpi['avg_hours'],1).'h' : '—'],
         ['Total OT (Month)', $attKpi['total_ot'] ? number_format($attKpi['total_ot'],1).'h' : '0h'],
-        ['YTD Payroll',      canViewSalaryData() ? ($payrollSum['total_gross'] ? CURRENCY_SYMBOL . " " . number_format($payrollSum['total_gross'],0) : '—') : maskSalary(0)],
+        ['YTD Payroll',      canViewSalaryData() ? ($payrollSum['total_gross'] ? HRMS_CURRENCY_SYMBOL . " " . number_format($payrollSum['total_gross'],0) : '—') : maskSalary(0)],
         ['Open Vacancies',   $recPipeline['open'] ?? 0],
         ['Docs Generated',   array_sum($docStats)],
     ]; ?>
@@ -306,9 +306,9 @@ sendNoStorePayrollHeaders();
             // salary fields are gated everywhere else in the app (payroll.view).
             $canPay = canViewSalaryData();
             $payMeta = [
-                ['Total Gross',       $canPay ? CURRENCY_SYMBOL . " " . nf($payrollSum['total_gross']??0,2) : maskSalary(0)],
-                ['Total Net',         $canPay ? CURRENCY_SYMBOL . " " . nf($payrollSum['total_net']??0,2)   : maskSalary(0)],
-                ['Total Deductions',  $canPay ? CURRENCY_SYMBOL . " " . nf($payrollSum['total_ded']??0,2)   : maskSalary(0)],
+                ['Total Gross',       $canPay ? HRMS_CURRENCY_SYMBOL . " " . nf($payrollSum['total_gross']??0,2) : maskSalary(0)],
+                ['Total Net',         $canPay ? HRMS_CURRENCY_SYMBOL . " " . nf($payrollSum['total_net']??0,2)   : maskSalary(0)],
+                ['Total Deductions',  $canPay ? HRMS_CURRENCY_SYMBOL . " " . nf($payrollSum['total_ded']??0,2)   : maskSalary(0)],
                 ['Employees on Payroll', nf($payrollSum['emp_count']??0)],
             ]; ?>
             <?php foreach ($payMeta as [$l,$v]): ?>

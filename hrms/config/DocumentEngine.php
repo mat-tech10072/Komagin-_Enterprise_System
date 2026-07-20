@@ -203,8 +203,8 @@ class DocumentEngine
         $ps->execute([$e['id']]);
         $payRow = $ps->fetch();
         if ($payRow) {
-            $grossSalary = CURRENCY_SYMBOL . ' ' . number_format((float)$payRow['gross_salary'], 2);
-            $netSalary   = CURRENCY_SYMBOL . ' ' . number_format((float)$payRow['net_salary'],   2);
+            $grossSalary = HRMS_CURRENCY_SYMBOL . ' ' . number_format((float)$payRow['gross_salary'], 2);
+            $netSalary   = HRMS_CURRENCY_SYMBOL . ' ' . number_format((float)$payRow['net_salary'],   2);
         }
 
         return [
@@ -242,7 +242,7 @@ class DocumentEngine
             'employee.supervisor'      => $supName,
             'employee.salary_gross'    => $grossSalary,
             'employee.salary_net'      => $netSalary,
-            'employee.basic_salary'    => !empty($e['basic_salary']) ? CURRENCY_SYMBOL . ' ' . number_format((float)$e['basic_salary'], 2) : '',
+            'employee.basic_salary'    => !empty($e['basic_salary']) ? HRMS_CURRENCY_SYMBOL . ' ' . number_format((float)$e['basic_salary'], 2) : '',
             'employee.leave_balance'   => $leaveBalance,
 
             // Emergency
@@ -265,8 +265,18 @@ class DocumentEngine
             'page.number'   => '1', // static — multi-page handled by browser print
 
             // Currency
-            'currency.symbol' => defined('CURRENCY_SYMBOL') ? CURRENCY_SYMBOL : 'K',
-            'currency.code'   => defined('CURRENCY_CODE')   ? CURRENCY_CODE   : 'PGK',
+            // 2026-07-20: this defined()-guard was previously checking/reading
+            // CURRENCY_SYMBOL/CURRENCY_CODE — generic names that collide with
+            // PHP's own built-in nl_langinfo() LC_MONETARY constant of the
+            // same name on Linux. On a server where that collision was live,
+            // defined('CURRENCY_SYMBOL') was already true (PHP's own constant,
+            // not this app's), so this fallback never actually protected
+            // anything — it silently read the colliding built-in value
+            // instead of falling back to 'K'. Renamed to the HRMS_-prefixed
+            // constants (see config.php) so defined() can only ever be true
+            // here because this app's own config actually ran.
+            'currency.symbol' => defined('HRMS_CURRENCY_SYMBOL') ? HRMS_CURRENCY_SYMBOL : 'K',
+            'currency.code'   => defined('HRMS_CURRENCY_CODE')   ? HRMS_CURRENCY_CODE   : 'PGK',
         ];
     }
 

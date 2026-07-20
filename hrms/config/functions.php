@@ -590,7 +590,7 @@ function sendPayslipEmail(int $payslipId): array {
     }
 
     $settings = getCompanySettings();
-    $cur      = CURRENCY_SYMBOL;
+    $cur      = HRMS_CURRENCY_SYMBOL;
     $months   = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
     $month    = $months[(int)$ps['period_month']] ?? $ps['period_month'];
     $year     = $ps['period_year'];
@@ -858,7 +858,7 @@ function nf(?float $value, int $decimals = 0): string {
 }
 
 function money(?float $value, int $decimals = 2): string {
-    return CURRENCY_SYMBOL . ' ' . number_format((float)($value ?? 0), $decimals);
+    return HRMS_CURRENCY_SYMBOL . ' ' . number_format((float)($value ?? 0), $decimals);
 }
 
 function calculateHours(string $start, string $end, int $breakMinutes = 0): float {

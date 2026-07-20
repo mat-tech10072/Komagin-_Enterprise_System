@@ -25,8 +25,8 @@
 | `MAX_FILE_SIZE` | `10485760` (10MB) |
 | `ALLOWED_IMAGE_TYPES` | jpeg/png/gif/webp MIME array |
 | `ALLOWED_DOC_TYPES` | pdf/doc/docx/xls/xlsx + jpeg/png MIME array |
-| `CURRENCY_SYMBOL` | `'K'` |
-| `CURRENCY_CODE` | `'PGK'` |
+| `HRMS_CURRENCY_SYMBOL` | `'K'` |
+| `HRMS_CURRENCY_CODE` | `'PGK'` |
 | `EMP_PREFIX` | `'KOM-EMP'` |
 | `EMP_YEAR_FORMAT` | `'Y'` |
 | `EMP_NUMBER_LENGTH` | `4` |

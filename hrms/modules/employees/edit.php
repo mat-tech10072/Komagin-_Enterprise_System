@@ -374,12 +374,12 @@ $csrf = generateCsrfToken();
                         </div>
                         <?php if (canViewSalaryData()): ?>
                         <div class="form-group">
-                            <label class="form-label">Gross Salary (<?= CURRENCY_CODE ?>)</label>
+                            <label class="form-label">Gross Salary (<?= HRMS_CURRENCY_CODE ?>)</label>
                             <input type="number" class="form-control" name="salary" value="<?= e($emp['basic_salary'] ?? '') ?>" step="0.01" min="0">
                         </div>
                         <?php else: ?>
                         <div class="form-group">
-                            <label class="form-label">Gross Salary (<?= CURRENCY_CODE ?>)</label>
+                            <label class="form-label">Gross Salary (<?= HRMS_CURRENCY_CODE ?>)</label>
                             <div style="padding:8px 12px;background:var(--bg);border-radius:6px;border:1px solid var(--border);font-size:0.78rem;color:var(--text-muted);">
                                 Restricted — requires Payroll access
                             </div>
